@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <title>עריכת מסמך - EasyPen</title>
+  <meta name="theme-color" content="#7367f0">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="viewer">
+  <header class="app-header viewer-header">
+    <a href="index.html" id="back-btn" class="icon-btn" aria-label="חזרה למסך הבית">
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="m8.6 16.6 1.4 1.4 6-6-6-6-1.4 1.4 4.6 4.6z"/></svg>
+    </a>
+    <div class="doc-title">
+      <span id="doc-name">טוען מסמך…</span>
+      <span id="doc-pages" class="muted small"></span>
+    </div>
+  </header>
+
+  <main id="pages" class="pages"></main>
+
+  <div id="status" class="status-screen">
+    <div class="spinner" aria-hidden="true"></div>
+    <p id="status-text">טוען מסמך…</p>
+    <a id="status-home" href="index.html" class="btn btn-primary" hidden>חזרה למסך הבית</a>
+  </div>
+
+  <div id="mode-hint" class="mode-hint" hidden>
+    <span>הקישו במקום בעמוד כדי להוסיף טקסט</span>
+    <button type="button" id="mode-cancel" class="btn btn-ghost btn-sm">ביטול</button>
+  </div>
+
+  <div id="item-toolbar" class="item-toolbar" hidden>
+    <div class="text-tools" hidden>
+      <button type="button" class="icon-btn" data-action="font-down" aria-label="הקטנת גופן">A−</button>
+      <span class="font-size" aria-live="polite"></span>
+      <button type="button" class="icon-btn" data-action="font-up" aria-label="הגדלת גופן">A+</button>
+    </div>
+    <button type="button" class="btn btn-danger btn-sm" data-action="delete">מחק</button>
+    <button type="button" class="btn btn-primary btn-sm" data-action="done">סיום</button>
+  </div>
+
+  <nav class="bottom-bar" aria-label="פעולות מסמך">
+    <button type="button" id="add-sig" class="bar-btn" disabled>
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M3 17.2V21h3.8L17.8 10l-3.8-3.8L3 17.2zM20.7 7a1 1 0 0 0 0-1.4l-2.3-2.3a1 1 0 0 0-1.4 0l-1.8 1.8 3.8 3.8L20.7 7z"/></svg>
+      הוסף חתימה
+    </button>
+    <button type="button" id="add-text" class="bar-btn" disabled>
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M5 4v3h5.5v12h3V7H19V4H5z"/></svg>
+      הוסף טקסט
+    </button>
+    <button type="button" id="save-share" class="bar-btn bar-btn-primary" disabled>
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M18 16a3 3 0 0 0-2 .8l-7.1-4.1a3 3 0 0 0 0-1.4L16 7.2A3 3 0 1 0 15 5v.3L7.9 9.4a3 3 0 1 0 0 5.2l7.1 4.1v.3a3 3 0 1 0 3-3z"/></svg>
+      שמור ושתף
+    </button>
+  </nav>
+
+  <dialog id="sig-picker" class="modal sheet" aria-labelledby="sig-picker-title">
+    <div class="modal-card">
+      <header class="modal-header">
+        <h2 id="sig-picker-title">בחירת חתימה</h2>
+        <button type="button" class="icon-btn" data-action="close" aria-label="סגור">✕</button>
+      </header>
+      <ul class="sig-choices"></ul>
+      <button type="button" class="btn btn-secondary btn-block" data-action="new">+ חתימה חדשה</button>
+    </div>
+  </dialog>
+
+  <dialog id="ready-dialog" class="modal sheet" aria-labelledby="ready-title">
+    <div class="modal-card">
+      <header class="modal-header">
+        <h2 id="ready-title">המסמך החתום מוכן</h2>
+        <button type="button" class="icon-btn" data-action="close" aria-label="סגור">✕</button>
+      </header>
+      <p class="muted">בחרו איך להמשיך:</p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-action="download">הורדה</button>
+        <button type="button" class="btn btn-primary" data-action="share">שיתוף</button>
+      </div>
+    </div>
+  </dialog>
+
+  <div id="busy" class="busy" hidden>
+    <div class="spinner" aria-hidden="true"></div>
+    <p>מכין את המסמך החתום…</p>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="vendor/pdf-lib/pdf-lib.min.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/signature-pad.js"></script>
+  <script src="js/pdf-handler.js"></script>
+  <script src="js/share.js"></script>
+  <script src="js/viewer.js"></script>
+</body>
+</html>

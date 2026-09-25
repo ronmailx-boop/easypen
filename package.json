@@ -1,0 +1,12 @@
+{
+  "name": "easypen",
+  "private": true,
+  "description": "EasyPen - PDF signing PWA (static site, no build step). package.json is for tests only.",
+  "scripts": {
+    "test": "node --test --test-concurrency=1 tests/*.test.js",
+    "serve": "node -e \"require('./tests/helpers/server').start().then(s => console.log('EasyPen at ' + s.baseUrl))\""
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}
