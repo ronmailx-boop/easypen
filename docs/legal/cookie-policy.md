@@ -32,4 +32,4 @@
 
 ## 5. מידע נוסף
 
-פרטים על הטיפול במידע מופיעים ב[מדיניות הפרטיות](privacy-policy.md). לשאלות ניתן לפנות אל: [CONTACT_EMAIL].
+פרטים על הטיפול במידע מופיעים ב[מדיניות הפרטיות](privacy-policy.md). לשאלות ניתן לפנות אל: [vplus.studio.apps@gmail.com](mailto:vplus.studio.apps@gmail.com).

@@ -375,6 +375,7 @@ test('legal pages: linked from home, every document renders, works offline', asy
     const raw = await page.$$eval('#legal-content p, #legal-content li, #legal-content td', (els) =>
       els.map((e) => e.textContent).filter((t) => /(^#|\*\*|\|---|\]\()/.test(t)));
     assert.deepEqual(raw, [], `${doc}: no unrendered Markdown`);
+    assert.equal(await page.locator('#legal-content mark.placeholder').count(), 0, `${doc}: no unfilled placeholders`);
   }
   // Tables render as tables, links between documents point back to this page
   await page.goto(`${server.baseUrl}legal.html?doc=cookies`);
