@@ -6,7 +6,7 @@
  */
 importScripts('js/storage.js');
 
-const VERSION = 'easypen-v4';
+const VERSION = 'easypen-v5';
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
@@ -43,7 +43,9 @@ const scopeUrl = (path) => new URL(path, self.registration.scope).href;
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(SHELL_CACHE)
-      .then((cache) => cache.addAll(SHELL))
+      // cache: 'reload' bypasses the HTTP cache, so a new version never
+      // precaches a stale copy (e.g. new HTML with an old style.css).
+      .then((cache) => cache.addAll(SHELL.map((path) => new Request(path, { cache: 'reload' }))))
       .then(() => self.skipWaiting())
   );
 });
@@ -93,7 +95,7 @@ async function cacheFirst(request, event) {
   const isPage = request.mode === 'navigate';
   const cached = await caches.match(request, { ignoreSearch: isPage });
 
-  const network = fetch(request)
+  const network = fetch(request, { cache: 'no-cache' })
     .then(async (response) => {
       if (response && response.ok && response.type === 'basic') {
         const cache = await caches.open(cached ? SHELL_CACHE : RUNTIME_CACHE);
