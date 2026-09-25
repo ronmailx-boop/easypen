@@ -11,7 +11,7 @@
   --muted: #5d6378;
   --border: #dfe3f0;
   --danger: #d6385a;
-  --success: #1f9d6b;
+  --success: #177a52;
   --radius: 14px;
   --shadow: 0 4px 18px rgba(30, 27, 107, 0.12);
   --bar-h: 72px;
@@ -111,7 +111,7 @@ img { max-width: 100%; }
 
 .danger-text { color: var(--danger); }
 
-.btn-sm { min-height: 36px; padding: .35rem .8rem; font-size: .9rem; }
+.btn-sm { min-height: 44px; padding: .35rem .8rem; font-size: .9rem; }
 .btn-xl { min-height: 64px; padding: 1rem 1.5rem; font-size: 1.25rem; border-radius: 16px; }
 .btn-block { display: flex; width: 100%; }
 
@@ -164,7 +164,7 @@ img { max-width: 100%; }
 .home-main {
   max-width: 560px;
   margin: 0 auto;
-  padding: 1rem 1rem calc(2rem + var(--safe-bottom));
+  padding: 1rem 1rem .5rem;
 }
 
 .upload-card,
@@ -686,6 +686,130 @@ img { max-width: 100%; }
 }
 
 .bar-btn-primary:active { background: var(--secondary); }
+
+/* ---------- Home footer ---------- */
+
+.site-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: .25rem 1rem;
+  padding: .5rem 1rem calc(1.5rem + var(--safe-bottom));
+  font-size: .875rem;
+}
+
+.site-footer a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--muted);
+}
+
+/* ---------- Legal documents ---------- */
+
+.legal-nav {
+  position: sticky;
+  top: calc(56px + env(safe-area-inset-top, 0px));
+  z-index: 10;
+  display: flex;
+  gap: .25rem;
+  padding: .5rem 1rem;
+  overflow-x: auto;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.legal-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 .9rem;
+  border-radius: 999px;
+  color: var(--primary-dark);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.legal-nav a[aria-current="page"] {
+  color: #fff;
+  background: var(--primary);
+}
+
+.legal-content {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem calc(2.5rem + var(--safe-bottom));
+  line-height: 1.75;
+}
+
+.legal-content h1 { margin-top: .5rem; font-size: 1.6rem; }
+.legal-content h2 { margin-top: 1.75rem; font-size: 1.2rem; color: var(--primary-dark); }
+.legal-content h3 { margin-top: 1.25rem; font-size: 1.05rem; }
+.legal-content p,
+.legal-content ul,
+.legal-content ol { margin: .5rem 0 .9rem; }
+.legal-content ul,
+.legal-content ol { padding-inline-start: 1.4rem; }
+.legal-content li { margin-bottom: .35rem; }
+.legal-content a { color: var(--primary-dark); }
+.legal-content code { padding: 0 .3em; border-radius: 4px; background: var(--primary-soft); font-size: .9em; }
+.legal-content hr { margin: 2rem 0; border: 0; border-top: 1px solid var(--border); }
+
+.table-wrap { overflow-x: auto; margin: .75rem 0 1rem; }
+
+.legal-content table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .95rem;
+  background: var(--surface);
+}
+
+.legal-content th,
+.legal-content td {
+  padding: .5rem .6rem;
+  border: 1px solid var(--border);
+  text-align: start;
+  vertical-align: top;
+}
+
+.legal-content th { background: var(--primary-soft); }
+
+/* Phones: each table row becomes a card, each cell shows its column name */
+@media (max-width: 599px) {
+  .legal-content table,
+  .legal-content tbody,
+  .legal-content tr,
+  .legal-content td { display: block; }
+  .legal-content thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .legal-content table { background: none; }
+  .legal-content tr {
+    margin-bottom: .75rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .legal-content td { border: 0; border-bottom: 1px solid var(--border); }
+  .legal-content td:last-child { border-bottom: 0; }
+  .legal-content td::before {
+    content: attr(data-label);
+    display: block;
+    font-size: .8rem;
+    font-weight: 700;
+    color: var(--primary-dark);
+  }
+  .legal-content td:first-child { background: var(--primary-soft); font-weight: 700; }
+}
+
+.placeholder {
+  padding: 0 .25em;
+  border-radius: 4px;
+  background: #fff1b8;
+  color: #6b4e00;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: .85em;
+}
 
 /* ---------- Share target fallback page ---------- */
 
