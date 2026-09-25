@@ -6,7 +6,7 @@
  */
 importScripts('js/storage.js');
 
-const VERSION = 'easypen-v2';
+const VERSION = 'easypen-v3';
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
