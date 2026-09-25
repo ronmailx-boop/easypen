@@ -25,13 +25,13 @@ PWA לחתימה על מסמכי PDF מהנייד. כל העיבוד מתבצע 
 ```bash
 npm run serve        # או: python3 -m http.server 8080
 ```
+Service Worker ו-Share Target דורשים HTTPS (או localhost). Share Target עובד רק אחרי התקנת ה-PWA (אנדרואיד/כרום).
 
 ## בדיקות
 ```bash
 npm install && npm test
 ```
 פירוט ב-[`tests/README.md`](tests/README.md). `package.json` משמש לבדיקות בלבד — האתר עצמו לא דורש build.
-Service Worker ו-Share Target דורשים HTTPS (או localhost). Share Target עובד רק אחרי התקנת ה-PWA (אנדרואיד/כרום).
 
 ## פריסה ל-GitHub Pages
 Settings → Pages → Deploy from branch → `main` / root. כל הנתיבים יחסיים, כך שהאתר עובד גם תחת `https://<user>.github.io/easypen/`.
