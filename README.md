@@ -23,9 +23,14 @@ PWA לחתימה על מסמכי PDF מהנייד. כל העיבוד מתבצע 
 ## פיתוח מקומי
 אתר סטטי, ללא build:
 ```bash
-python3 -m http.server 8080
-# http://localhost:8080
+npm run serve        # או: python3 -m http.server 8080
 ```
+
+## בדיקות
+```bash
+npm install && npm test
+```
+פירוט ב-[`tests/README.md`](tests/README.md). `package.json` משמש לבדיקות בלבד — האתר עצמו לא דורש build.
 Service Worker ו-Share Target דורשים HTTPS (או localhost). Share Target עובד רק אחרי התקנת ה-PWA (אנדרואיד/כרום).
 
 ## פריסה ל-GitHub Pages

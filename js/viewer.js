@@ -194,12 +194,31 @@
     page.el.classList.remove('is-rendered');
   }
 
+  // Screen area not covered by the sticky header, bottom bar or on-screen keyboard
+  function visibleBounds() {
+    const viewportH = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    return {
+      top: document.querySelector('.app-header').getBoundingClientRect().bottom,
+      bottom: Math.min(viewportH, document.querySelector('.bottom-bar').getBoundingClientRect().top)
+    };
+  }
+
+  // The page under a screen Y coordinate (the nearest one when in a gap between pages)
+  function pageAtY(y) {
+    let best = null;
+    let bestDist = Infinity;
+    for (const p of state.pages) {
+      const r = p.el.getBoundingClientRect();
+      const d = y < r.top ? r.top - y : y > r.bottom ? y - r.bottom : 0;
+      if (d < bestDist) { bestDist = d; best = p; }
+    }
+    return best;
+  }
+
   // The page that is "most" on screen (visible share of the page, or of the screen for
   // pages taller than it), and the middle of its visible part in page fractions
   function currentPageAndPoint() {
-    // Leave out the sticky header and the bottom action bar
-    const viewTop = document.querySelector('.app-header').getBoundingClientRect().bottom;
-    const viewBottom = document.querySelector('.bottom-bar').getBoundingClientRect().top;
+    const { top: viewTop, bottom: viewBottom } = visibleBounds();
     let best = state.pages[0];
     let bestVisible = -1;
     for (const p of state.pages) {
@@ -239,6 +258,12 @@
   }
 
   function keepInside(item) {
+    // A signature moved onto a smaller page may not fit - shrink it, keeping its proportions
+    if (item.type === 'signature' && (item.fw > 1 || item.fh > 1)) {
+      const k = 1 / Math.max(item.fw, item.fh);
+      item.fw *= k;
+      item.fh *= k;
+    }
     const { fw, fh } = itemFractionSize(item);
     item.fx = clamp(item.fx, 0, 1 - fw);
     item.fy = clamp(item.fy, 0, 1 - fh);
@@ -356,7 +381,13 @@
     const sel = window.getSelection();
     sel.removeAllRanges();
     sel.addRange(range);
-    setTimeout(() => item.el.scrollIntoView({ block: 'center', behavior: 'smooth' }), 300);
+    // Once the keyboard has opened, scroll only if the box ended up hidden behind it or the bars
+    setTimeout(() => {
+      if (!item.el.classList.contains('is-editing')) return;
+      const r = item.el.getBoundingClientRect();
+      const { top, bottom } = visibleBounds();
+      if (r.top < top || r.bottom > bottom) item.el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, 300);
   }
 
   function stopEditing(item) {
@@ -434,6 +465,8 @@
       if (!start.moved && Math.hypot(dx, dy) < 4) return;
       start.moved = true;
       item.el.classList.add('is-dragging');
+      // Let the item be drawn above the following pages while it is dragged across them
+      item.page.el.classList.add('has-dragging');
       if (isResize) {
         // Handle sits on the bottom-left corner (RTL): the top-right corner stays put
         const minFw = MIN_SIZE_PX / start.pw;
@@ -449,9 +482,10 @@
         item.fx = rightEdge - fw;
         applyPosition(item);
       } else {
+        // Free movement while dragging (may leave the page); clamped on drop
         item.fx = start.fx + dx / start.pw;
         item.fy = start.fy + dy / start.ph;
-        keepInside(item);
+        applyPosition(item);
       }
     };
 
@@ -460,6 +494,8 @@
       target.removeEventListener('pointerup', onUp);
       target.removeEventListener('pointercancel', onUp);
       item.el.classList.remove('is-dragging');
+      item.page.el.classList.remove('has-dragging');
+      if (start.moved && !isResize) dropItem(item);
       if (start.moved) markDirty();
       // A tap (no drag) on a text box enters edit mode
       else if (item.type === 'text' && !isMoveHandle) startEditing(item);
@@ -468,6 +504,24 @@
     target.addEventListener('pointermove', onMove);
     target.addEventListener('pointerup', onUp);
     target.addEventListener('pointercancel', onUp);
+  }
+
+  // After a drag: move the item to the page under its center, then keep it inside that page
+  function dropItem(item) {
+    const r = item.el.getBoundingClientRect();
+    const target = pageAtY(r.top + r.height / 2) || item.page;
+    if (target !== item.page) {
+      const pr = target.el.getBoundingClientRect();
+      item.fx = (r.left - pr.left) / pr.width;
+      item.fy = (r.top - pr.top) / pr.height;
+      if (item.type === 'signature') {
+        item.fw = r.width / pr.width;
+        item.fh = r.height / pr.height;
+      }
+      item.page = target;
+      target.layer.appendChild(item.el);
+    }
+    keepInside(item);
   }
 
   function onLayerPointerDown(e, page) {
