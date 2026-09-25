@@ -321,6 +321,98 @@ test('my signatures: add up to 3, edit and delete', async () => {
   assert.deepEqual(stored, ['image/png', 'image/png']);
 });
 
+test('editor: signatures and text can be moved, resized and deleted with the keyboard', async () => {
+  await openInEditor();
+  await drawNewSignatureAndPlace();
+  const sig = page.locator('.ov-sig');
+  assert.equal(await sig.evaluate((el) => el === document.activeElement), true, 'new signature gets focus');
+
+  const style = () => sig.evaluate((el) => ({ left: parseFloat(el.style.left), top: parseFloat(el.style.top), width: parseFloat(el.style.width) }));
+  const before = await style();
+  await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('Shift+ArrowDown');
+  let after = await style();
+  assert.ok(Math.abs(after.left - (before.left - 1)) < 0.01, `moved left by 1%: ${before.left} -> ${after.left}`);
+  assert.ok(Math.abs(after.top - (before.top + 5)) < 0.01, `moved down by 5%: ${before.top} -> ${after.top}`);
+
+  await page.keyboard.press('+');
+  const bigger = await style();
+  assert.ok(Math.abs(bigger.width / after.width - 1.1) < 0.01, 'grew by 10%');
+  assert.ok(Math.abs((bigger.left + bigger.width) - (after.left + after.width)) < 0.01, 'right edge stays put');
+
+  await page.keyboard.press('Delete');
+  assert.equal(await page.locator('.ov').count(), 0);
+  assert.equal(await page.evaluate(() => document.activeElement.id), 'add-sig', 'focus returns to the toolbar');
+
+  // Text box: Escape leaves editing and keeps it focused, + changes the font size
+  await page.click('#add-text');
+  const p1 = await page.locator('.page[data-page="1"]').boundingBox();
+  await page.mouse.click(p1.x + 60, p1.y + 60);
+  await page.keyboard.type('שלום');
+  await page.keyboard.press('Escape');
+  const text = page.locator('.ov-text');
+  assert.equal(await text.evaluate((el) => el === document.activeElement && !el.classList.contains('is-editing')), true);
+  await page.keyboard.press('+');
+  assert.equal(await page.textContent('#item-toolbar .font-size'), '16pt');
+  await page.keyboard.press('Enter');
+  assert.equal(await text.evaluate((el) => el.classList.contains('is-editing')), true, 'Enter edits the text');
+});
+
+test('legal pages: linked from home, every document renders, works offline', async () => {
+  await page.goto(server.baseUrl);
+  const links = await page.$$eval('.site-footer a', (as) => as.map((a) => [a.textContent, a.getAttribute('href')]));
+  assert.deepEqual(links.map((l) => l[1]), [
+    'legal.html?doc=privacy', 'legal.html?doc=terms', 'legal.html?doc=cookies', 'legal.html?doc=accessibility'
+  ]);
+
+  const expected = { privacy: 'מדיניות פרטיות', terms: 'תנאי שימוש', cookies: 'מדיניות עוגיות', accessibility: 'הצהרת נגישות' };
+  for (const [doc, title] of Object.entries(expected)) {
+    await page.goto(`${server.baseUrl}legal.html?doc=${doc}`);
+    await page.waitForSelector('#legal-content h1');
+    assert.equal(await page.textContent('#legal-content h1'), title);
+    assert.equal(await page.title(), `${title} - EasyPen`);
+    assert.equal(await page.getAttribute(`#legal-nav a[data-doc="${doc}"]`, 'aria-current'), 'page');
+    const raw = await page.$$eval('#legal-content p, #legal-content li, #legal-content td', (els) =>
+      els.map((e) => e.textContent).filter((t) => /(^#|\*\*|\|---|\]\()/.test(t)));
+    assert.deepEqual(raw, [], `${doc}: no unrendered Markdown`);
+  }
+  // Tables render as tables, links between documents point back to this page
+  await page.goto(`${server.baseUrl}legal.html?doc=cookies`);
+  await page.waitForSelector('#legal-content table');
+  assert.equal(await page.getAttribute('#legal-content a[href*="privacy"]', 'href'), 'legal.html?doc=privacy');
+
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await context.setOffline(true);
+  await page.goto(`${server.baseUrl}legal.html?doc=accessibility`);
+  await page.waitForSelector('#legal-content table');
+  assert.equal(await page.textContent('#legal-content h1'), 'הצהרת נגישות');
+});
+
+test('legal pages: Markdown renderer never outputs markup from the text', async () => {
+  await page.goto(`${server.baseUrl}legal.html?doc=privacy`);
+  await page.waitForSelector('#legal-content h1');
+  const result = await page.evaluate(() => {
+    const html = EasyPenLegal.renderMarkdown([
+      '# <img src=x onerror=alert(1)>',
+      '[click](javascript:alert(1)) [ok](https://example.com) [local](other.html)',
+      '| <script>x</script> | b |',
+      '|---|---|',
+      '| "q" | [NAME_HERE] |'
+    ].join('\n'));
+    const doc = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html');
+    return {
+      dangerous: doc.querySelectorAll('img, script, [onerror]').length,
+      hrefs: [...doc.querySelectorAll('a')].map((a) => a.getAttribute('href')),
+      heading: doc.querySelector('h1').textContent,
+      placeholder: doc.querySelector('mark.placeholder')?.textContent
+    };
+  });
+  assert.equal(result.dangerous, 0, 'no elements created from the text');
+  assert.equal(result.heading, '<img src=x onerror=alert(1)>', 'shown as plain text');
+  assert.deepEqual(result.hrefs, ['https://example.com'], 'javascript: and relative links are dropped');
+  assert.equal(result.placeholder, '[NAME_HERE]');
+});
+
 test('service worker: share target opens shared PDFs, rejects other types, works offline', async () => {
   await page.goto(server.baseUrl);
   await page.evaluate(() => navigator.serviceWorker.ready);

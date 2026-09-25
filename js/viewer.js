@@ -20,6 +20,7 @@
   const TEXT_PAD_Y = 0.15, TEXT_PAD_X = 0.3;             // em, must match CSS
   const TEXT_EXPORT_PX_PER_PT = 4;                       // raster resolution of exported text
   const SIG_DEFAULT_WIDTH = 0.35;                        // fraction of page width
+  const KEY_STEP = 0.01, KEY_STEP_LARGE = 0.05;          // keyboard move, fraction of page
   const MIN_SIZE_PX = 24;
 
   const el = {
@@ -284,6 +285,9 @@
 
     const node = document.createElement('div');
     node.className = 'ov ov-sig';
+    node.tabIndex = 0;
+    node.setAttribute('role', 'group');
+    node.setAttribute('aria-label', 'חתימה. חיצים להזזה (Shift לצעד גדול), פלוס ומינוס לשינוי גודל, Delete למחיקה');
     const blobUrl = URL.createObjectURL(blob);
     const imgEl = document.createElement('img');
     imgEl.src = blobUrl;
@@ -303,6 +307,7 @@
     wireItem(item);
     state.items.push(item);
     select(item);
+    node.focus({ preventScroll: true });
     markDirty();
   }
 
@@ -314,6 +319,9 @@
   function addTextItem(page, fx, fy) {
     const node = document.createElement('div');
     node.className = 'ov ov-text';
+    node.tabIndex = 0;
+    node.setAttribute('role', 'group');
+    node.setAttribute('aria-label', 'תיבת טקסט. Enter לעריכה, חיצים להזזה, פלוס ומינוס לגודל גופן, Delete למחיקה');
     const content = document.createElement('div');
     content.className = 'ov-text-content';
     content.dir = 'rtl';
@@ -414,8 +422,8 @@
     state.selected = item;
     if (item) {
       item.el.classList.add('is-selected');
-      // Bring to front
-      item.page.layer.appendChild(item.el);
+      // Bring to front (moving a node drops its focus, so only when needed)
+      if (item.page.layer.lastElementChild !== item.el) item.page.layer.appendChild(item.el);
       if (item.type === 'text' && item.el.classList.contains('is-editing')) item.content.focus({ preventScroll: true });
     }
     updateToolbar();
@@ -433,6 +441,56 @@
 
   function wireItem(item) {
     item.el.addEventListener('pointerdown', (e) => onItemPointerDown(e, item));
+    item.el.addEventListener('focus', () => {
+      if (state.selected !== item) select(item);
+      if (document.activeElement !== item.el) item.el.focus({ preventScroll: true });
+    });
+    item.el.addEventListener('keydown', (e) => onItemKeyDown(e, item));
+  }
+
+  /* ---------------- keyboard (alternative to drag / resize) --------- */
+
+  function resizeSignatureBy(item, factor) {
+    const pr = item.page.el.getBoundingClientRect();
+    const rightEdge = item.fx + item.fw;
+    const minFw = MIN_SIZE_PX / pr.width;
+    const fw = clamp(item.fw * factor, minFw, 1);
+    item.fh = fw * item.aspect * (pr.width / pr.height);
+    item.fw = fw;
+    item.fx = rightEdge - fw;   // same anchor as the resize handle: top-right corner stays
+    keepInside(item);
+  }
+
+  function onItemKeyDown(e, item) {
+    if (e.target !== item.el) return;   // typing inside a text box being edited
+    const step = e.shiftKey ? KEY_STEP_LARGE : KEY_STEP;
+    const moves = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
+    let handled = true;
+    if (moves[e.key]) {
+      item.fx += moves[e.key][0];
+      item.fy += moves[e.key][1];
+      keepInside(item);
+    } else if (e.key === '+' || e.key === '=' || e.key === '-') {
+      const bigger = e.key !== '-';
+      if (item.type === 'signature') {
+        resizeSignatureBy(item, bigger ? 1.1 : 1 / 1.1);
+      } else {
+        item.fontIndex = clamp(item.fontIndex + (bigger ? 1 : -1), 0, FONT_SIZES.length - 1);
+        applyFont(item);
+        keepInside(item);
+      }
+    } else if (e.key === 'Delete' || e.key === 'Backspace') {
+      removeItem(item);
+      el.addSig.focus();
+    } else if (e.key === 'Enter' && item.type === 'text') {
+      startEditing(item);
+    } else {
+      handled = false;
+    }
+    if (handled) {
+      e.preventDefault();
+      markDirty();
+    }
   }
 
   function onItemPointerDown(e, item) {
@@ -773,7 +831,12 @@
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       if (state.textMode) setTextMode(false);
-      else if (state.selected) select(null);
+      else if (state.selected && state.selected.el.classList.contains('is-editing')) {
+        // Leave text editing but keep the box selected and focused for moving
+        const item = state.selected;
+        stopEditing(item);
+        if (state.items.includes(item)) item.el.focus({ preventScroll: true });
+      } else if (state.selected) select(null);
     }
   });
 

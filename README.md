@@ -12,6 +12,7 @@ PWA לחתימה על מסמכי PDF מהנייד. כל העיבוד מתבצע 
 |---|---|
 | `index.html`, `js/home.js` | מסך הבית + ניהול "החתימות שלי" (עד 3) |
 | `viewer.html`, `js/viewer.js` | עורך: רינדור עמודים, גרירה/שינוי גודל, ייצוא |
+| `legal.html`, `js/legal.js` | הצגת המסמכים המשפטיים מ-`docs/legal/*.md` |
 | `share-target/index.html` | כתובת ה-Share Target (הבקשה עצמה מטופלת ב-`sw.js`) |
 | `js/pdf-handler.js` | pdf.js (תצוגה) + pdf-lib (ייצוא), המרת קואורדינטות |
 | `js/signature-pad.js` | ציור חתימה (Pointer Events) ודיאלוג |

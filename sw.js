@@ -6,7 +6,7 @@
  */
 importScripts('js/storage.js');
 
-const VERSION = 'easypen-v3';
+const VERSION = 'easypen-v4';
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
@@ -14,6 +14,7 @@ const SHELL = [
   './',
   'index.html',
   'viewer.html',
+  'legal.html',
   'share-target/',
   'manifest.json',
   'css/style.css',
@@ -24,6 +25,11 @@ const SHELL = [
   'js/pdf-handler.js',
   'js/share.js',
   'js/viewer.js',
+  'js/legal.js',
+  'docs/legal/privacy-policy.md',
+  'docs/legal/terms-of-service.md',
+  'docs/legal/cookie-policy.md',
+  'docs/legal/accessibility-statement.md',
   'icons/icon.svg',
   'icons/icon-192.png',
   'icons/icon-512.png',
