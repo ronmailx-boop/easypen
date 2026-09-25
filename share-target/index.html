@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>קבלת מסמך - EasyPen</title>
+  <meta name="theme-color" content="#7367f0">
+  <link rel="icon" href="../icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <!--
+    Shared files arrive as a POST to this URL and are handled by the Service Worker
+    (sw.js), which stores the PDF and redirects to the editor.
+    This page is shown only if the Service Worker was not active yet.
+  -->
+  <main class="simple-page">
+    <img src="../icons/icon.svg" alt="" width="64" height="64">
+    <h1>לא הצלחנו לקבל את הקובץ</h1>
+    <p class="muted">פתחו את EasyPen פעם אחת כשיש חיבור לרשת, ואז נסו לשתף שוב. אפשר גם להעלות את הקובץ ידנית.</p>
+    <a class="btn btn-primary" href="../index.html">מעבר ל-EasyPen</a>
+  </main>
+</body>
+</html>

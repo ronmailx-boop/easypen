@@ -1,0 +1,36 @@
+# PROJECT_STATE - EasyPen
+
+## Current Focus
+MVP ראשוני הושלם ונבדק אוטומטית (Playwright/Chromium headless, מסך 390px).
+**הצעד הבא:** פריסה ל-GitHub Pages ובדיקה על מכשיר אנדרואיד אמיתי (התקנה, שיתוף PDF מוואטסאפ, navigator.share עם קובץ).
+
+## MVP - משימות
+- [x] מבנה PWA סטטי (index / viewer / share-target), נתיבים יחסיים ל-GitHub Pages
+- [x] manifest.json כולל share_target (POST multipart, PDF)
+- [x] Service Worker: precache, אופליין, טיפול ב-POST של Share Target → IndexedDB → viewer
+- [x] ספריות מקומיות: pdf.js 6.3.289 legacy + pdf-lib 1.17.1 (`vendor/`)
+- [x] IndexedDB wrapper (חתימות + מסמך נוכחי)
+- [x] מסך בית: העלאה, בדיקת PDF בלבד, "החתימות שלי" (עד 3, עריכה/מחיקה)
+- [x] ציור חתימה (Pointer Events), נקה, צבע דיו, "שמור לשימוש חוזר", PNG שקוף וחתוך
+- [x] עורך: רינדור עמודים עצל (IntersectionObserver) + שחרור זיכרון לעמודים רחוקים
+- [x] חתימה: בחירה משמורות / ציור חדש, גרירה, שינוי גודל (ידית בפינה שמאלית-תחתונה)
+- [x] טקסט: הקשה על העמוד, עריכה, גרירה, A-/A+ (בנקודות PDF), זיהוי כיוון RTL/LTR
+- [x] ייצוא: pdf-lib, קואורדינטות מנורמלות → PDF כולל /Rotate 0/90/180/270 ו-CropBox
+- [x] טקסט מיוצא כתמונה (שומר עברית/RTL בלי להטמיע פונט)
+- [x] PDF מוצפן (owner password) → ייצוא דרך רסטור עמודים
+- [x] שיתוף: navigator.share עם קובץ, טיפול ב-AbortError / NotAllowedError, fallback להורדה
+- [x] אייקונים placeholder (192, 512, maskable)
+- [x] מסמכים משפטיים ב-`docs/legal/`
+
+## פתוח / לשלב הבא
+- [ ] בדיקה על מכשירים אמיתיים (אנדרואיד כרום, iOS ספארי — ב-iOS אין Share Target)
+- [ ] עיצוב אייקון סופי
+- [ ] מילוי placeholders במסמכים המשפטיים וקישור אליהם מהאפליקציה
+- [ ] אפשרות: העברת חתימה בין עמודים, ביטול/חזרה (undo)
+- [ ] אפשרות: PDF מוגן בסיסמת פתיחה (כרגע מוצגת הודעה)
+
+## החלטות
+- מיקום אלמנטים נשמר כשברים מגודל העמוד (0..1) → עמיד לזום, גלילה וסיבוב מסך.
+- טקסט מרוסטר ל-PNG ב-4px לנקודה במקום הטמעת פונט עברי (pdf-lib לא תומך RTL/shaping).
+- כל מסמך הוא session חד-פעמי: נמחק מ-IndexedDB בחזרה למסך הבית.
+- בדיקות e2e נמצאות מחוץ ל-repo (סקריפטים זמניים); לשקול להוסיף tests/ בהמשך.

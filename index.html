@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>EasyPen - חתימה דיגיטלית</title>
+  <meta name="description" content="חתימה על מסמכי PDF ישירות מהנייד. הקבצים לא עוזבים את המכשיר.">
+  <meta name="theme-color" content="#7367f0">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="home">
+  <header class="app-header">
+    <div class="brand">
+      <img src="icons/icon.svg" alt="" width="32" height="32">
+      <span>EasyPen</span>
+    </div>
+    <button type="button" id="install-btn" class="btn btn-ghost btn-sm" hidden>התקנת האפליקציה</button>
+  </header>
+
+  <main class="home-main">
+    <section class="upload-card">
+      <h1>חתימה על מסמך</h1>
+      <p class="muted">בחרו קובץ PDF, הוסיפו חתימה או טקסט ושתפו הלאה.</p>
+      <label class="btn btn-primary btn-xl upload-btn">
+        <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M11 16V7.8l-3.6 3.6L6 10l6-6 6 6-1.4 1.4L13 7.8V16h-2zm-6 4v-5h2v3h10v-3h2v5H5z"/></svg>
+        העלה מסמך
+        <input type="file" id="file-input" accept="application/pdf,.pdf" class="visually-hidden">
+      </label>
+      <p id="upload-error" class="form-error" role="alert"></p>
+      <p class="privacy-note">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5l-8-3zm-1 14-4-4 1.4-1.4L11 13.2l5.6-5.6L18 9l-7 7z"/></svg>
+        כל העיבוד מתבצע במכשיר שלכם. הקבצים לא נשלחים לשום שרת.
+      </p>
+    </section>
+
+    <section class="signatures-section" aria-labelledby="sigs-title">
+      <div class="section-head">
+        <h2 id="sigs-title">החתימות שלי</h2>
+        <span id="sig-count" class="muted small"></span>
+      </div>
+      <ul id="sig-list" class="sig-list"></ul>
+      <p id="sig-empty" class="muted empty-state" hidden>עדיין אין חתימות שמורות. אפשר לשמור עד 3 חתימות לשימוש חוזר.</p>
+      <button type="button" id="add-sig-btn" class="btn btn-secondary btn-block">+ חתימה חדשה</button>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/storage.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/signature-pad.js"></script>
+  <script src="js/home.js"></script>
+</body>
+</html>
