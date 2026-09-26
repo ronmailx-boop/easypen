@@ -691,30 +691,22 @@ img { max-width: 100%; }
 
 .site-footer {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: .5rem;
-  width: 100%;
-  max-width: 420px;
-  margin: 0 auto;
+  grid-template-columns: repeat(2, max-content);
+  justify-content: center;
+  justify-items: center;
+  gap: 0 1.75rem;
   padding: .5rem 1rem calc(1.5rem + var(--safe-bottom));
-  font-size: .875rem;
+  font-size: .9rem;
 }
 
 .site-footer a {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
   min-height: 44px;
-  padding: .25rem .5rem;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  color: var(--muted);
-  background: var(--surface);
-  text-align: center;
-  text-decoration: none;
+  color: var(--primary-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
-
-.site-footer a:active { background: var(--primary-soft); color: var(--primary-dark); }
 
 /* ---------- Legal documents ---------- */
 
