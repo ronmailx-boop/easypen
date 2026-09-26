@@ -1,5 +1,5 @@
 /*
- * EasyPen - shared UI helpers: toast messages and Service Worker registration.
+ * EasyPen - shared UI helpers: toast messages, app version and Service Worker registration.
  * Exposes a global `EasyPenUI`.
  */
 (function (global) {
@@ -26,7 +26,16 @@
     });
   }
 
+  // Fills every [data-app-version] from js/version.js (when that page loads it)
+  function showVersion() {
+    if (!global.EASYPEN_VERSION) return;
+    document.querySelectorAll('[data-app-version]').forEach((el) => {
+      el.textContent = global.EASYPEN_VERSION;
+    });
+  }
+
   registerServiceWorker();
+  showVersion();
 
   global.EasyPenUI = { toast };
 })(window);
