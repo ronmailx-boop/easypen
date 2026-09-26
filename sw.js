@@ -4,9 +4,9 @@
  *  - Handles the Web Share Target POST (files shared from WhatsApp/Gmail/…):
  *    stores the PDF in IndexedDB and redirects to the editor.
  */
-importScripts('js/storage.js');
+importScripts('js/version.js', 'js/storage.js');
 
-const VERSION = 'easypen-v8';
+const VERSION = `easypen-v${self.EASYPEN_VERSION}`;
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
@@ -18,6 +18,7 @@ const SHELL = [
   'share-target/',
   'manifest.json',
   'css/style.css',
+  'js/version.js',
   'js/storage.js',
   'js/ui.js',
   'js/home.js',
