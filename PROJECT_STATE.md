@@ -60,7 +60,12 @@ MVP ראשוני הושלם. חבילת בדיקות e2e נוספה ל-`tests/` 
 4. הרצה ראשונה: אני יכול להפעיל בעצמי (`actions_run_trigger`, `run_workflow`) ולבדוק בלוג ה-job (הסביבה שלי לא יכולה לגשת ל-workers.dev ישירות).
 - Account ID (לא סודי, בתוך ה-workflow): `1c9c1dd0e8a1d80f324b974ae6a617fb` · תת-דומיין: `ronmailx.workers.dev`
 - ה-SW חייב להיות עמיד להפניות `page.html` → `/page` של Cloudflare (`unredirect` + `prettyToHtml` ב-`sw.js`), ויש לזה בדיקה (`prettyUrls` בשרת הבדיקות).
-- **לפרויקטים חדשים:** אותה שיטה — להעתיק את שלושת הקבצים, לשנות `name`, ולבקש מהמשתמש רק את שלבים 2–3.
+- **לפרויקטים חדשים:** אותה שיטה. להעתיק לריפו החדש את שלושת הקבצים:
+  1. `wrangler.jsonc` — הגדרות Cloudflare: שם הפרויקט (קובע את הכתובת `<name>.ronmailx.workers.dev`) ותיקיית הקבצים שמוגשים. **לשנות את `name`.**
+  2. `.assetsignore` — מה לא עולה לאתר (`node_modules`, בדיקות, `package.json`, תיעוד פנימי). **להתאים לקבצים של הפרויקט.**
+  3. `.github/workflows/deploy-cloudflare.yml` — התהליך שמעלה ל-Cloudflare בכל מיזוג ל-`main` או ידנית. Account ID כבר בפנים — **אין מה לשנות.**
+  - מהמשתמש צריך רק: API Token מהתבנית Edit Cloudflare Workers (אפשר להשתמש שוב באותו מפתח — הוא על כל החשבון; אם לא נשמר, ליצור חדש) → Secret בשם `CLOUDFLARE_API_TOKEN` בריפו החדש.
+  - אם האתר צריך לעבוד אופליין (Service Worker): לוודא שה-SW מתמודד עם ההפניות `page.html` → `/page` (כמו `unredirect` + `prettyToHtml` ב-`sw.js` כאן). זה תיקון קוד, לא קובץ נוסף.
 
 ## החלטות
 - המסמכים המשפטיים נשמרים רק כ-Markdown ב-`docs/legal/` (מקור אמת יחיד); `js/legal.js` מרנדר אותם בדפדפן עם escaping מלא.
