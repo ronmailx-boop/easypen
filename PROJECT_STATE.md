@@ -38,6 +38,7 @@ MVP ראשוני הושלם. חבילת בדיקות e2e נוספה ל-`tests/` 
 - [x] GitHub Actions לפריסה ל-Cloudflare Workers (`.github/workflows/deploy-cloudflare.yml`) — חיבור Git בלוח הבקרה נכשל בנייד (לולאת Connect GitHub ב-Pages וב-Workers)
 - [x] Secret `CLOUDFLARE_API_TOKEN` נשמר, פריסה ראשונה הצליחה (30.9.2026, 225 קבצים) → https://easypen.ronmailx.workers.dev
 - [x] נבדק בטלפון בכתובת Cloudflare — עובד (גרסה 10)
+- [ ] דומיין: המשתמש יקנה `vplus-studio.com` ב-Cloudflare (באותו חשבון) ויעדכן. אז: להוסיף ל-`wrangler.jsonc` את `"routes": [{ "pattern": "easypen.vplus-studio.com", "custom_domain": true }]`, PR + מיזוג, לבדוק בלוג ה-Actions שהדומיין נוצר (אם אין הרשאה — להוסיף הרשאה למפתח הקיים, לא מפתח חדש), לעדכן README וכתובת במסמכים המשפטיים. `workers.dev` ממשיך לעבוד במקביל; מעבר כתובת = נתונים מקומיים לא עוברים, לכן לעבור לפני שיווק
 - [ ] בדיקה על מכשירים אמיתיים (אנדרואיד כרום, iOS ספארי — ב-iOS אין Share Target)
 - [ ] אפשרות: ביטול/חזרה (undo)
 - [ ] אפשרות: PDF מוגן בסיסמת פתיחה (כרגע מוצגת הודעה)
