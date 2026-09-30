@@ -37,7 +37,7 @@ MVP ראשוני הושלם. חבילת בדיקות e2e נוספה ל-`tests/` 
 ## פתוח / לשלב הבא
 - [x] GitHub Actions לפריסה ל-Cloudflare Workers (`.github/workflows/deploy-cloudflare.yml`) — חיבור Git בלוח הבקרה נכשל בנייד (לולאת Connect GitHub ב-Pages וב-Workers)
 - [x] Secret `CLOUDFLARE_API_TOKEN` נשמר, פריסה ראשונה הצליחה (30.9.2026, 225 קבצים) → https://easypen.ronmailx.workers.dev
-- [ ] בדיקה בטלפון בכתובת Cloudflare: התקנה, אופליין, שיתוף PDF
+- [x] נבדק בטלפון בכתובת Cloudflare — עובד (גרסה 10)
 - [ ] בדיקה על מכשירים אמיתיים (אנדרואיד כרום, iOS ספארי — ב-iOS אין Share Target)
 - [ ] אפשרות: ביטול/חזרה (undo)
 - [ ] אפשרות: PDF מוגן בסיסמת פתיחה (כרגע מוצגת הודעה)
@@ -49,6 +49,18 @@ MVP ראשוני הושלם. חבילת בדיקות e2e נוספה ל-`tests/` 
 
 ## נהלי עבודה
 - **PR ומיזוג אוטומטי:** בסיום כל שינוי (אחרי בדיקות ירוקות) — לפתוח PR ל-`main` ולמזג אותו מיד, בלי לשאול. אישור קבוע מהמשתמש (26.9.2026).
+
+## פריסה ל-Cloudflare — השיטה שעובדת (אושר 30.9.2026)
+**לא לנסות שוב** חיבור Git דרך לוח הבקרה (Pages → Import Git / Workers → Connect GitHub): בנייד זה נכנס ללולאה — GitHub נפתח בלשונית חדשה ולא חוזר ל-Cloudflare, גם אחרי התקנה מחדש של אפליקציית GitHub.
+
+השיטה שעובדת: **GitHub Actions + wrangler + API Token**
+1. בריפו: `wrangler.jsonc` (Worker של static assets בלבד, `assets.directory: "."`) + `.assetsignore` (מוציא `.git`, `node_modules`, `tests`, `package*.json`, קבצי תיעוד) + `.github/workflows/deploy-cloudflare.yml` (`npx --yes wrangler@4 deploy` ב-push ל-main וב-workflow_dispatch; מדלג אם אין Secret).
+2. ב-Cloudflare: My Profile → API Tokens → Create Token → תבנית **Edit Cloudflare Workers** → Account Resources: Include + החשבון → Zone Resources: Include + **All zones** → Create Token → Copy.
+3. ב-GitHub: Settings → Secrets and variables → Actions → New repository secret → `CLOUDFLARE_API_TOKEN`.
+4. הרצה ראשונה: אני יכול להפעיל בעצמי (`actions_run_trigger`, `run_workflow`) ולבדוק בלוג ה-job (הסביבה שלי לא יכולה לגשת ל-workers.dev ישירות).
+- Account ID (לא סודי, בתוך ה-workflow): `1c9c1dd0e8a1d80f324b974ae6a617fb` · תת-דומיין: `ronmailx.workers.dev`
+- ה-SW חייב להיות עמיד להפניות `page.html` → `/page` של Cloudflare (`unredirect` + `prettyToHtml` ב-`sw.js`), ויש לזה בדיקה (`prettyUrls` בשרת הבדיקות).
+- **לפרויקטים חדשים:** אותה שיטה — להעתיק את שלושת הקבצים, לשנות `name`, ולבקש מהמשתמש רק את שלבים 2–3.
 
 ## החלטות
 - המסמכים המשפטיים נשמרים רק כ-Markdown ב-`docs/legal/` (מקור אמת יחיד); `js/legal.js` מרנדר אותם בדפדפן עם escaping מלא.

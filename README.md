@@ -38,6 +38,12 @@ npm install && npm test
 כל הנתיבים יחסיים, כך שהאתר עובד גם בשורש הדומיין וגם תחת תת-תיקייה.
 
 - **GitHub Pages:** Settings → Pages → Deploy from branch → `main` / root.
-- **Cloudflare Workers:** `.github/workflows/deploy-cloudflare.yml` מריץ `wrangler deploy` בכל push ל-`main` (או ידנית מלשונית Actions). נדרש Secret ברספוזיטורי בשם `CLOUDFLARE_API_TOKEN` (API Token מהתבנית "Edit Cloudflare Workers"). ההגדרות ב-`wrangler.jsonc`; `.assetsignore` מוציא מהפריסה את כל מה שאינו חלק מהאפליקציה. כתובת: https://easypen.ronmailx.workers.dev
+- **Cloudflare Workers** (https://easypen.ronmailx.workers.dev): פריסה דרך GitHub Actions — `.github/workflows/deploy-cloudflare.yml` מריץ `wrangler deploy` בכל push ל-`main` (או ידנית מלשונית Actions). ההגדרות ב-`wrangler.jsonc`, ו-`.assetsignore` מוציא מהפריסה את כל מה שאינו חלק מהאפליקציה.
+  הגדרה חד-פעמית:
+  1. Cloudflare → My Profile → API Tokens → Create Token → תבנית **Edit Cloudflare Workers** → Account Resources: החשבון, Zone Resources: **All zones** → Create Token.
+  2. GitHub → Settings → Secrets and variables → Actions → New repository secret בשם `CLOUDFLARE_API_TOKEN`.
+  3. Actions → Deploy to Cloudflare → Run workflow.
+
+  חיבור Git דרך לוח הבקרה של Cloudflare לא עבד (לולאה במסך Connect GitHub), ולכן לא משתמשים בו.
 
 בכל שינוי בקבצי האפליקציה יש להעלות את המספר ב-`js/version.js`, כדי שהמשתמשים יקבלו את הגרסה החדשה.
