@@ -36,7 +36,8 @@ MVP ראשוני הושלם. חבילת בדיקות e2e נוספה ל-`tests/` 
 
 ## פתוח / לשלב הבא
 - [x] GitHub Actions לפריסה ל-Cloudflare Workers (`.github/workflows/deploy-cloudflare.yml`) — חיבור Git בלוח הבקרה נכשל בנייד (לולאת Connect GitHub ב-Pages וב-Workers)
-- [ ] המשתמש: ליצור API Token (Edit Cloudflare Workers) ולשמור כ-Secret `CLOUDFLARE_API_TOKEN` ב-GitHub → להריץ את ה-workflow → לבדוק https://easypen.ronmailx.workers.dev
+- [x] Secret `CLOUDFLARE_API_TOKEN` נשמר, פריסה ראשונה הצליחה (30.9.2026, 225 קבצים) → https://easypen.ronmailx.workers.dev
+- [ ] בדיקה בטלפון בכתובת Cloudflare: התקנה, אופליין, שיתוף PDF
 - [ ] בדיקה על מכשירים אמיתיים (אנדרואיד כרום, iOS ספארי — ב-iOS אין Share Target)
 - [ ] אפשרות: ביטול/חזרה (undo)
 - [ ] אפשרות: PDF מוגן בסיסמת פתיחה (כרגע מוצגת הודעה)
