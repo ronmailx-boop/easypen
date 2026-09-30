@@ -57,6 +57,13 @@ async function openInEditor(name) {
   await page.waitForSelector('.page.is-rendered');
 }
 
+// Waits until the selector matches exactly n elements (the UI updates asynchronously)
+async function expectCount(selector, n) {
+  await page.waitForFunction(({ selector, n }) => document.querySelectorAll(selector).length === n,
+    { selector, n }, { timeout: 5000 }).catch(() => {});
+  assert.equal(await page.locator(selector).count(), n, selector);
+}
+
 async function scrollToPage(n) {
   await page.evaluate((n) => document.querySelector(`.page[data-page="${n}"]`).scrollIntoView({ block: 'center' }), n);
 }
@@ -257,14 +264,15 @@ test('editor: empty text box is discarded and deleting items works', async () =>
   const p1 = await page.locator('.page[data-page="1"]').boundingBox();
   await page.mouse.click(p1.x + 100, p1.y + 100);
   await page.click('#item-toolbar [data-action="done"]');
-  assert.equal(await page.locator('.ov-text').count(), 0);
+  await expectCount('.ov-text', 0);
 
   await drawNewSignatureAndPlace();
-  assert.equal(await page.locator('.ov-sig').count(), 1);
+  await expectCount('.ov-sig', 1);
   await page.click('#item-toolbar [data-action="delete"]');
-  assert.equal(await page.locator('.ov').count(), 0);
+  await expectCount('.ov', 0);
 
   await page.click('#save-share');
+  await page.waitForSelector('#toast.show');
   assert.equal(await page.textContent('#toast'), 'עדיין לא הוספתם חתימה או טקסט למסמך');
 });
 
