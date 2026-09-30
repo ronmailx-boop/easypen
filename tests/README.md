@@ -20,6 +20,7 @@ npm test
 | cross-page drag | גרירת חתימה לעמוד אחר מעבירה אותה לעמוד הזה |
 | my signatures | עד 3 חתימות, עריכה, מחיקה, שמירה כ-PNG |
 | service worker | Share Target (סימולציית שיתוף מוואטסאפ), דחיית docx בשיתוף, עבודה אופליין |
+| pretty URLs | עבודה אופליין מאחורי שרת שמפנה `page.html` ל-`/page`, כמו Cloudflare |
 
 ### איך נבדק מיקום מדויק
 ה-PDF המקורי והמיוצא מרונדרים ב-pdf.js באותו קנה מידה, ומחושב האזור שבו הפיקסלים השתנו.
@@ -27,5 +28,5 @@ npm test
 
 ## קבצים
 - `e2e.test.js` — הבדיקות
-- `helpers/server.js` — שרת סטטי שמגיש את האתר תחת `/easypen/`, כמו GitHub Pages (תופס נתיבים אבסולוטיים שבורים), ומחזיר 405 ל-POST כמו GitHub Pages
+- `helpers/server.js` — שרת סטטי שמגיש את האתר תחת `/easypen/`, כמו GitHub Pages (תופס נתיבים אבסולוטיים שבורים), ומחזיר 405 ל-POST כמו GitHub Pages. עם `{ prettyUrls: true }` הוא מחקה גם את ההפניות של Cloudflare (`page.html` → `/page`)
 - `helpers/fixtures.js` — יוצר PDF בדיקה עם 4 סוגי עמודים
