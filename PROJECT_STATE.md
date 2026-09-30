@@ -35,7 +35,8 @@ MVP ראשוני הושלם. חבילת בדיקות e2e נוספה ל-`tests/` 
 - [x] תיקון: SW שמר ב-precache עותק ישן של style.css ממטמון ה-HTTP (`cache: 'reload'`), קישורי תחתית בעיצוב "נקודות מפרידות" (2 שורות של 2 + © vplus studio, נבחר מ-5 וריאציות), שוליים רחבים יותר במסמכים
 
 ## פתוח / לשלב הבא
-- [ ] חיבור הפרויקט ב-Cloudflare (Workers → Connect GitHub → easypen) ובדיקה בכתובת workers.dev. ניסיון דרך Pages נכשל: מסך Connect GitHub חוזר על עצמו גם אחרי התקנה מחדש של אפליקציית GitHub
+- [x] GitHub Actions לפריסה ל-Cloudflare Workers (`.github/workflows/deploy-cloudflare.yml`) — חיבור Git בלוח הבקרה נכשל בנייד (לולאת Connect GitHub ב-Pages וב-Workers)
+- [ ] המשתמש: ליצור API Token (Edit Cloudflare Workers) ולשמור כ-Secret `CLOUDFLARE_API_TOKEN` ב-GitHub → להריץ את ה-workflow → לבדוק https://easypen.ronmailx.workers.dev
 - [ ] בדיקה על מכשירים אמיתיים (אנדרואיד כרום, iOS ספארי — ב-iOS אין Share Target)
 - [ ] אפשרות: ביטול/חזרה (undo)
 - [ ] אפשרות: PDF מוגן בסיסמת פתיחה (כרגע מוצגת הודעה)

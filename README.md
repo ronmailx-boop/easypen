@@ -38,6 +38,6 @@ npm install && npm test
 כל הנתיבים יחסיים, כך שהאתר עובד גם בשורש הדומיין וגם תחת תת-תיקייה.
 
 - **GitHub Pages:** Settings → Pages → Deploy from branch → `main` / root.
-- **Cloudflare Workers:** Workers & Pages → Create → Connect GitHub → `easypen`. השם חייב להיות `easypen`, כמו ב-`wrangler.jsonc`. אין צורך ב-build command; פקודת הפריסה היא ברירת המחדל `npx wrangler deploy`. `.assetsignore` מוציא מהפריסה את כל מה שאינו חלק מהאפליקציה.
+- **Cloudflare Workers:** `.github/workflows/deploy-cloudflare.yml` מריץ `wrangler deploy` בכל push ל-`main` (או ידנית מלשונית Actions). נדרש Secret ברספוזיטורי בשם `CLOUDFLARE_API_TOKEN` (API Token מהתבנית "Edit Cloudflare Workers"). ההגדרות ב-`wrangler.jsonc`; `.assetsignore` מוציא מהפריסה את כל מה שאינו חלק מהאפליקציה. כתובת: https://easypen.ronmailx.workers.dev
 
 בכל שינוי בקבצי האפליקציה יש להעלות את המספר ב-`js/version.js`, כדי שהמשתמשים יקבלו את הגרסה החדשה.
