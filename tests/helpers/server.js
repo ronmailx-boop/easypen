@@ -2,6 +2,8 @@
  * Minimal static server for the tests.
  * Serves the repo under /easypen/ to mimic a GitHub Pages project site
  * (catches absolute paths that would break there).
+ * With { prettyUrls: true } it also mimics Cloudflare's default HTML handling:
+ * /page.html and /dir/index.html redirect (307) to /page and /dir/, which serve the file.
  */
 const http = require('http');
 const fs = require('fs');
@@ -22,7 +24,7 @@ const MIME = {
   '.md': 'text/markdown; charset=utf-8'
 };
 
-function start() {
+function start({ prettyUrls = false } = {}) {
   const server = http.createServer((req, res) => {
     const url = new URL(req.url, 'http://localhost');
     if (!url.pathname.startsWith(PREFIX)) {
@@ -35,7 +37,13 @@ function start() {
       return;
     }
     let rel = decodeURIComponent(url.pathname.slice(PREFIX.length));
+    if (prettyUrls && rel.endsWith('.html')) {
+      const pretty = rel.endsWith('index.html') ? rel.slice(0, -'index.html'.length) : rel.slice(0, -'.html'.length);
+      res.writeHead(307, { Location: PREFIX + pretty + url.search }).end();
+      return;
+    }
     if (rel === '' || rel.endsWith('/')) rel += 'index.html';
+    else if (prettyUrls && !path.extname(rel)) rel += '.html';
     const file = path.resolve(ROOT, rel);
     if (!file.startsWith(ROOT + path.sep)) {
       res.writeHead(403).end();

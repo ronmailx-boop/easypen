@@ -1,0 +1,17 @@
+# Files that are not part of the app (Cloudflare Workers static assets)
+.git
+.github
+.claude
+node_modules
+tests
+test-results
+package.json
+package-lock.json
+wrangler.jsonc
+.assetsignore
+.gitignore
+.nojekyll
+CLAUDE.md
+PROJECT_STATE.md
+README.md
+.wrangler

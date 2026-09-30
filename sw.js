@@ -42,14 +42,30 @@ const SHELL = [
 const scopeUrl = (path) => new URL(path, self.registration.scope).href;
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(SHELL_CACHE)
-      // cache: 'reload' bypasses the HTTP cache, so a new version never
-      // precaches a stale copy (e.g. new HTML with an old style.css).
-      .then((cache) => cache.addAll(SHELL.map((path) => new Request(path, { cache: 'reload' }))))
-      .then(() => self.skipWaiting())
-  );
+  event.waitUntil(precache().then(() => self.skipWaiting()));
 });
+
+async function precache() {
+  const cache = await caches.open(SHELL_CACHE);
+  await Promise.all(SHELL.map(async (path) => {
+    // cache: 'reload' bypasses the HTTP cache, so a new version never
+    // precaches a stale copy (e.g. new HTML with an old style.css).
+    const response = await fetch(new Request(path, { cache: 'reload' }));
+    if (!response.ok) throw new Error(`Precache failed: ${path} (${response.status})`);
+    await cache.put(scopeUrl(path), await unredirect(response));
+  }));
+}
+
+// Hosts like Cloudflare redirect page.html → /page. Browsers refuse to use a
+// redirected response for a navigation, so cache a plain copy instead.
+async function unredirect(response) {
+  if (!response.redirected) return response;
+  return new Response(await response.blob(), {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers
+  });
+}
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
@@ -94,13 +110,14 @@ async function handleShareTarget(request) {
 // Cache first, refreshed in the background (stale-while-revalidate).
 async function cacheFirst(request, event) {
   const isPage = request.mode === 'navigate';
-  const cached = await caches.match(request, { ignoreSearch: isPage });
+  const cached = await caches.match(request, { ignoreSearch: isPage }) ||
+    (isPage && await caches.match(prettyToHtml(request.url), { ignoreSearch: true }));
 
   const network = fetch(request, { cache: 'no-cache' })
     .then(async (response) => {
       if (response && response.ok && response.type === 'basic') {
         const cache = await caches.open(cached ? SHELL_CACHE : RUNTIME_CACHE);
-        await cache.put(isPage ? stripSearch(request.url) : request, response.clone());
+        await cache.put(isPage ? stripSearch(request.url) : request, await unredirect(response.clone()));
       }
       return response;
     });
@@ -121,6 +138,15 @@ async function cacheFirst(request, event) {
       headers: { 'Content-Type': 'text/plain; charset=utf-8' }
     });
   }
+}
+
+// /legal → /legal.html, / → /index.html (the URLs a pretty-URL host redirected to)
+function prettyToHtml(href) {
+  const u = new URL(href);
+  u.search = '';
+  if (u.pathname.endsWith('/')) u.pathname += 'index.html';
+  else if (!/\.[a-z0-9]+$/i.test(u.pathname)) u.pathname += '.html';
+  return u.href;
 }
 
 function stripSearch(href) {

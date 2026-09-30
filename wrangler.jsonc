@@ -1,0 +1,7 @@
+// Cloudflare Workers: serves the app as static assets (no Worker script, no build step).
+// Files that are not part of the app are listed in .assetsignore.
+{
+  "name": "easypen",
+  "compatibility_date": "2026-09-30",
+  "assets": { "directory": "." }
+}

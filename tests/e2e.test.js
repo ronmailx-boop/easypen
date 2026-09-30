@@ -454,3 +454,27 @@ test('service worker: share target opens shared PDFs, rejects other types, works
   await page.waitForSelector('.page.is-rendered');
   assert.equal(await page.textContent('#doc-pages'), '4 עמודים');
 });
+
+test('service worker: works offline behind a host that redirects .html to pretty URLs (Cloudflare)', async () => {
+  const cf = await start({ prettyUrls: true });
+  try {
+    await page.goto(cf.baseUrl);
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await page.reload();
+    assert.equal(await page.evaluate(() => !!navigator.serviceWorker.controller), true, 'page controlled by SW');
+
+    await context.setOffline(true);
+    for (const target of ['index.html', 'legal.html?doc=terms', 'legal?doc=cookies']) {
+      await page.goto(cf.baseUrl + target);
+      await page.waitForSelector('.brand');
+    }
+    assert.equal(await page.textContent('#legal-content h1'), 'מדיניות עוגיות');
+
+    await page.goto(cf.baseUrl + 'index.html');
+    await page.setInputFiles('#file-input', pdfFile());
+    await page.waitForURL(/viewer\.html/);
+    await page.waitForSelector('.page.is-rendered');
+  } finally {
+    await cf.close();
+  }
+});

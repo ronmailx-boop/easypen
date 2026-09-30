@@ -34,6 +34,10 @@ npm install && npm test
 ```
 פירוט ב-[`tests/README.md`](tests/README.md). `package.json` משמש לבדיקות בלבד — האתר עצמו לא דורש build.
 
-## פריסה ל-GitHub Pages
-Settings → Pages → Deploy from branch → `main` / root. כל הנתיבים יחסיים, כך שהאתר עובד גם תחת `https://<user>.github.io/easypen/`.
-בכל שינוי בקבצי האפליקציה יש להעלות את `VERSION` ב-`sw.js` כדי שהמשתמשים יקבלו את הגרסה החדשה.
+## פריסה
+כל הנתיבים יחסיים, כך שהאתר עובד גם בשורש הדומיין וגם תחת תת-תיקייה.
+
+- **GitHub Pages:** Settings → Pages → Deploy from branch → `main` / root.
+- **Cloudflare Workers:** Workers & Pages → Create → Connect GitHub → `easypen`. השם חייב להיות `easypen`, כמו ב-`wrangler.jsonc`. אין צורך ב-build command; פקודת הפריסה היא ברירת המחדל `npx wrangler deploy`. `.assetsignore` מוציא מהפריסה את כל מה שאינו חלק מהאפליקציה.
+
+בכל שינוי בקבצי האפליקציה יש להעלות את המספר ב-`js/version.js`, כדי שהמשתמשים יקבלו את הגרסה החדשה.
