@@ -64,7 +64,8 @@ MVP ראשוני הושלם. חבילת בדיקות e2e נוספה ל-`tests/` 
   1. `wrangler.jsonc` — הגדרות Cloudflare: שם הפרויקט (קובע את הכתובת `<name>.ronmailx.workers.dev`) ותיקיית הקבצים שמוגשים. **לשנות את `name`.**
   2. `.assetsignore` — מה לא עולה לאתר (`node_modules`, בדיקות, `package.json`, תיעוד פנימי). **להתאים לקבצים של הפרויקט.**
   3. `.github/workflows/deploy-cloudflare.yml` — התהליך שמעלה ל-Cloudflare בכל מיזוג ל-`main` או ידנית. Account ID כבר בפנים — **אין מה לשנות.**
-  - מהמשתמש צריך רק: API Token מהתבנית Edit Cloudflare Workers (אפשר להשתמש שוב באותו מפתח — הוא על כל החשבון; אם לא נשמר, ליצור חדש) → Secret בשם `CLOUDFLARE_API_TOKEN` בריפו החדש.
+  - מהמשתמש צריך רק: API Token מהתבנית Edit Cloudflare Workers → Secret בשם `CLOUDFLARE_API_TOKEN` בריפו החדש.
+  - **מפתח נפרד לכל פרויקט (החלטה, 30.9.2026).** לתת לו שם לפי הפרויקט (Token name, למשל `easypen-deploy`). הסיבה: מפתח אחד לכולם שולט בכל ה-Workers בחשבון (`clickbyter-api`, `xmoney-auth`, `cheap-flights-agent`…) — דליפה מריפו אחד פוגעת בכולם, וביטול/Roll עוצר את הפריסה בכל הפרויקטים. Cloudflare מציג מפתח רק פעם אחת; לא לשמור אותו בצ'אט, בקוד או בקובץ — רק כ-Secret ב-GitHub (ובמנהל סיסמאות אם רוצים).
   - אם האתר צריך לעבוד אופליין (Service Worker): לוודא שה-SW מתמודד עם ההפניות `page.html` → `/page` (כמו `unredirect` + `prettyToHtml` ב-`sw.js` כאן). זה תיקון קוד, לא קובץ נוסף.
 
 ## החלטות
