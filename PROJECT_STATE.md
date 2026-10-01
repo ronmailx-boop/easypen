@@ -38,7 +38,7 @@ MVP ראשוני הושלם. חבילת בדיקות e2e נוספה ל-`tests/` 
 - [x] GitHub Actions לפריסה ל-Cloudflare Workers (`.github/workflows/deploy-cloudflare.yml`) — חיבור Git בלוח הבקרה נכשל בנייד (לולאת Connect GitHub ב-Pages וב-Workers)
 - [x] Secret `CLOUDFLARE_API_TOKEN` נשמר, פריסה ראשונה הצליחה (30.9.2026, 225 קבצים) → https://easypen.ronmailx.workers.dev
 - [x] נבדק בטלפון בכתובת Cloudflare — עובד (גרסה 10)
-- [ ] דומיין: המשתמש יקנה `vplus-studio.com` ב-Cloudflare (באותו חשבון) ויעדכן. אז: להוסיף ל-`wrangler.jsonc` את `"routes": [{ "pattern": "easypen.vplus-studio.com", "custom_domain": true }]`, PR + מיזוג, לבדוק בלוג ה-Actions שהדומיין נוצר (אם אין הרשאה — להוסיף הרשאה למפתח הקיים, לא מפתח חדש), לעדכן README וכתובת במסמכים המשפטיים. `workers.dev` ממשיך לעבוד במקביל; מעבר כתובת = נתונים מקומיים לא עוברים, לכן לעבור לפני שיווק
+- [x] דומיין `vplusstudio.app` נקנה ב-Cloudflare (1.10.2026). `wrangler.jsonc` → `"routes": [{ "pattern": "easypen.vplusstudio.app", "custom_domain": true }]` — הפריסה יוצרת DNS + תעודה. (אם אין הרשאה — להוסיף הרשאה למפתח הקיים, לא מפתח חדש). המסמכים המשפטיים לא מזכירים כתובת. `workers.dev` ממשיך לעבוד במקביל; מעבר כתובת = נתונים מקומיים לא עוברים, לכן לעבור לפני שיווק
 - [ ] בדיקה על מכשירים אמיתיים (אנדרואיד כרום, iOS ספארי — ב-iOS אין Share Target)
 - [ ] אפשרות: ביטול/חזרה (undo)
 - [ ] אפשרות: PDF מוגן בסיסמת פתיחה (כרגע מוצגת הודעה)
@@ -59,7 +59,7 @@ MVP ראשוני הושלם. חבילת בדיקות e2e נוספה ל-`tests/` 
 2. ב-Cloudflare: My Profile → API Tokens → Create Token → תבנית **Edit Cloudflare Workers** → Account Resources: Include + החשבון → Zone Resources: Include + **All zones** → Create Token → Copy.
 3. ב-GitHub: Settings → Secrets and variables → Actions → New repository secret → `CLOUDFLARE_API_TOKEN`.
 4. הרצה ראשונה: אני יכול להפעיל בעצמי (`actions_run_trigger`, `run_workflow`) ולבדוק בלוג ה-job (הסביבה שלי לא יכולה לגשת ל-workers.dev ישירות).
-- Account ID (לא סודי, בתוך ה-workflow): `1c9c1dd0e8a1d80f324b974ae6a617fb` · תת-דומיין: `ronmailx.workers.dev`
+- Account ID (לא סודי, בתוך ה-workflow): `1c9c1dd0e8a1d80f324b974ae6a617fb` · תת-דומיין: `ronmailx.workers.dev` · דומיין: `vplusstudio.app` (אפליקציות כתת-דומיין, למשל `easypen.vplusstudio.app`; לפרויקט חדש להוסיף `routes` עם `custom_domain` ב-`wrangler.jsonc`)
 - ה-SW חייב להיות עמיד להפניות `page.html` → `/page` של Cloudflare (`unredirect` + `prettyToHtml` ב-`sw.js`), ויש לזה בדיקה (`prettyUrls` בשרת הבדיקות).
 - **לפרויקטים חדשים:** אותה שיטה. להעתיק לריפו החדש את שלושת הקבצים:
   1. `wrangler.jsonc` — הגדרות Cloudflare: שם הפרויקט (קובע את הכתובת `<name>.ronmailx.workers.dev`) ותיקיית הקבצים שמוגשים. **לשנות את `name`.**
