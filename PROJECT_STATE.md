@@ -71,6 +71,8 @@ MVP ראשוני הושלם. חבילת בדיקות e2e נוספה ל-`tests/` 
   - אם האתר צריך לעבוד אופליין (Service Worker): לוודא שה-SW מתמודד עם ההפניות `page.html` → `/page` (כמו `unredirect` + `prettyToHtml` ב-`sw.js` כאן). זה תיקון קוד, לא קובץ נוסף.
 
 ## דומיין משלנו (תת-דומיין) — השיטה שעובדת (אושר 1.10.2026)
+> ההוראות הכלליות לכל אפליקציה (פריסה + דומיין) נמצאות עכשיו ב-`CLAUDE.md`, בסעיף "פריסה ל-Cloudflare ודומיין". להעתיק את הסעיף ל-CLAUDE.md של כל ריפו.
+
 הדומיין `vplusstudio.app` נקנה ב-Cloudflare **באותו חשבון** של ה-Workers. כל אפליקציה מקבלת תת-דומיין משלה.
 1. ב-`wrangler.jsonc` של הפרויקט מוסיפים:
    `"routes": [{ "pattern": "<app>.vplusstudio.app", "custom_domain": true }]`
