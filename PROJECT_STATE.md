@@ -57,7 +57,7 @@ MVP ראשוני הושלם. חבילת בדיקות e2e נוספה ל-`tests/` 
 
 השיטה שעובדת: **GitHub Actions + wrangler + API Token**
 1. בריפו: `wrangler.jsonc` (Worker של static assets בלבד, `assets.directory: "."`) + `.assetsignore` (מוציא `.git`, `node_modules`, `tests`, `package*.json`, קבצי תיעוד) + `.github/workflows/deploy-cloudflare.yml` (`npx --yes wrangler@4 deploy` ב-push ל-main וב-workflow_dispatch; מדלג אם אין Secret).
-2. ב-Cloudflare: My Profile → API Tokens → Create Token → תבנית **Edit Cloudflare Workers** → Account Resources: Include + החשבון → Zone Resources: Include + **All zones** → Create Token → Copy.
+2. ב-Cloudflare: My Profile → API Tokens → Create Token → תבנית **Edit Cloudflare Workers** → Account Resources: Include + החשבון → Zone Resources: Include + **Specific zone** → `vplusstudio.app` → Create Token → Copy. (המפתח הקיים של easypen נוצר עם All zones — עובד, לא חובה להחליף.)
 3. ב-GitHub: Settings → Secrets and variables → Actions → New repository secret → `CLOUDFLARE_API_TOKEN`.
 4. הרצה ראשונה: אני יכול להפעיל בעצמי (`actions_run_trigger`, `run_workflow`) ולבדוק בלוג ה-job (הסביבה שלי לא יכולה לגשת ל-workers.dev ישירות).
 - Account ID (לא סודי, בתוך ה-workflow): `1c9c1dd0e8a1d80f324b974ae6a617fb` · תת-דומיין: `ronmailx.workers.dev` · דומיין: `vplusstudio.app` (אפליקציות כתת-דומיין, למשל `easypen.vplusstudio.app`; לפרויקט חדש להוסיף `routes` עם `custom_domain` ב-`wrangler.jsonc`)
@@ -67,7 +67,7 @@ MVP ראשוני הושלם. חבילת בדיקות e2e נוספה ל-`tests/` 
   2. `.assetsignore` — מה לא עולה לאתר (`node_modules`, בדיקות, `package.json`, תיעוד פנימי). **להתאים לקבצים של הפרויקט.**
   3. `.github/workflows/deploy-cloudflare.yml` — התהליך שמעלה ל-Cloudflare בכל מיזוג ל-`main` או ידנית. Account ID כבר בפנים — **אין מה לשנות.**
   - מהמשתמש צריך רק: API Token מהתבנית Edit Cloudflare Workers → Secret בשם `CLOUDFLARE_API_TOKEN` בריפו החדש.
-  - **מפתח נפרד לכל פרויקט (החלטה, 30.9.2026).** לתת לו שם לפי הפרויקט (Token name, למשל `easypen-deploy`). הסיבה: מפתח אחד לכולם שולט בכל ה-Workers בחשבון (`clickbyter-api`, `xmoney-auth`, `cheap-flights-agent`…) — דליפה מריפו אחד פוגעת בכולם, וביטול/Roll עוצר את הפריסה בכל הפרויקטים. Cloudflare מציג מפתח רק פעם אחת; לא לשמור אותו בצ'אט, בקוד או בקובץ — רק כ-Secret ב-GitHub (ובמנהל סיסמאות אם רוצים).
+  - **מפתח נפרד לכל פרויקט (החלטה, 30.9.2026).** לתת לו שם לפי הפרויקט (Token name, למשל `easypen-deploy`). הסיבה: זו ההמלצה המקובלת (נבדק ברשת 1.10.2026). זה **לא** מגביל הרשאות — כל מפתח מהתבנית יכול לשנות כל Worker בחשבון (`clickbyter-api`, `xmoney-auth`, `cheap-flights-agent`…); היתרון הוא שביטול/Roll של מפתח שדלף לא עוצר את הפריסה בשאר הפרויקטים, ולפי השם יודעים מאיפה דלף. Roll לפחות פעם בשנה. Cloudflare מציג מפתח רק פעם אחת; לא לשמור אותו בצ'אט, בקוד או בקובץ — רק כ-Secret ב-GitHub (ובמנהל סיסמאות אם רוצים).
   - אם האתר צריך לעבוד אופליין (Service Worker): לוודא שה-SW מתמודד עם ההפניות `page.html` → `/page` (כמו `unredirect` + `prettyToHtml` ב-`sw.js` כאן). זה תיקון קוד, לא קובץ נוסף.
 
 ## דומיין משלנו (תת-דומיין) — השיטה שעובדת (אושר 1.10.2026)
@@ -79,7 +79,7 @@ MVP ראשוני הושלם. חבילת בדיקות e2e נוספה ל-`tests/` 
    `"routes": [{ "pattern": "<app>.vplusstudio.app", "custom_domain": true }]`
 2. PR + מיזוג → ה-workflow הקיים (`wrangler deploy`) יוצר לבד את רשומת ה-DNS ואת תעודת ה-HTTPS. **לא נוגעים בלוח הבקרה.**
 3. אימות: בלוג ה-job של "Deploy to Cloudflare" מופיעה השורה `<app>.vplusstudio.app (custom domain)`. המשתמש בודק בטלפון (הסביבה שלי לא מגיעה לכתובת); תעודה חדשה יכולה לקחת 5–15 דקות.
-- המפתח מהתבנית **Edit Cloudflare Workers** עם **All zones** מספיק — לא היה צריך הרשאה נוספת. אם פריסה נכשלת על הרשאה: להוסיף הרשאה למפתח הקיים, לא ליצור חדש.
+- המפתח מהתבנית **Edit Cloudflare Workers** (נבדק עם All zones; למפתחות חדשים — Specific zone `vplusstudio.app`) מספיק — לא היה צריך הרשאה נוספת. אם פריסה נכשלת על הרשאה: להוסיף הרשאה למפתח הקיים, לא ליצור חדש.
 - כתובת `workers.dev` ממשיכה לעבוד במקביל **רק עם `"workers_dev": true`** — בלי זה wrangler כיבה אותה ב-EasyPen אחרי הוספת `routes` (בלוג הופיע רק ה-custom domain). תוקן 1.10.2026 ונבדק בטלפון — שתי הכתובות עובדות; באימות לוודא ששתי הכתובות מופיעות בלוג. מעבר כתובת = נתונים מקומיים (IndexedDB) והתקנת PWA לא עוברים → לחבר דומיין לפני שמשווקים.
 - דומיין `.app` מחייב HTTPS (HSTS) — Cloudflare מטפל בזה אוטומטית.
 
