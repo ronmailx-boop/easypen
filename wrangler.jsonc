@@ -4,6 +4,8 @@
   "name": "easypen",
   "compatibility_date": "2026-09-30",
   "assets": { "directory": "." },
+  // Keep easypen.ronmailx.workers.dev alive; wrangler turns it off when routes are set unless this is explicit.
+  "workers_dev": true,
   // Custom domain on the vplusstudio.app zone (same Cloudflare account); DNS and certificate are created on deploy.
   "routes": [{ "pattern": "easypen.vplusstudio.app", "custom_domain": true }]
 }

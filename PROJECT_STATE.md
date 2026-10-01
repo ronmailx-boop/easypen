@@ -75,11 +75,12 @@ MVP ראשוני הושלם. חבילת בדיקות e2e נוספה ל-`tests/` 
 
 הדומיין `vplusstudio.app` נקנה ב-Cloudflare **באותו חשבון** של ה-Workers. כל אפליקציה מקבלת תת-דומיין משלה.
 1. ב-`wrangler.jsonc` של הפרויקט מוסיפים:
+   `"workers_dev": true,`
    `"routes": [{ "pattern": "<app>.vplusstudio.app", "custom_domain": true }]`
 2. PR + מיזוג → ה-workflow הקיים (`wrangler deploy`) יוצר לבד את רשומת ה-DNS ואת תעודת ה-HTTPS. **לא נוגעים בלוח הבקרה.**
 3. אימות: בלוג ה-job של "Deploy to Cloudflare" מופיעה השורה `<app>.vplusstudio.app (custom domain)`. המשתמש בודק בטלפון (הסביבה שלי לא מגיעה לכתובת); תעודה חדשה יכולה לקחת 5–15 דקות.
 - המפתח מהתבנית **Edit Cloudflare Workers** עם **All zones** מספיק — לא היה צריך הרשאה נוספת. אם פריסה נכשלת על הרשאה: להוסיף הרשאה למפתח הקיים, לא ליצור חדש.
-- כתובת `workers.dev` ממשיכה לעבוד במקביל. מעבר כתובת = נתונים מקומיים (IndexedDB) והתקנת PWA לא עוברים → לחבר דומיין לפני שמשווקים.
+- כתובת `workers.dev` ממשיכה לעבוד במקביל **רק עם `"workers_dev": true`** — בלי זה wrangler כיבה אותה ב-EasyPen אחרי הוספת `routes` (בלוג הופיע רק ה-custom domain). תוקן 1.10.2026; באימות לוודא ששתי הכתובות מופיעות בלוג. מעבר כתובת = נתונים מקומיים (IndexedDB) והתקנת PWA לא עוברים → לחבר דומיין לפני שמשווקים.
 - דומיין `.app` מחייב HTTPS (HSTS) — Cloudflare מטפל בזה אוטומטית.
 
 ## החלטות
