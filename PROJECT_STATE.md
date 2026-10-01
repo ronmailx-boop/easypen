@@ -38,7 +38,8 @@ MVP ראשוני הושלם. חבילת בדיקות e2e נוספה ל-`tests/` 
 - [x] GitHub Actions לפריסה ל-Cloudflare Workers (`.github/workflows/deploy-cloudflare.yml`) — חיבור Git בלוח הבקרה נכשל בנייד (לולאת Connect GitHub ב-Pages וב-Workers)
 - [x] Secret `CLOUDFLARE_API_TOKEN` נשמר, פריסה ראשונה הצליחה (30.9.2026, 225 קבצים) → https://easypen.ronmailx.workers.dev
 - [x] נבדק בטלפון בכתובת Cloudflare — עובד (גרסה 10)
-- [x] דומיין `vplusstudio.app` נקנה ב-Cloudflare (1.10.2026). `wrangler.jsonc` → `"routes": [{ "pattern": "easypen.vplusstudio.app", "custom_domain": true }]` — הפריסה יוצרת DNS + תעודה. (אם אין הרשאה — להוסיף הרשאה למפתח הקיים, לא מפתח חדש). המסמכים המשפטיים לא מזכירים כתובת. `workers.dev` ממשיך לעבוד במקביל; מעבר כתובת = נתונים מקומיים לא עוברים, לכן לעבור לפני שיווק
+- [x] דומיין `vplusstudio.app` נקנה ב-Cloudflare (1.10.2026). `wrangler.jsonc` → `"routes": [{ "pattern": "easypen.vplusstudio.app", "custom_domain": true }]` — הפריסה יוצרת DNS + תעודה. (אם אין הרשאה — להוסיף הרשאה למפתח הקיים, לא מפתח חדש). המסמכים המשפטיים לא מזכירים כתובת.
+- [x] נבדק בטלפון ב-https://easypen.vplusstudio.app — עובד (1.10.2026) `workers.dev` ממשיך לעבוד במקביל; מעבר כתובת = נתונים מקומיים לא עוברים, לכן לעבור לפני שיווק
 - [ ] בדיקה על מכשירים אמיתיים (אנדרואיד כרום, iOS ספארי — ב-iOS אין Share Target)
 - [ ] אפשרות: ביטול/חזרה (undo)
 - [ ] אפשרות: PDF מוגן בסיסמת פתיחה (כרגע מוצגת הודעה)
@@ -68,6 +69,16 @@ MVP ראשוני הושלם. חבילת בדיקות e2e נוספה ל-`tests/` 
   - מהמשתמש צריך רק: API Token מהתבנית Edit Cloudflare Workers → Secret בשם `CLOUDFLARE_API_TOKEN` בריפו החדש.
   - **מפתח נפרד לכל פרויקט (החלטה, 30.9.2026).** לתת לו שם לפי הפרויקט (Token name, למשל `easypen-deploy`). הסיבה: מפתח אחד לכולם שולט בכל ה-Workers בחשבון (`clickbyter-api`, `xmoney-auth`, `cheap-flights-agent`…) — דליפה מריפו אחד פוגעת בכולם, וביטול/Roll עוצר את הפריסה בכל הפרויקטים. Cloudflare מציג מפתח רק פעם אחת; לא לשמור אותו בצ'אט, בקוד או בקובץ — רק כ-Secret ב-GitHub (ובמנהל סיסמאות אם רוצים).
   - אם האתר צריך לעבוד אופליין (Service Worker): לוודא שה-SW מתמודד עם ההפניות `page.html` → `/page` (כמו `unredirect` + `prettyToHtml` ב-`sw.js` כאן). זה תיקון קוד, לא קובץ נוסף.
+
+## דומיין משלנו (תת-דומיין) — השיטה שעובדת (אושר 1.10.2026)
+הדומיין `vplusstudio.app` נקנה ב-Cloudflare **באותו חשבון** של ה-Workers. כל אפליקציה מקבלת תת-דומיין משלה.
+1. ב-`wrangler.jsonc` של הפרויקט מוסיפים:
+   `"routes": [{ "pattern": "<app>.vplusstudio.app", "custom_domain": true }]`
+2. PR + מיזוג → ה-workflow הקיים (`wrangler deploy`) יוצר לבד את רשומת ה-DNS ואת תעודת ה-HTTPS. **לא נוגעים בלוח הבקרה.**
+3. אימות: בלוג ה-job של "Deploy to Cloudflare" מופיעה השורה `<app>.vplusstudio.app (custom domain)`. המשתמש בודק בטלפון (הסביבה שלי לא מגיעה לכתובת); תעודה חדשה יכולה לקחת 5–15 דקות.
+- המפתח מהתבנית **Edit Cloudflare Workers** עם **All zones** מספיק — לא היה צריך הרשאה נוספת. אם פריסה נכשלת על הרשאה: להוסיף הרשאה למפתח הקיים, לא ליצור חדש.
+- כתובת `workers.dev` ממשיכה לעבוד במקביל. מעבר כתובת = נתונים מקומיים (IndexedDB) והתקנת PWA לא עוברים → לחבר דומיין לפני שמשווקים.
+- דומיין `.app` מחייב HTTPS (HSTS) — Cloudflare מטפל בזה אוטומטית.
 
 ## החלטות
 - המסמכים המשפטיים נשמרים רק כ-Markdown ב-`docs/legal/` (מקור אמת יחיד); `js/legal.js` מרנדר אותם בדפדפן עם escaping מלא.
