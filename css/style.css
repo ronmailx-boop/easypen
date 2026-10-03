@@ -429,7 +429,7 @@ img { max-width: 100%; }
 /* ---------- Viewer ---------- */
 
 .viewer {
-  --tray-h: 228px;   /* height of the drawing tray */
+  --tray-h: 244px;   /* height of the drawing tray */
   padding-bottom: calc(var(--bar-h) + var(--safe-bottom));
   background: #e6e9f2;
 }
@@ -728,7 +728,7 @@ img { max-width: 100%; }
 .draw-mode .bottom-bar { display: none; }
 
 .viewer.draw-mode { padding-bottom: calc(var(--tray-h) + var(--safe-bottom)); }
-.viewer.tray-collapsed { --tray-h: 37px; }
+.viewer.tray-collapsed { --tray-h: 45px; }
 
 .draw-title { font-weight: 700; }
 .draw-done { font-weight: 800; }
@@ -751,16 +751,21 @@ img { max-width: 100%; }
 }
 
 /* Tapping the handle tucks the tray down, leaving only the handle */
-.tray-collapsed .draw-tray { --collapse: calc(100% - 37px - var(--safe-bottom));   /* handle + top border */ }
+.tray-collapsed .draw-tray { --collapse: calc(100% - 45px - var(--safe-bottom));   /* handle + top border */ }
 .draw-tray.is-sliding { transition: transform .2s ease; }
+
+.tray-top {
+  position: relative;
+  margin: 0 -16px -10px;
+}
 
 .tray-handle {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  height: 36px;
-  margin: 0 -16px -10px;
+  width: 100%;
+  height: 44px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -774,6 +779,34 @@ img { max-width: 100%; }
 
 .tray-handle svg { transition: transform .2s ease; }
 .tray-collapsed .tray-handle svg { transform: rotate(180deg); }
+
+/* Scroll mode (only while the tray is tucked away): fingers scroll and zoom, nothing is drawn */
+.scroll-toggle {
+  position: absolute;
+  inset-inline-end: 12px;
+  top: 4px;
+  display: none;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: .8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tray-collapsed .scroll-toggle { display: flex; }
+.scroll-toggle[aria-pressed="true"] { border-color: var(--primary); background: var(--primary-soft); color: var(--primary-dark); }
+
+.scroll-mode .draw-layer {
+  pointer-events: none;
+  cursor: auto;
+}
 .pen-row {
   display: flex;
   align-items: flex-end;

@@ -52,6 +52,7 @@
     drawToolName: document.getElementById('draw-tool-name'),
     drawTrayToggle: document.getElementById('draw-tray-toggle'),
     drawTools: document.getElementById('draw-tools'),
+    drawScroll: document.getElementById('draw-scroll'),
     saveShare: document.getElementById('save-share'),
     modeHint: document.getElementById('mode-hint'),
     modeCancel: document.getElementById('mode-cancel'),
@@ -761,6 +762,7 @@
       ink.pointers.clear();
       ink.panning = false;
       state.drawSnapshot = null;
+      setScrollMode(false);
     }
     state.drawMode = on;
     document.body.classList.toggle('draw-mode', on);
@@ -922,8 +924,20 @@
     }
     document.body.classList.toggle('tray-collapsed', collapsed);
     el.drawTools.inert = collapsed;
+    if (!collapsed) setScrollMode(false);   // opening the tools means drawing again
     el.drawTrayToggle.setAttribute('aria-expanded', String(!collapsed));
     el.drawTrayToggle.querySelector('.tray-handle-label').textContent = collapsed ? 'הצג כלים' : 'הסתר כלים';
+  }
+
+  // Scroll mode: the drawing layer lets touches through, so one finger scrolls the pages
+  function setScrollMode(on) {
+    if (on) {
+      cancelStroke();
+      ink.pointers.clear();
+      ink.panning = false;
+    }
+    document.body.classList.toggle('scroll-mode', on);
+    el.drawScroll.setAttribute('aria-pressed', String(on));
   }
 
   function toggleTray() {
@@ -937,6 +951,7 @@
     el.drawCancel.addEventListener('click', cancelDrawing);
     el.drawUndo.addEventListener('click', undoStroke);
     el.drawTrayToggle.addEventListener('click', toggleTray);
+    el.drawScroll.addEventListener('click', () => setScrollMode(!document.body.classList.contains('scroll-mode')));
     el.drawTray.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-tool], [data-color]');
       if (!btn) {
