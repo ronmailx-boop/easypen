@@ -428,6 +428,13 @@ img { max-width: 100%; }
 
 /* ---------- Viewer ---------- */
 
+/* The editor zooms its pages itself (see pinch zoom in viewer.js): browser zoom would move
+   the fixed bars along with the page */
+html:has(> body.viewer),
+.viewer {
+  touch-action: pan-x pan-y;
+}
+
 .viewer {
   --tray-h: 244px;   /* height of the drawing tray */
   padding-bottom: calc(var(--bar-h) + var(--safe-bottom));
@@ -461,13 +468,14 @@ img { max-width: 100%; }
   flex-direction: column;
   align-items: center;
   gap: 12px;
+  width: calc(100% * var(--zoom, 1));
   padding: 12px 8px 24px;
 }
 
 .page {
   position: relative;
   width: 100%;
-  max-width: 900px;
+  max-width: calc(900px * var(--zoom, 1));
   background: #fff;
   box-shadow: 0 2px 10px rgba(20, 25, 70, .15);
 }
@@ -715,8 +723,8 @@ img { max-width: 100%; }
 
 .draw-mode .draw-layer {
   pointer-events: auto;
-  /* One finger draws; two fingers are left to the browser: pinch-zoom and scroll, as outside drawing mode */
-  touch-action: pinch-zoom;
+  /* One finger draws; two fingers zoom and scroll (pinch zoom in viewer.js) */
+  touch-action: none;
   cursor: crosshair;
 }
 
