@@ -480,6 +480,20 @@ test('editor: pinch zoom enlarges the pages in the app, bars stay in place', asy
   assert.ok(handle && handle.y > 700 && handle.y + handle.height <= 780, 'tucked-away tray still on screen');
 });
 
+test('editor: bottom bar labels stay on one line with a large phone font', async () => {
+  await openInEditor();
+  await page.evaluate(() => { document.documentElement.style.fontSize = '130%'; });
+  const buttons = await page.$$eval('.bottom-bar .bar-btn', (bs) => bs.map((b) => {
+    const r = b.getBoundingClientRect();
+    return { text: b.textContent.trim(), fits: b.scrollHeight <= Math.ceil(r.height) && b.scrollWidth <= Math.ceil(r.width) };
+  }));
+  assert.deepEqual(buttons.filter((b) => !b.fits), [], 'labels fit inside their buttons');
+  // Scroll mode button on the right side (start of the line in Hebrew)
+  await page.click('#draw-btn');
+  const box = await page.locator('#draw-scroll').boundingBox();
+  assert.ok(box.x + box.width > 390 - 20 && box.x > 195, `scroll button on the right: ${box.x}`);
+});
+
 test('my signatures: add up to 3, edit and delete', async () => {
   await page.goto(server.baseUrl);
   await page.waitForSelector('#sig-empty', { state: 'visible' });   // shown after the async IndexedDB read
