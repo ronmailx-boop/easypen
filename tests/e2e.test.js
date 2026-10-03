@@ -364,6 +364,42 @@ test('editor: free drawing - undo, cancel and export at the drawn position', asy
   assert.ok(got.x1 - got.x0 > (exp.x1 - exp.x0) * 0.8, 'drawing not shrunk');
 });
 
+test('editor: drawing tray collapses to its handle, bars stay pinned while zoomed', async () => {
+  // Fake pinch-zoom (headless Chromium can't pinch): 2x, panned right and down
+  await page.addInitScript(() => {
+    const vv = new EventTarget();
+    Object.assign(vv, { scale: 1, offsetLeft: 0, offsetTop: 0, width: 390, height: 780 });
+    Object.defineProperty(window, 'visualViewport', { value: vv, configurable: true });
+    window.__zoom = (z) => { Object.assign(vv, z); vv.dispatchEvent(new Event('resize')); };
+  });
+  await openInEditor();
+  const rect = (sel) => page.evaluate((sel) => new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(() => {
+    const r = document.querySelector(sel).getBoundingClientRect();
+    res([r.left, r.top, r.right, r.bottom].map((v) => Math.round(v)));
+  }))), sel);
+
+  await page.evaluate(() => window.__zoom({ scale: 2, offsetLeft: 100, offsetTop: 200, width: 195, height: 390 }));
+  assert.deepEqual(await rect('.bottom-bar'), [100, 554, 295, 590]);
+  assert.deepEqual(await rect('.viewer-header'), [100, 200, 295, 231]);
+
+  await page.evaluate(() => window.__zoom({ scale: 1, offsetLeft: 0, offsetTop: 0, width: 390, height: 780 }));
+  assert.deepEqual(await rect('.bottom-bar'), [0, 708, 390, 780]);
+
+  // Collapse: only the handle stays on screen, tools can't be reached; tap again to restore
+  await page.click('#draw-btn');
+  await page.click('#draw-tray-toggle');
+  await page.waitForTimeout(300);
+  const handle = await rect('#draw-tray-toggle');
+  assert.ok(handle[3] <= 780 && handle[1] >= 780 - 40, `handle on screen ${handle}`);
+  assert.ok((await rect('.pen-row'))[1] >= 780, 'tools hidden below the screen');
+  assert.equal(await page.getAttribute('#draw-tray-toggle', 'aria-expanded'), 'false');
+  assert.equal(await page.evaluate(() => document.getElementById('draw-tools').inert), true);
+  await page.click('#draw-tray-toggle');
+  await page.waitForTimeout(300);
+  assert.equal(await page.getAttribute('#draw-tray-toggle', 'aria-expanded'), 'true');
+  assert.ok((await rect('.pen-row'))[3] <= 780, 'tools back on screen');
+});
+
 test('my signatures: add up to 3, edit and delete', async () => {
   await page.goto(server.baseUrl);
   await page.waitForSelector('#sig-empty', { state: 'visible' });   // shown after the async IndexedDB read
