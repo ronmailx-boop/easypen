@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="he" dir="rtl" data-i18n-page>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>EasyPen - חתימה דיגיטלית</title>
+  <title data-i18n="app.title">EasyPen - חתימה דיגיטלית</title>
+  <script src="js/i18n.js"></script>
   <meta name="description" content="חתימה על מסמכי PDF ישירות מהנייד. הקבצים לא עוזבים את המכשיר.">
   <meta name="theme-color" content="#2f4fc4">
   <!-- Link preview (WhatsApp, Facebook, Telegram): needs absolute URLs and a PNG/JPG image -->
@@ -31,51 +32,51 @@
       <img src="icons/icon.svg" alt="" width="32" height="32">
       <span>EasyPen</span>
     </div>
-    <button type="button" id="install-btn" class="btn btn-ghost btn-sm" hidden>התקנת האפליקציה</button>
+    <button type="button" id="install-btn" class="btn btn-ghost btn-sm" hidden data-i18n="home.install">התקנת האפליקציה</button>
   </header>
 
   <main class="home-main">
     <section class="upload-card">
-      <h1>חתימה על מסמך</h1>
-      <p class="muted">בחרו קובץ PDF, הוסיפו חתימה או טקסט ושתפו הלאה.</p>
+      <h1 data-i18n="home.heading">חתימה על מסמך</h1>
+      <p class="muted" data-i18n="home.intro">בחרו קובץ PDF, הוסיפו חתימה או טקסט ושתפו הלאה.</p>
       <label class="btn btn-primary btn-xl upload-btn">
         <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M11 16V7.8l-3.6 3.6L6 10l6-6 6 6-1.4 1.4L13 7.8V16h-2zm-6 4v-5h2v3h10v-3h2v5H5z"/></svg>
-        העלה מסמך
+        <span data-i18n="home.upload">העלה מסמך</span>
         <input type="file" id="file-input" accept="application/pdf,.pdf" class="visually-hidden">
       </label>
       <p id="upload-error" class="form-error" role="alert"></p>
       <p class="privacy-note">
         <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5l-8-3zm-1 14-4-4 1.4-1.4L11 13.2l5.6-5.6L18 9l-7 7z"/></svg>
-        כל העיבוד מתבצע במכשיר שלכם. הקבצים לא נשלחים לשום שרת.
+        <span data-i18n="home.privacy">כל העיבוד מתבצע במכשיר שלכם. הקבצים לא נשלחים לשום שרת.</span>
       </p>
     </section>
 
     <section class="signatures-section" aria-labelledby="sigs-title">
       <div class="section-head">
-        <h2 id="sigs-title">החתימות שלי</h2>
+        <h2 id="sigs-title" data-i18n="home.sigs">החתימות שלי</h2>
         <span id="sig-count" class="muted small"></span>
       </div>
       <ul id="sig-list" class="sig-list"></ul>
-      <p id="sig-empty" class="muted empty-state" hidden>עדיין אין חתימות שמורות. אפשר לשמור עד 3 חתימות לשימוש חוזר.</p>
-      <button type="button" id="add-sig-btn" class="btn btn-secondary btn-block">+ חתימה חדשה</button>
+      <p id="sig-empty" class="muted empty-state" hidden data-i18n="home.sigsEmpty">עדיין אין חתימות שמורות. אפשר לשמור עד 3 חתימות לשימוש חוזר.</p>
+      <button type="button" id="add-sig-btn" class="btn btn-secondary btn-block" data-i18n="home.addSig">+ חתימה חדשה</button>
     </section>
   </main>
 
   <footer class="site-footer">
-    <nav class="footer-links" aria-label="מידע משפטי">
+    <nav class="footer-links" aria-label="מידע משפטי" data-i18n-aria="footer.legal">
       <div class="footer-row">
-        <a href="legal.html?doc=privacy">מדיניות פרטיות</a>
+        <a href="legal.html?doc=privacy" data-i18n="footer.privacy">מדיניות פרטיות</a>
         <span class="footer-dot" aria-hidden="true">·</span>
-        <a href="legal.html?doc=terms">תנאי שימוש</a>
+        <a href="legal.html?doc=terms" data-i18n="footer.terms">תנאי שימוש</a>
       </div>
       <div class="footer-row">
-        <a href="legal.html?doc=cookies">מדיניות עוגיות</a>
+        <a href="legal.html?doc=cookies" data-i18n="footer.cookies">מדיניות עוגיות</a>
         <span class="footer-dot" aria-hidden="true">·</span>
-        <a href="legal.html?doc=accessibility">הצהרת נגישות</a>
+        <a href="legal.html?doc=accessibility" data-i18n="footer.accessibility">הצהרת נגישות</a>
       </div>
     </nav>
     <p class="footer-copy" dir="ltr">© 2026 vplus studio</p>
-    <p class="footer-version">גרסה <span data-app-version>10</span></p>
+    <p class="footer-version"><span data-i18n="footer.version">גרסה</span> <span data-app-version>10</span></p>
   </footer>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>

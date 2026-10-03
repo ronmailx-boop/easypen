@@ -7,6 +7,8 @@
 (function (global) {
   'use strict';
 
+  const { t } = global.EasyPenI18n;
+
   const INK_COLORS = { black: '#111827', blue: '#1e3a8a' };
 
   class SignaturePad {
@@ -198,11 +200,11 @@
    */
   function openSignatureDialog(options = {}) {
     const {
-      title = 'ציור חתימה',
+      title = t('pad.title'),
       initialBlob = null,
       showSaveOption = false,
       saveChecked = true,
-      confirmLabel = 'שמור'
+      confirmLabel = t('pad.save')
     } = options;
 
     return new Promise((resolve) => {
@@ -213,29 +215,30 @@
         <form method="dialog" class="modal-card">
           <header class="modal-header">
             <h2 id="sig-dialog-title"></h2>
-            <button type="button" class="icon-btn" data-action="cancel" aria-label="סגור">✕</button>
+            <button type="button" class="icon-btn" data-action="cancel" aria-label="סגור" data-i18n-aria="pad.close">✕</button>
           </header>
-          <p class="modal-hint">ציירו את החתימה בתוך המסגרת בעזרת האצבע</p>
+          <p class="modal-hint" data-i18n="pad.hint">ציירו את החתימה בתוך המסגרת בעזרת האצבע</p>
           <div class="sig-canvas-wrap">
             <canvas class="sig-canvas"></canvas>
             <span class="sig-baseline" aria-hidden="true"></span>
           </div>
           <div class="sig-tools">
-            <div class="ink-colors" role="radiogroup" aria-label="צבע דיו">
-              <label class="ink"><input type="radio" name="ink" value="black" checked><span class="ink-dot ink-black"></span>שחור</label>
-              <label class="ink"><input type="radio" name="ink" value="blue"><span class="ink-dot ink-blue"></span>כחול</label>
+            <div class="ink-colors" role="radiogroup" aria-label="צבע דיו" data-i18n-aria="pad.inkColor">
+              <label class="ink"><input type="radio" name="ink" value="black" checked><span class="ink-dot ink-black"></span><span data-i18n="pad.black">שחור</span></label>
+              <label class="ink"><input type="radio" name="ink" value="blue"><span class="ink-dot ink-blue"></span><span data-i18n="pad.blue">כחול</span></label>
             </div>
-            <button type="button" class="btn btn-ghost" data-action="clear">נקה</button>
+            <button type="button" class="btn btn-ghost" data-action="clear" data-i18n="pad.clear">נקה</button>
           </div>
           <label class="check save-option" hidden>
-            <input type="checkbox" name="save"> שמור לשימוש חוזר
+            <input type="checkbox" name="save"> <span data-i18n="pad.saveForReuse">שמור לשימוש חוזר</span>
           </label>
           <p class="form-error" role="alert"></p>
           <footer class="modal-actions">
-            <button type="button" class="btn btn-secondary" data-action="cancel">ביטול</button>
+            <button type="button" class="btn btn-secondary" data-action="cancel" data-i18n="pad.cancel">ביטול</button>
             <button type="submit" class="btn btn-primary" data-action="confirm" disabled></button>
           </footer>
         </form>`;
+      window.EasyPenI18n.apply(dialog);
       document.body.appendChild(dialog);
 
       dialog.querySelector('h2').textContent = title;
@@ -279,7 +282,7 @@
         e.preventDefault();
         const blob = await pad.toBlob();
         if (!blob) {
-          errorEl.textContent = 'יש לצייר חתימה לפני השמירה';
+          errorEl.textContent = t('pad.empty');
           return;
         }
         finish({ blob, save: showSaveOption ? saveInput.checked : true });

@@ -508,6 +508,52 @@ test('home: link preview (WhatsApp) has the app icon', async () => {
   assert.equal(png[25], 2, 'RGB without transparency: no white corners in the preview');
 });
 
+test('english: an English device gets the home screen in English, left to right', async () => {
+  // Every text has both languages; "iw" (old Android code) counts as Hebrew
+  await page.goto(server.baseUrl);
+  const i18n = await page.evaluate(() => {
+    const { STRINGS, pick } = window.EasyPenI18n;
+    return {
+      missing: Object.keys(STRINGS.he).filter((k) => !(k in STRINGS.en)).concat(Object.keys(STRINGS.en).filter((k) => !(k in STRINGS.he))),
+      picks: ['he', 'he-IL', 'iw-IL', 'en-US', 'fr', 'ar', ''].map(pick)
+    };
+  });
+  assert.deepEqual(i18n.missing, []);
+  assert.deepEqual(i18n.picks, ['he', 'he', 'he', 'en', 'en', 'en', 'en']);
+
+  const en = await browser.newContext({ ...MOBILE, locale: 'en-US' });
+  try {
+    const p = await en.newPage();
+    const errors = [];
+    p.on('pageerror', (e) => errors.push(e.message));
+    const hebrew = () => p.evaluate(() => (document.title + document.body.innerText).match(/[֐-׿]+/g));
+    await p.goto(server.baseUrl);
+    await p.waitForSelector('#sig-empty', { state: 'visible' });
+    assert.deepEqual(await p.evaluate(() => [document.documentElement.lang, document.documentElement.dir]), ['en', 'ltr']);
+    assert.equal(await p.title(), 'EasyPen - Digital Signature');
+    assert.equal(await p.textContent('h1'), 'Sign a document');
+    assert.equal(await p.getAttribute('.footer-links', 'aria-label'), 'Legal information');
+    assert.equal(await hebrew(), null, 'no Hebrew on the home screen');
+
+    // Signature dialog (shared with the editor)
+    await p.click('#add-sig-btn');
+    await p.waitForSelector('dialog.sig-dialog[open]');
+    assert.equal(await hebrew(), null, 'no Hebrew in the signature dialog');
+    assert.equal(await p.getAttribute('dialog.sig-dialog .icon-btn', 'aria-label'), 'Close');
+    await p.click('dialog.sig-dialog [data-action="cancel"] >> nth=-1');
+
+    await p.goto(server.baseUrl + '?error=type');
+    assert.equal(await p.textContent('#upload-error'), 'Only PDF files are supported for now');
+
+    await p.goto(server.baseUrl + 'share-target/');
+    assert.equal(await p.evaluate(() => document.documentElement.dir), 'ltr');
+    assert.equal(await hebrew(), null, 'no Hebrew on the share page');
+    assert.deepEqual(errors, []);
+  } finally {
+    await en.close();
+  }
+});
+
 test('my signatures: add up to 3, edit and delete', async () => {
   await page.goto(server.baseUrl);
   await page.waitForSelector('#sig-empty', { state: 'visible' });   // shown after the async IndexedDB read
