@@ -390,11 +390,29 @@ test('editor: drawing tray collapses to its handle, bars stay pinned while zoome
   await page.click('#draw-tray-toggle');
   await page.waitForTimeout(300);
   const handle = await rect('#draw-tray-toggle');
-  assert.ok(handle[3] <= 780 && handle[1] >= 780 - 40, `handle on screen ${handle}`);
+  assert.ok(handle[3] <= 780 && handle[1] >= 780 - 50, `handle on screen ${handle}`);
   assert.ok((await rect('.pen-row'))[1] >= 780, 'tools hidden below the screen');
   assert.equal(await page.getAttribute('#draw-tray-toggle', 'aria-expanded'), 'false');
   assert.equal(await page.evaluate(() => document.getElementById('draw-tools').inert), true);
+
+  // Scroll mode: the page can be scrolled and nothing is drawn
+  await page.click('#draw-scroll');
+  assert.equal(await page.getAttribute('#draw-scroll', 'aria-pressed'), 'true');
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.draw-layer')).pointerEvents), 'none');
+  const p1 = await page.locator('.page[data-page="1"]').boundingBox();
+  await page.mouse.move(p1.x + 60, p1.y + 120);
+  await page.mouse.down();
+  await page.mouse.move(p1.x + 200, p1.y + 200, { steps: 6 });
+  await page.mouse.up();
+  await expectCount('.draw-layer path', 0);
+  await page.click('#draw-scroll');
+  assert.equal(await page.getAttribute('#draw-scroll', 'aria-pressed'), 'false');
+  await page.click('#draw-scroll');
+
+  // Opening the tools turns scroll mode off
   await page.click('#draw-tray-toggle');
+  assert.equal(await page.getAttribute('#draw-scroll', 'aria-pressed'), 'false');
+  assert.equal(await page.isVisible('#draw-scroll'), false);
   await page.waitForTimeout(300);
   assert.equal(await page.getAttribute('#draw-tray-toggle', 'aria-expanded'), 'true');
   assert.ok((await rect('.pen-row'))[3] <= 780, 'tools back on screen');

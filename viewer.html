@@ -69,10 +69,16 @@
   </nav>
 
   <div id="draw-tray" class="draw-tray" hidden>
-    <button type="button" id="draw-tray-toggle" class="tray-handle" aria-expanded="true" aria-controls="draw-tools">
-      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-      <span class="tray-handle-label">הסתר כלים</span>
-    </button>
+    <div class="tray-top">
+      <button type="button" id="draw-tray-toggle" class="tray-handle" aria-expanded="true" aria-controls="draw-tools">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        <span class="tray-handle-label">הסתר כלים</span>
+      </button>
+      <button type="button" id="draw-scroll" class="scroll-toggle" aria-pressed="false">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M8 7l4-4 4 4M8 17l4 4 4-4"/></svg>
+        מצב גלילה
+      </button>
+    </div>
     <div id="draw-tools" class="draw-tools">
       <div class="pen-row">
         <div class="pens" role="group" aria-label="כלי ציור">
