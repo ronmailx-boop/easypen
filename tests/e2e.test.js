@@ -418,6 +418,53 @@ test('editor: drawing tray collapses to its handle, bars stay pinned while zoome
   assert.ok((await rect('.pen-row'))[3] <= 780, 'tools back on screen');
 });
 
+test('editor: pinch zoom enlarges the pages in the app, bars stay in place', async () => {
+  await openInEditor();
+  const cdp = await context.newCDPSession(page);
+  await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+  const touch = (type, points) => cdp.send('Input.dispatchTouchEvent', {
+    type, touchPoints: points.map(([x, y], id) => ({ x, y, id }))
+  });
+  // Two fingers at y=400, `from` px apart, spread to `to` px apart around x=195
+  async function pinch(from, to) {
+    await touch('touchStart', [[195 - from / 2, 400], [195 + from / 2, 400]]);
+    for (let i = 1; i <= 8; i++) {
+      const d = from + (to - from) * i / 8;
+      await touch('touchMove', [[195 - d / 2, 400], [195 + d / 2, 400]]);
+    }
+    await touch('touchEnd', []);
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  }
+  const info = () => page.evaluate(() => {
+    const r = document.querySelector('.page[data-page="1"]').getBoundingClientRect();
+    const bar = document.querySelector('.bottom-bar').getBoundingClientRect();
+    return {
+      width: Math.round(r.width),
+      // The spot of page 1 under the fingers' centre, in page fractions
+      fx: (195 - r.left) / r.width, fy: (400 - r.top) / r.height,
+      bar: [bar.left, bar.top, bar.right, bar.bottom].map(Math.round),
+      scale: window.visualViewport.scale
+    };
+  });
+
+  const before = await info();
+  assert.equal(before.width, 374);
+  await pinch(100, 200);
+  const zoomed = await info();
+  assert.equal(zoomed.width, 2 * 390 - 16, 'pages area twice as wide');
+  assert.ok(Math.abs(zoomed.fx - before.fx) < 0.01 && Math.abs(zoomed.fy - before.fy) < 0.01, 'same spot under the fingers');
+  assert.deepEqual(zoomed.bar, [0, 708, 390, 780], 'bottom bar not moved');
+  assert.equal(zoomed.scale, 1, 'browser zoom not used');
+  // Rendered again, sharp at the new size
+  await page.waitForFunction(() => document.querySelector('.page[data-page="1"] canvas').width > 1800);
+
+  // In drawing mode two fingers zoom and don't draw
+  await page.click('#draw-btn');
+  await pinch(200, 100);
+  assert.equal((await info()).width, 374);
+  await expectCount('.draw-layer path', 0);
+});
+
 test('my signatures: add up to 3, edit and delete', async () => {
   await page.goto(server.baseUrl);
   await page.waitForSelector('#sig-empty', { state: 'visible' });   // shown after the async IndexedDB read

@@ -182,10 +182,8 @@
         const width = entry.contentRect.width;
         // CSS pixels per PDF point, used by text overlays' font-size
         page.el.style.setProperty('--pt', String(width / page.widthPt));
-        if (page.visible && page.rendered && Math.abs(width - page.renderedWidth) / width > 0.2) {
-          page.rendered = false;
-          renderPage(page);
-        }
+        // Mid-pinch the page is only stretched; it is rendered again when the fingers lift
+        if (page.visible && !pinch.active) renderPage(page);
       }
     });
 
@@ -196,12 +194,22 @@
     return state.pages[Number(node.dataset.page) - 1];
   }
 
+  // Renders the page, or renders it again when its size changed a lot (zoom, rotation)
   async function renderPage(page) {
-    if (page.rendered || page.rendering) return;
+    if (page.rendering) return;
     const width = page.el.clientWidth;
     if (!width) return;
-    page.rendering = state.doc.render(page.num, page.canvas, width)
+    if (page.rendered && Math.abs(width - page.renderedWidth) / width <= 0.2) return;
+    // Re-render into a new canvas and swap, so the page doesn't flash blank meanwhile
+    const swap = page.rendered;
+    const canvas = swap ? document.createElement('canvas') : page.canvas;
+    canvas.setAttribute('aria-hidden', 'true');
+    page.rendering = state.doc.render(page.num, canvas, width)
       .then(() => {
+        if (swap) {
+          page.canvas.replaceWith(canvas);
+          page.canvas = canvas;
+        }
         page.rendered = true;
         page.renderedWidth = width;
         page.el.classList.add('is-rendered');
@@ -263,7 +271,10 @@
     const r = best.el.getBoundingClientRect();
     const midY = (Math.max(r.top, viewTop) + Math.min(r.bottom, viewBottom)) / 2;
     const fy = Math.min(Math.max((midY - r.top) / r.height, 0), 1);
-    return { page: best, fx: 0.5, fy };
+    // Zoomed in, the page is wider than the screen: use the middle of its visible part
+    const midX = (Math.max(r.left, 0) + Math.min(r.right, document.documentElement.clientWidth)) / 2;
+    const fx = Math.min(Math.max((midX - r.left) / r.width, 0), 1);
+    return { page: best, fx, fy };
   }
 
   /* ------------------------------------------------------------------ */
@@ -865,12 +876,6 @@
     updateDrawTray();
   }
 
-  function pointersCenter() {
-    let x = 0, y = 0;
-    for (const p of ink.pointers.values()) { x += p.x; y += p.y; }
-    return { x: x / ink.pointers.size, y: y / ink.pointers.size };
-  }
-
   function wireInk(page) {
     const svg = page.ink;
     svg.addEventListener('pointerdown', (e) => {
@@ -879,8 +884,7 @@
       svg.setPointerCapture(e.pointerId);
       ink.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (ink.pointers.size > 1) {
-        // Second finger: a zoom/scroll, not a line. The browser normally takes the gesture
-        // over (pointercancel); if it doesn't, scroll by hand below.
+        // Second finger: a zoom/scroll (pinch zoom below), not a line
         cancelStroke();
         ink.panning = true;
       } else if (!ink.panning) {
@@ -889,15 +893,7 @@
     });
     svg.addEventListener('pointermove', (e) => {
       const p = ink.pointers.get(e.pointerId);
-      if (!p) return;
-      if (ink.panning) {
-        const before = pointersCenter();
-        p.x = e.clientX;
-        p.y = e.clientY;
-        const after = pointersCenter();
-        window.scrollBy(before.x - after.x, before.y - after.y);
-        return;
-      }
+      if (!p || ink.panning) return;
       p.x = e.clientX;
       p.y = e.clientY;
       if (ink.stroke && ink.stroke.pointerId === e.pointerId) {
@@ -970,6 +966,89 @@
       updateDrawTray();
     });
   }
+
+  /* ------------------------------------------------------------------ */
+  /* Pinch zoom                                                         */
+  /* ------------------------------------------------------------------ */
+
+  // The pages are zoomed by the app (they get wider and the document scrolls natively),
+  // not by the browser, whose zoom also moves the fixed bars (CSS: touch-action pan-x pan-y).
+  const MAX_ZOOM = 4;
+  const pinch = { active: false, dist: 0, zoom: 1, anchor: null, last: null, frame: 0 };
+  let zoom = 1;
+
+  function touchPair(touches) {
+    const [a, b] = touches;
+    return {
+      x: (a.clientX + b.clientX) / 2,
+      y: (a.clientY + b.clientY) / 2,
+      dist: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)
+    };
+  }
+
+  // Point on a page (as page fractions) that should stay under the screen point (x, y)
+  function zoomAnchor(x, y) {
+    const page = pageAtY(y);
+    const r = page.el.getBoundingClientRect();
+    return { page, fx: (x - r.left) / r.width, fy: (y - r.top) / r.height };
+  }
+
+  // Zooms the pages, keeping `anchor` under the screen point (x, y)
+  function setZoom(value, anchor, x, y) {
+    zoom = clamp(value, 1, MAX_ZOOM);
+    el.pages.style.setProperty('--zoom', String(zoom));
+    const r = anchor.page.el.getBoundingClientRect();
+    window.scrollBy(r.left + anchor.fx * r.width - x, r.top + anchor.fy * r.height - y);
+  }
+
+  function pinchFrame() {
+    pinch.frame = 0;
+    const { x, y, dist } = pinch.last;
+    setZoom(pinch.zoom * dist / pinch.dist, pinch.anchor, x, y);
+  }
+
+  function endPinch() {
+    if (!pinch.active) return;
+    if (pinch.frame) {
+      cancelAnimationFrame(pinch.frame);
+      pinchFrame();
+    }
+    pinch.active = false;
+    state.pages.forEach((p) => { if (p.visible) renderPage(p); });
+  }
+
+  function onPinchTouch(e) {
+    if (e.type === 'touchend' || e.type === 'touchcancel') {
+      if (e.targetTouches.length < 2) endPinch();
+      return;
+    }
+    if (e.targetTouches.length !== 2 || !state.pages.length) return;
+    const t = touchPair(e.targetTouches);
+    if (!pinch.active) {
+      // Two fingers: start over from the current zoom (also when a finger was replaced)
+      pinch.active = true;
+      pinch.dist = Math.max(t.dist, 1);
+      pinch.zoom = zoom;
+      pinch.anchor = zoomAnchor(t.x, t.y);
+    }
+    // Stops the browser from scrolling the page as well (where it still can)
+    if (e.type === 'touchmove' && e.cancelable) e.preventDefault();
+    pinch.last = t;
+    if (!pinch.frame) pinch.frame = requestAnimationFrame(pinchFrame);
+  }
+
+  ['touchstart', 'touchmove', 'touchend', 'touchcancel'].forEach((type) => {
+    el.pages.addEventListener(type, onPinchTouch, { passive: type !== 'touchmove' });
+  });
+  // iOS Safari zooms on its own gesture events too
+  document.addEventListener('gesturestart', (e) => e.preventDefault());
+
+  // Trackpad pinch and Ctrl + mouse wheel on a computer
+  el.pages.addEventListener('wheel', (e) => {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    if (state.pages.length) setZoom(zoom * Math.exp(-e.deltaY / 200), zoomAnchor(e.clientX, e.clientY), e.clientX, e.clientY);
+  }, { passive: false });
 
   /* ------------------------------------------------------------------ */
   /* Bars pinned to the visible screen while pinch-zoomed               */
