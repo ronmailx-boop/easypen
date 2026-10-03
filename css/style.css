@@ -690,13 +690,17 @@ html:has(> body.viewer),
   align-items: center;
   justify-content: center;
   gap: 2px;
+  min-width: 0;
+  padding: 0 2px;
   border: 0;
   border-radius: 12px;
   background: transparent;
   color: var(--primary-dark);
   font: inherit;
-  font-size: .85rem;
+  /* One line even with a large phone font: "שמור ושתף" wrapped and was cut off */
+  font-size: min(.85rem, 3.4vw);
   font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -791,7 +795,7 @@ html:has(> body.viewer),
 /* Scroll mode: fingers scroll and zoom, nothing is drawn */
 .scroll-toggle {
   position: absolute;
-  inset-inline-end: 12px;
+  inset-inline-start: 12px;
   top: 4px;
   display: flex;
   align-items: center;
