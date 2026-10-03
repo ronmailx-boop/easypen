@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="he" dir="rtl" data-i18n-page>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>מידע משפטי - EasyPen</title>
+  <title data-i18n="legal.title">מידע משפטי - EasyPen</title>
+  <script src="js/i18n.js"></script>
   <meta name="theme-color" content="#2f4fc4">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -11,7 +12,7 @@
 </head>
 <body class="legal">
   <header class="app-header">
-    <a href="index.html" class="icon-btn" aria-label="חזרה למסך הבית">
+    <a href="index.html" id="back-btn" class="icon-btn" aria-label="חזרה למסך הבית" data-i18n-aria="viewer.home">
       <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="m8.6 16.6 1.4 1.4 6-6-6-6-1.4 1.4 4.6 4.6z"/></svg>
     </a>
     <div class="brand">
@@ -20,15 +21,15 @@
     </div>
   </header>
 
-  <nav id="legal-nav" class="legal-nav" aria-label="מסמכים משפטיים">
-    <a href="legal.html?doc=privacy" data-doc="privacy">פרטיות</a>
-    <a href="legal.html?doc=terms" data-doc="terms">תנאי שימוש</a>
-    <a href="legal.html?doc=cookies" data-doc="cookies">עוגיות</a>
-    <a href="legal.html?doc=accessibility" data-doc="accessibility">נגישות</a>
+  <nav id="legal-nav" class="legal-nav" aria-label="מסמכים משפטיים" data-i18n-aria="legal.docs">
+    <a href="legal.html?doc=privacy" data-doc="privacy" data-i18n="legal.privacy">פרטיות</a>
+    <a href="legal.html?doc=terms" data-doc="terms" data-i18n="footer.terms">תנאי שימוש</a>
+    <a href="legal.html?doc=cookies" data-doc="cookies" data-i18n="legal.cookies">עוגיות</a>
+    <a href="legal.html?doc=accessibility" data-doc="accessibility" data-i18n="legal.accessibility">נגישות</a>
   </nav>
 
   <main id="legal-content" class="legal-content">
-    <p class="muted">טוען…</p>
+    <p class="muted" data-i18n="legal.loading">טוען…</p>
   </main>
 
   <script src="js/ui.js"></script>

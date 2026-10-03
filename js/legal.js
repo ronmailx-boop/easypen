@@ -1,6 +1,7 @@
 /*
  * EasyPen - legal documents page.
- * Renders docs/legal/*.md (the single source of truth) as HTML.
+ * Renders docs/legal/*.md (the single source of truth) as HTML; on an English device
+ * the English versions in docs/legal/en/.
  * A tiny Markdown subset: headings, paragraphs, lists, tables, bold, code,
  * links, rules. All text is HTML-escaped before any formatting is applied.
  */
@@ -15,6 +16,9 @@
   };
   // Links between the documents point at the .md files; map them back to this page
   const FILE_TO_KEY = Object.fromEntries(Object.entries(DOCS).map(([k, f]) => [f, k]));
+
+  const { t, lang } = window.EasyPenI18n;
+  const DIR = lang === 'en' ? 'docs/legal/en/' : 'docs/legal/';
 
   const content = document.getElementById('legal-content');
   const nav = document.getElementById('legal-nav');
@@ -112,14 +116,18 @@
       else a.removeAttribute('aria-current');
     });
     try {
-      const res = await fetch(`docs/legal/${file}`);
+      const res = await fetch(DIR + file);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       content.innerHTML = renderMarkdown(await res.text());
       const h1 = content.querySelector('h1');
       if (h1) document.title = `${h1.textContent} - EasyPen`;
     } catch (err) {
       console.error(err);
-      content.innerHTML = '<p class="form-error" role="alert">לא ניתן לטעון את המסמך. בדקו את החיבור לרשת ונסו שוב.</p>';
+      const error = document.createElement('p');
+      error.className = 'form-error';
+      error.setAttribute('role', 'alert');
+      error.textContent = t('legal.loadError');
+      content.replaceChildren(error);
     }
   }
 
