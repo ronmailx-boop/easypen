@@ -701,7 +701,8 @@ img { max-width: 100%; }
 
 .draw-mode .draw-layer {
   pointer-events: auto;
-  touch-action: none;
+  /* One finger draws; two fingers are left to the browser: pinch-zoom and scroll, as outside drawing mode */
+  touch-action: pinch-zoom;
   cursor: crosshair;
 }
 

@@ -712,7 +712,7 @@
   }
 
   /* ------------------------------------------------------------------ */
-  /* Free drawing (one finger draws, two fingers scroll)                */
+  /* Free drawing (one finger draws, two fingers zoom and scroll)       */
   /* ------------------------------------------------------------------ */
 
   const ink = { pointers: new Map(), stroke: null, panning: false };
@@ -752,7 +752,7 @@
       if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
       state.drawSnapshot = state.strokes.slice();
       updateDrawTray();
-      toast('מציירים באצבע אחת, גוללים בשתי אצבעות', 'info');
+      toast('מציירים באצבע אחת. בשתי אצבעות מגדילים, מקטינים וגוללים', 'info', 4000);
     } else {
       cancelStroke();
       ink.pointers.clear();
@@ -874,7 +874,8 @@
       svg.setPointerCapture(e.pointerId);
       ink.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (ink.pointers.size > 1) {
-        // Second finger: this is a scroll, not a line
+        // Second finger: a zoom/scroll, not a line. The browser normally takes the gesture
+        // over (pointercancel); if it doesn't, scroll by hand below.
         cancelStroke();
         ink.panning = true;
       } else if (!ink.panning) {
