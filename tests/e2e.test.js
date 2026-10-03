@@ -8,7 +8,8 @@ const { chromium } = require('playwright');
 const { start } = require('./helpers/server');
 const { createTestPdf } = require('./helpers/fixtures');
 
-const MOBILE = { viewport: { width: 390, height: 780 }, deviceScaleFactor: 2 };
+// isMobile: the phone viewport rules (layout viewport, viewport meta tag)
+const MOBILE = { viewport: { width: 390, height: 780 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true };
 
 let server;
 let browser;
@@ -421,7 +422,6 @@ test('editor: drawing tray collapses to its handle, bars stay pinned while zoome
 test('editor: pinch zoom enlarges the pages in the app, bars stay in place', async () => {
   await openInEditor();
   const cdp = await context.newCDPSession(page);
-  await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
   const touch = (type, points) => cdp.send('Input.dispatchTouchEvent', {
     type, touchPoints: points.map(([x, y], id) => ({ x, y, id }))
   });
@@ -458,11 +458,22 @@ test('editor: pinch zoom enlarges the pages in the app, bars stay in place', asy
   // Rendered again, sharp at the new size
   await page.waitForFunction(() => document.querySelector('.page[data-page="1"] canvas').width > 1800);
 
-  // In drawing mode two fingers zoom and don't draw
+  // In drawing mode two fingers zoom and don't draw; the tray keeps its size and place
   await page.click('#draw-btn');
+  const tray = () => page.evaluate(() => {
+    const r = document.querySelector('.draw-tray').getBoundingClientRect();
+    return [r.left, r.right, r.bottom].map(Math.round).concat(innerWidth);
+  });
+  assert.deepEqual(await tray(), [0, 390, 780, 390], 'tray fills the screen width at the bottom, zoomed in');
   await pinch(200, 100);
   assert.equal((await info()).width, 374);
   await expectCount('.draw-layer path', 0);
+  await pinch(100, 300);
+  assert.deepEqual(await tray(), [0, 390, 780, 390], 'tray not stretched when zooming in');
+  await page.click('#draw-tray-toggle');
+  await page.waitForTimeout(300);
+  const handle = await page.locator('#draw-scroll').boundingBox();
+  assert.ok(handle && handle.y > 700 && handle.y + handle.height <= 780, 'tucked-away tray still on screen');
 });
 
 test('my signatures: add up to 3, edit and delete', async () => {
