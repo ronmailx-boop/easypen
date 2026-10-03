@@ -273,7 +273,7 @@ test('editor: empty text box is discarded and deleting items works', async () =>
 
   await page.click('#save-share');
   await page.waitForSelector('#toast.show');
-  assert.equal(await page.textContent('#toast'), 'עדיין לא הוספתם חתימה או טקסט למסמך');
+  assert.equal(await page.textContent('#toast'), 'עדיין לא הוספתם חתימה, טקסט או ציור למסמך');
 });
 
 test('editor: dragging a signature onto another page moves it there', async () => {
@@ -298,6 +298,70 @@ test('editor: dragging a signature onto another page moves it there', async () =
   const box = await sig.boundingBox();
   const p2After = await page.locator('.page[data-page="2"]').boundingBox();
   assert.ok(box.y >= p2After.y - 1 && box.y + box.height <= p2After.y + p2After.height + 1, 'kept inside page 2');
+});
+
+test('editor: free drawing - undo, cancel and export at the drawn position', async () => {
+  await openInEditor();
+  const scribble = async (fx0, fy0, fx1, fy1) => {
+    const p = await page.locator('.page[data-page="1"]').boundingBox();
+    await page.mouse.move(p.x + p.width * fx0, p.y + p.height * fy0);
+    await page.mouse.down();
+    for (let i = 1; i <= 12; i++) {
+      const t = i / 12;
+      await page.mouse.move(p.x + p.width * (fx0 + (fx1 - fx0) * t),
+        p.y + p.height * (fy0 + (fy1 - fy0) * t + 0.03 * Math.sin(t * 9)));
+    }
+    await page.mouse.up();
+  };
+
+  // Undo removes the last line
+  await page.click('#draw-btn');
+  await page.waitForSelector('#draw-tray:not([hidden])');
+  assert.equal(await page.isVisible('.bottom-bar'), false);
+  await scribble(0.2, 0.2, 0.5, 0.3);
+  await expectCount('.draw-layer path', 1);
+  await page.click('#draw-undo');
+  await expectCount('.draw-layer path', 0);
+  assert.equal(await page.isDisabled('#draw-undo'), true);
+
+  // Cancel discards what was drawn in this session
+  await scribble(0.2, 0.2, 0.5, 0.3);
+  await page.click('#draw-cancel');
+  await expectCount('.draw-layer path', 0);
+  assert.equal(await page.isVisible('#draw-tray'), false);
+
+  // Tool, color and thickness apply to the next line
+  await page.click('#draw-btn');
+  await page.click('#draw-tray [data-tool="felt"]');
+  await page.click('#draw-tray [data-color="#d6385a"]');
+  await page.evaluate(() => {
+    const r = document.getElementById('draw-width');
+    r.value = '10';
+    r.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  assert.equal(await page.textContent('#draw-tool-name'), 'טוש · 10');
+  await scribble(0.3, 0.35, 0.7, 0.5);
+  await page.click('#draw-done');
+  await expectCount('.draw-layer path', 1);
+  assert.equal(await page.getAttribute('.draw-layer path', 'stroke'), '#d6385a');
+
+  // Exported where it was drawn, nothing on other pages
+  const exp = await page.evaluate(() => {
+    const pr = document.querySelector('.page[data-page="1"]').getBoundingClientRect();
+    const r = document.querySelector('.draw-layer path').getBoundingClientRect();
+    return { x0: (r.left - pr.left) / pr.width, y0: (r.top - pr.top) / pr.height,
+      x1: (r.right - pr.left) / pr.width, y1: (r.bottom - pr.top) / pr.height };
+  });
+  const { bytes } = await exportViaDownload();
+  const changed = await changedBoxes(pdfBytes, bytes);
+  assert.equal(changed[2], null);
+  assert.equal(changed[3], null);
+  assert.equal(changed[4], null);
+  const got = changed[1];
+  const TOL = 0.04;   // stroke width + anti-aliasing
+  assert.ok(got && got.x0 >= exp.x0 - TOL && got.y0 >= exp.y0 - TOL && got.x1 <= exp.x1 + TOL && got.y1 <= exp.y1 + TOL,
+    `drawing exported at ${JSON.stringify(got)}, drawn at ${JSON.stringify(exp)}`);
+  assert.ok(got.x1 - got.x0 > (exp.x1 - exp.x0) * 0.8, 'drawing not shrunk');
 });
 
 test('my signatures: add up to 3, edit and delete', async () => {
