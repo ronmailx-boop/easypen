@@ -494,6 +494,18 @@ test('editor: bottom bar labels stay on one line with a large phone font', async
   assert.ok(box.x + box.width > 390 - 20 && box.x > 195, `scroll button on the right: ${box.x}`);
 });
 
+test('home: link preview (WhatsApp) has the app icon', async () => {
+  await page.goto(server.baseUrl);
+  const og = await page.$$eval('meta[property^="og:"]', (ms) => Object.fromEntries(ms.map((m) => [m.getAttribute('property'), m.content])));
+  assert.equal(og['og:image'], 'https://easypen.vplusstudio.app/icons/icon-512.png');
+  assert.equal(og['og:title'], await page.title());
+  // The same file is served by this site, as a PNG small enough for WhatsApp (< 300KB)
+  const res = await page.request.get(new URL(new URL(og['og:image']).pathname.slice(1), server.baseUrl).href);
+  assert.equal(res.status(), 200);
+  assert.equal(res.headers()['content-type'], 'image/png');
+  assert.ok((await res.body()).length < 300e3);
+});
+
 test('my signatures: add up to 3, edit and delete', async () => {
   await page.goto(server.baseUrl);
   await page.waitForSelector('#sig-empty', { state: 'visible' });   // shown after the async IndexedDB read
