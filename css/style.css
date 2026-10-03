@@ -275,6 +275,7 @@ img { max-width: 100%; }
 }
 
 .home .toast { bottom: calc(1rem + var(--safe-bottom)); }
+.draw-mode .toast { bottom: calc(var(--tray-h) + 1rem + var(--safe-bottom)); }
 .toast.show { opacity: 1; transform: none; }
 .toast[data-type="error"] { background: var(--danger); }
 .toast[data-type="success"] { background: var(--success); }
@@ -424,6 +425,7 @@ img { max-width: 100%; }
 /* ---------- Viewer ---------- */
 
 .viewer {
+  --tray-h: 208px;   /* height of the drawing tray */
   padding-bottom: calc(var(--bar-h) + var(--safe-bottom));
   background: #e6e9f2;
 }
@@ -651,7 +653,7 @@ img { max-width: 100%; }
   bottom: 0;
   z-index: 40;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 6px;
   height: calc(var(--bar-h) + var(--safe-bottom));
   padding: 8px 8px calc(8px + var(--safe-bottom));
@@ -686,6 +688,134 @@ img { max-width: 100%; }
 }
 
 .bar-btn-primary:active { background: var(--secondary); }
+
+/* ---------- Free drawing ---------- */
+
+.draw-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.draw-mode .draw-layer {
+  pointer-events: auto;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+/* Signatures and text stay visible but don't catch the pen */
+.draw-mode .overlay-layer,
+.draw-mode .overlay-layer * { pointer-events: none; }
+
+.draw-mode .viewer-header,
+.draw-mode .bottom-bar { display: none; }
+
+.viewer.draw-mode { padding-bottom: calc(var(--tray-h) + var(--safe-bottom)); }
+
+.draw-title { font-weight: 700; }
+.draw-done { font-weight: 800; }
+
+.draw-tray {
+  --ink: #1c2033;
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 16px calc(14px + var(--safe-bottom));
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -4px 16px rgba(30, 27, 107, .08);
+}
+
+.pen-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 92px;
+  overflow: hidden;
+  overflow: clip;   /* hidden alone lets focus scroll the lowered pens */
+  border-bottom: 1px solid var(--border);
+}
+
+.pens { display: flex; align-items: flex-end; gap: 6px; }
+
+.pen-btn {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  width: 52px;
+  height: 84px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transform: translateY(24px);
+  transition: transform .15s ease;
+}
+
+.pen-btn[aria-pressed="true"] { transform: none; }
+.pen-btn svg { width: 40px; height: 90px; }
+.pen-tip { fill: var(--ink); }
+.pen-marker .pen-tip { fill-opacity: .55; }
+.pen-body { fill: #fff; stroke: #c9cede; }
+
+.draw-tool-name {
+  flex: 1;
+  align-self: center;
+  color: var(--muted);
+  font-size: .85rem;
+  text-align: center;
+}
+
+.draw-undo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.draw-undo:disabled { opacity: .4; cursor: default; }
+
+.color-row { display: flex; justify-content: space-between; }
+
+.color-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.color-btn span {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--c);
+}
+
+.color-btn[aria-pressed="true"] span { box-shadow: 0 0 0 3px #fff, 0 0 0 5px var(--c); }
+
+.width-row { display: flex; align-items: center; gap: 12px; }
+.width-row input { flex: 1; height: 28px; margin: 0; accent-color: var(--primary); }
+.width-dot { flex-shrink: 0; border-radius: 50%; background: var(--muted); }
+.width-dot-sm { width: 4px; height: 4px; }
+.width-dot-lg { width: 18px; height: 18px; }
 
 /* ---------- Home footer ---------- */
 
@@ -836,7 +966,8 @@ img { max-width: 100%; }
 @media (min-width: 600px) {
   .pages { padding: 20px 16px 32px; gap: 20px; }
   .modal.sheet { margin-bottom: auto; border-radius: 18px; }
-  .bottom-bar { max-width: 640px; margin: 0 auto; border-radius: 18px 18px 0 0; }
+  .bottom-bar,
+  .draw-tray { max-width: 640px; margin: 0 auto; border-radius: 18px 18px 0 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

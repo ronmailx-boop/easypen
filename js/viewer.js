@@ -1,7 +1,7 @@
 /*
  * EasyPen - editor screen.
- * Renders the PDF pages, manages signature/text overlays (drag, resize, edit)
- * and exports the flattened, signed PDF.
+ * Renders the PDF pages, manages signature/text overlays (drag, resize, edit),
+ * free drawing, and exports the flattened, signed PDF.
  *
  * Overlay positions are kept as fractions of the page (see pdf-handler.js),
  * so they stay correct while scrolling, zooming or rotating the phone.
@@ -23,6 +23,16 @@
   const KEY_STEP = 0.01, KEY_STEP_LARGE = 0.05;          // keyboard move, fraction of page
   const MIN_SIZE_PX = 24;
 
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const DRAW_TOOLS = {
+    pen: { label: 'עט', mult: 1, opacity: 1, cap: 'round' },
+    felt: { label: 'טוש', mult: 2, opacity: 1, cap: 'round' },
+    marker: { label: 'מרקר הדגשה', mult: 4, opacity: 0.35, cap: 'butt' }
+  };
+  const STROKE_UNIT = 1 / 400;                           // stroke width per slider step, fraction of page width
+  const INK_EXPORT_PX_PER_PT = 3;                        // raster resolution of exported drawings
+  const DRAW_PREFS_KEY = 'easypen-draw';
+
   const el = {
     pages: document.getElementById('pages'),
     status: document.getElementById('status'),
@@ -32,6 +42,14 @@
     docPages: document.getElementById('doc-pages'),
     addSig: document.getElementById('add-sig'),
     addText: document.getElementById('add-text'),
+    drawBtn: document.getElementById('draw-btn'),
+    drawHeader: document.getElementById('draw-header'),
+    drawTray: document.getElementById('draw-tray'),
+    drawCancel: document.getElementById('draw-cancel'),
+    drawDone: document.getElementById('draw-done'),
+    drawUndo: document.getElementById('draw-undo'),
+    drawWidth: document.getElementById('draw-width'),
+    drawToolName: document.getElementById('draw-tool-name'),
     saveShare: document.getElementById('save-share'),
     modeHint: document.getElementById('mode-hint'),
     modeCancel: document.getElementById('mode-cancel'),
@@ -51,6 +69,10 @@
     items: [],            // overlay items
     selected: null,
     textMode: false,
+    drawMode: false,
+    strokes: [],          // { page, color, widthPt, opacity, cap, points: [[x, y] in PDF points], el }
+    drawSnapshot: null,   // strokes when drawing mode was entered, restored on cancel
+    draw: { tool: 'pen', color: '#1c2033', width: 3 },
     dirty: false,
     nextId: 1
   };
@@ -100,7 +122,7 @@
     el.docPages.textContent = state.doc.numPages === 1 ? 'עמוד אחד' : `${state.doc.numPages} עמודים`;
     await buildPages();
     el.status.hidden = true;
-    [el.addSig, el.addText, el.saveShare].forEach((b) => { b.disabled = false; });
+    [el.addSig, el.addText, el.drawBtn, el.saveShare].forEach((b) => { b.disabled = false; });
   }
 
   /* ------------------------------------------------------------------ */
@@ -121,17 +143,24 @@
       pageEl.setAttribute('aria-label', `עמוד ${n}`);
       const canvas = document.createElement('canvas');
       canvas.setAttribute('aria-hidden', 'true');
+      // Drawings: SVG in PDF points, so strokes scale with the page
+      const ink = document.createElementNS(SVG_NS, 'svg');
+      ink.setAttribute('class', 'draw-layer');
+      ink.setAttribute('viewBox', `0 0 ${size.width} ${size.height}`);
+      ink.setAttribute('preserveAspectRatio', 'none');
+      ink.setAttribute('aria-hidden', 'true');
       const layer = document.createElement('div');
       layer.className = 'overlay-layer';
-      pageEl.append(canvas, layer);
+      pageEl.append(canvas, ink, layer);
       frag.appendChild(pageEl);
       const page = {
-        num: n, el: pageEl, canvas, layer,
+        num: n, el: pageEl, canvas, ink, layer,
         widthPt: size.width, heightPt: size.height,
         visible: false, rendered: false, renderedWidth: 0, rendering: null
       };
       state.pages.push(page);
       layer.addEventListener('pointerdown', (e) => onLayerPointerDown(e, page));
+      wireInk(page);
     }
     el.pages.appendChild(frag);
 
@@ -683,6 +712,226 @@
   }
 
   /* ------------------------------------------------------------------ */
+  /* Free drawing (one finger draws, two fingers scroll)                */
+  /* ------------------------------------------------------------------ */
+
+  const ink = { pointers: new Map(), stroke: null, panning: false };
+
+  function loadDrawPrefs() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(DRAW_PREFS_KEY) || 'null');
+      if (!saved) return;
+      if (DRAW_TOOLS[saved.tool]) state.draw.tool = saved.tool;
+      if (el.drawTray.querySelector(`[data-color="${CSS.escape(String(saved.color))}"]`)) state.draw.color = saved.color;
+      const w = Number(saved.width);
+      if (w >= 1 && w <= 20) state.draw.width = Math.round(w);
+    } catch (e) { /* storage unavailable - keep defaults */ }
+  }
+
+  function saveDrawPrefs() {
+    try {
+      localStorage.setItem(DRAW_PREFS_KEY, JSON.stringify(state.draw));
+    } catch (e) { /* not critical */ }
+  }
+
+  function updateDrawTray() {
+    const { tool, color, width } = state.draw;
+    el.drawTray.style.setProperty('--ink', color);
+    el.drawTray.querySelectorAll('[data-tool]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tool === tool)));
+    el.drawTray.querySelectorAll('[data-color]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.color === color)));
+    el.drawWidth.value = String(width);
+    el.drawToolName.textContent = `${DRAW_TOOLS[tool].label} · ${width}`;
+    el.drawUndo.disabled = !state.strokes.length;
+  }
+
+  function setDrawMode(on) {
+    if (on === state.drawMode) return;
+    if (on) {
+      setTextMode(false);
+      select(null);
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      state.drawSnapshot = state.strokes.slice();
+      updateDrawTray();
+      toast('מציירים באצבע אחת, גוללים בשתי אצבעות', 'info');
+    } else {
+      cancelStroke();
+      ink.pointers.clear();
+      ink.panning = false;
+      state.drawSnapshot = null;
+    }
+    state.drawMode = on;
+    document.body.classList.toggle('draw-mode', on);
+    el.drawHeader.hidden = !on;
+    el.drawTray.hidden = !on;
+    if (!on) el.drawBtn.focus({ preventScroll: true });
+  }
+
+  // "ביטול": bring back the drawing as it was when drawing mode was entered
+  function cancelDrawing() {
+    const snapshot = state.drawSnapshot || state.strokes;
+    state.strokes.forEach((s) => s.el.remove());
+    snapshot.forEach((s) => s.page.ink.appendChild(s.el));
+    state.strokes = snapshot;
+    setDrawMode(false);
+  }
+
+  function pointToPage(e, page) {
+    const r = page.el.getBoundingClientRect();
+    return [
+      ((e.clientX - r.left) / r.width) * page.widthPt,
+      ((e.clientY - r.top) / r.height) * page.heightPt
+    ];
+  }
+
+  // Smooth path through the points (quadratic curves between midpoints)
+  function strokePath(points) {
+    const f = (n) => Math.round(n * 100) / 100;
+    const [x0, y0] = points[0];
+    if (points.length === 1) return `M${f(x0)} ${f(y0)}L${f(x0 + 0.01)} ${f(y0)}`;
+    let d = `M${f(x0)} ${f(y0)}`;
+    for (let i = 1; i < points.length - 1; i++) {
+      const [x, y] = points[i];
+      const [nx, ny] = points[i + 1];
+      d += `Q${f(x)} ${f(y)} ${f((x + nx) / 2)} ${f((y + ny) / 2)}`;
+    }
+    const [lx, ly] = points[points.length - 1];
+    return `${d}L${f(lx)} ${f(ly)}`;
+  }
+
+  function startStroke(e, page) {
+    const tool = DRAW_TOOLS[state.draw.tool];
+    const stroke = {
+      page,
+      pointerId: e.pointerId,
+      color: state.draw.color,
+      widthPt: state.draw.width * tool.mult * STROKE_UNIT * page.widthPt,
+      opacity: tool.opacity,
+      cap: tool.cap,
+      points: [],
+      el: document.createElementNS(SVG_NS, 'path')
+    };
+    const path = stroke.el;
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', stroke.color);
+    path.setAttribute('stroke-width', String(stroke.widthPt));
+    path.setAttribute('stroke-opacity', String(stroke.opacity));
+    path.setAttribute('stroke-linecap', stroke.cap);
+    path.setAttribute('stroke-linejoin', 'round');
+    page.ink.appendChild(path);
+    ink.stroke = stroke;
+    addStrokePoints(stroke, [e]);
+  }
+
+  function addStrokePoints(stroke, events) {
+    const minStep = 0.5 * stroke.page.widthPt / stroke.page.el.getBoundingClientRect().width;   // half a screen pixel
+    for (const ev of events) {
+      const p = pointToPage(ev, stroke.page);
+      const last = stroke.points[stroke.points.length - 1];
+      if (last && Math.hypot(p[0] - last[0], p[1] - last[1]) < minStep) continue;
+      stroke.points.push(p);
+    }
+    if (stroke.points.length) stroke.el.setAttribute('d', strokePath(stroke.points));
+  }
+
+  function finishStroke() {
+    const stroke = ink.stroke;
+    ink.stroke = null;
+    if (!stroke) return;
+    if (!stroke.points.length) {
+      stroke.el.remove();
+      return;
+    }
+    delete stroke.pointerId;
+    state.strokes.push(stroke);
+    markDirty();
+    updateDrawTray();
+  }
+
+  function cancelStroke() {
+    if (ink.stroke) ink.stroke.el.remove();
+    ink.stroke = null;
+  }
+
+  function undoStroke() {
+    const stroke = state.strokes.pop();
+    if (!stroke) return;
+    stroke.el.remove();
+    markDirty();
+    updateDrawTray();
+  }
+
+  function pointersCenter() {
+    let x = 0, y = 0;
+    for (const p of ink.pointers.values()) { x += p.x; y += p.y; }
+    return { x: x / ink.pointers.size, y: y / ink.pointers.size };
+  }
+
+  function wireInk(page) {
+    const svg = page.ink;
+    svg.addEventListener('pointerdown', (e) => {
+      if (!state.drawMode || e.button > 0) return;
+      e.preventDefault();
+      svg.setPointerCapture(e.pointerId);
+      ink.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (ink.pointers.size > 1) {
+        // Second finger: this is a scroll, not a line
+        cancelStroke();
+        ink.panning = true;
+      } else if (!ink.panning) {
+        startStroke(e, page);
+      }
+    });
+    svg.addEventListener('pointermove', (e) => {
+      const p = ink.pointers.get(e.pointerId);
+      if (!p) return;
+      if (ink.panning) {
+        const before = pointersCenter();
+        p.x = e.clientX;
+        p.y = e.clientY;
+        const after = pointersCenter();
+        window.scrollBy(before.x - after.x, before.y - after.y);
+        return;
+      }
+      p.x = e.clientX;
+      p.y = e.clientY;
+      if (ink.stroke && ink.stroke.pointerId === e.pointerId) {
+        addStrokePoints(ink.stroke, e.getCoalescedEvents ? e.getCoalescedEvents() : [e]);
+      }
+    });
+    const onEnd = (e) => {
+      if (!ink.pointers.delete(e.pointerId)) return;
+      if (ink.stroke && ink.stroke.pointerId === e.pointerId) {
+        if (e.type === 'pointercancel') cancelStroke();
+        else finishStroke();
+      }
+      if (!ink.pointers.size) ink.panning = false;
+    };
+    svg.addEventListener('pointerup', onEnd);
+    svg.addEventListener('pointercancel', onEnd);
+  }
+
+  function wireDrawTray() {
+    loadDrawPrefs();
+    el.drawBtn.addEventListener('click', () => setDrawMode(true));
+    el.drawDone.addEventListener('click', () => setDrawMode(false));
+    el.drawCancel.addEventListener('click', cancelDrawing);
+    el.drawUndo.addEventListener('click', undoStroke);
+    el.drawTray.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-tool], [data-color]');
+      if (!btn) return;
+      if (btn.dataset.tool) state.draw.tool = btn.dataset.tool;
+      else state.draw.color = btn.dataset.color;
+      saveDrawPrefs();
+      updateDrawTray();
+    });
+    el.drawWidth.addEventListener('input', () => {
+      state.draw.width = Number(el.drawWidth.value);
+      saveDrawPrefs();
+      updateDrawTray();
+    });
+  }
+
+  /* ------------------------------------------------------------------ */
   /* Export                                                             */
   /* ------------------------------------------------------------------ */
 
@@ -720,8 +969,33 @@
     return { page: page.num, png: new Uint8Array(await blob.arrayBuffer()), fx, fy, fw, fh };
   }
 
+  // Renders a page's drawings to one transparent, page-sized PNG
+  async function inkToOverlay(page, strokes) {
+    const k = Math.min(INK_EXPORT_PX_PER_PT, Math.sqrt(12e6 / (page.widthPt * page.heightPt)));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(page.widthPt * k));
+    canvas.height = Math.max(1, Math.round(page.heightPt * k));
+    const ctx = canvas.getContext('2d');
+    ctx.scale(canvas.width / page.widthPt, canvas.height / page.heightPt);
+    ctx.lineJoin = 'round';
+    for (const s of strokes) {
+      ctx.globalAlpha = s.opacity;
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth = s.widthPt;
+      ctx.lineCap = s.cap;
+      ctx.stroke(new Path2D(s.el.getAttribute('d')));
+    }
+    const blob = await new Promise((res) => canvas.toBlob(res, 'image/png'));
+    return { page: page.num, png: new Uint8Array(await blob.arrayBuffer()), fx: 0, fy: 0, fw: 1, fh: 1 };
+  }
+
   async function collectOverlays() {
     const out = [];
+    // Drawings first: on screen they sit under signatures and text
+    for (const page of state.pages) {
+      const strokes = state.strokes.filter((s) => s.page === page);
+      if (strokes.length) out.push(await inkToOverlay(page, strokes));
+    }
     for (const item of state.items) {
       if (item.type === 'signature') {
         out.push({ page: item.page.num, png: item.pngBytes, fx: item.fx, fy: item.fy, fw: item.fw, fh: item.fh });
@@ -743,8 +1017,8 @@
     setTextMode(false);
     select(null);
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-    if (!state.items.length) {
-      toast('עדיין לא הוספתם חתימה או טקסט למסמך', 'info');
+    if (!state.items.length && !state.strokes.length) {
+      toast('עדיין לא הוספתם חתימה, טקסט או ציור למסמך', 'info');
       return;
     }
     el.busy.hidden = false;
@@ -830,7 +1104,8 @@
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      if (state.textMode) setTextMode(false);
+      if (state.drawMode) setDrawMode(false);
+      else if (state.textMode) setTextMode(false);
       else if (state.selected && state.selected.el.classList.contains('is-editing')) {
         // Leave text editing but keep the box selected and focused for moving
         const item = state.selected;
@@ -850,5 +1125,6 @@
   });
 
   wireReadyDialog();
+  wireDrawTray();
   init();
 })();
