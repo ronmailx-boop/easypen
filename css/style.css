@@ -443,6 +443,10 @@ html:has(> body.viewer),
 
 .viewer-header { justify-content: flex-start; }
 
+/* The back arrow points to the start side */
+[dir="ltr"] #back-btn svg,
+[dir="ltr"] #draw-undo svg { transform: scaleX(-1); }
+
 /* Headers stay at the top of the visible screen while pinch-zoomed (see pinBars in viewer.js) */
 .viewer .app-header {
   transform: var(--pin-top,);
@@ -530,7 +534,7 @@ html:has(> body.viewer),
 .ov-resize {
   position: absolute;
   bottom: -14px;
-  left: -14px;
+  inset-inline-end: -14px;   /* bottom-left in Hebrew */
   display: none;
   width: 28px;
   height: 28px;
@@ -540,6 +544,8 @@ html:has(> body.viewer),
   box-shadow: 0 1px 4px rgba(0, 0, 0, .3);
   cursor: nesw-resize;
 }
+
+[dir="ltr"] .ov-resize { cursor: nwse-resize; }
 
 /* Bigger invisible touch target around the handle */
 .ov-resize::after {
@@ -577,7 +583,7 @@ html:has(> body.viewer),
 .ov-move {
   position: absolute;
   top: -30px;
-  right: -4px;
+  inset-inline-start: -4px;
   display: none;
   width: 28px;
   height: 28px;
@@ -673,7 +679,8 @@ html:has(> body.viewer),
   bottom: 0;
   z-index: 40;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  /* The main action gets a wider column ("Save & Share" in English) */
+  grid-template-columns: repeat(3, 1fr) 1.3fr;
   gap: 6px;
   height: calc(var(--bar-h) + var(--safe-bottom));
   padding: 8px 8px calc(8px + var(--safe-bottom));

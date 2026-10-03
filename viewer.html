@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="he" dir="rtl" data-i18n-page>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
-  <title>עריכת מסמך - EasyPen</title>
+  <title data-i18n="viewer.title">עריכת מסמך - EasyPen</title>
   <script src="js/i18n.js"></script>
   <meta name="theme-color" content="#2f4fc4">
   <link rel="manifest" href="manifest.json">
@@ -12,60 +12,60 @@
 </head>
 <body class="viewer">
   <header class="app-header viewer-header">
-    <a href="index.html" id="back-btn" class="icon-btn" aria-label="חזרה למסך הבית">
+    <a href="index.html" id="back-btn" class="icon-btn" aria-label="חזרה למסך הבית" data-i18n-aria="viewer.home">
       <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="m8.6 16.6 1.4 1.4 6-6-6-6-1.4 1.4 4.6 4.6z"/></svg>
     </a>
     <div class="doc-title">
-      <span id="doc-name">טוען מסמך…</span>
+      <span id="doc-name" data-i18n="viewer.loading">טוען מסמך…</span>
       <span id="doc-pages" class="muted small"></span>
     </div>
   </header>
 
   <header id="draw-header" class="app-header draw-header" hidden>
-    <button type="button" id="draw-cancel" class="btn btn-ghost btn-sm">ביטול</button>
-    <span class="draw-title">ציור על המסמך</span>
-    <button type="button" id="draw-done" class="btn btn-ghost btn-sm draw-done">סיום</button>
+    <button type="button" id="draw-cancel" class="btn btn-ghost btn-sm" data-i18n="viewer.cancel">ביטול</button>
+    <span class="draw-title" data-i18n="draw.title">ציור על המסמך</span>
+    <button type="button" id="draw-done" class="btn btn-ghost btn-sm draw-done" data-i18n="viewer.done">סיום</button>
   </header>
 
   <main id="pages" class="pages"></main>
 
   <div id="status" class="status-screen">
     <div class="spinner" aria-hidden="true"></div>
-    <p id="status-text">טוען מסמך…</p>
-    <a id="status-home" href="index.html" class="btn btn-primary" hidden>חזרה למסך הבית</a>
+    <p id="status-text" data-i18n="viewer.loading">טוען מסמך…</p>
+    <a id="status-home" href="index.html" class="btn btn-primary" hidden data-i18n="viewer.home">חזרה למסך הבית</a>
   </div>
 
   <div id="mode-hint" class="mode-hint" hidden>
-    <span>הקישו במקום בעמוד כדי להוסיף טקסט</span>
-    <button type="button" id="mode-cancel" class="btn btn-ghost btn-sm">ביטול</button>
+    <span data-i18n="viewer.textHint">הקישו במקום בעמוד כדי להוסיף טקסט</span>
+    <button type="button" id="mode-cancel" class="btn btn-ghost btn-sm" data-i18n="viewer.cancel">ביטול</button>
   </div>
 
   <div id="item-toolbar" class="item-toolbar" hidden>
     <div class="text-tools" hidden>
-      <button type="button" class="icon-btn" data-action="font-down" aria-label="הקטנת גופן">A−</button>
+      <button type="button" class="icon-btn" data-action="font-down" aria-label="הקטנת גופן" data-i18n-aria="viewer.fontDown">A−</button>
       <span class="font-size" aria-live="polite"></span>
-      <button type="button" class="icon-btn" data-action="font-up" aria-label="הגדלת גופן">A+</button>
+      <button type="button" class="icon-btn" data-action="font-up" aria-label="הגדלת גופן" data-i18n-aria="viewer.fontUp">A+</button>
     </div>
-    <button type="button" class="btn btn-danger btn-sm" data-action="delete">מחק</button>
-    <button type="button" class="btn btn-primary btn-sm" data-action="done">סיום</button>
+    <button type="button" class="btn btn-danger btn-sm" data-action="delete" data-i18n="viewer.delete">מחק</button>
+    <button type="button" class="btn btn-primary btn-sm" data-action="done" data-i18n="viewer.done">סיום</button>
   </div>
 
-  <nav class="bottom-bar" aria-label="פעולות מסמך">
+  <nav class="bottom-bar" aria-label="פעולות מסמך" data-i18n-aria="viewer.actions">
     <button type="button" id="add-sig" class="bar-btn" disabled>
       <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M3 17.2V21h3.8L17.8 10l-3.8-3.8L3 17.2zM20.7 7a1 1 0 0 0 0-1.4l-2.3-2.3a1 1 0 0 0-1.4 0l-1.8 1.8 3.8 3.8L20.7 7z"/></svg>
-      חתימה
+      <span data-i18n="viewer.signature">חתימה</span>
     </button>
     <button type="button" id="add-text" class="bar-btn" disabled>
       <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M5 4v3h5.5v12h3V7H19V4H5z"/></svg>
-      טקסט
+      <span data-i18n="viewer.text">טקסט</span>
     </button>
     <button type="button" id="draw-btn" class="bar-btn" disabled>
       <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17c3-6 5-9 7-9 3 0-3 10 1 10 2.5 0 4-6 6.5-6 1.5 0 1.5 2 3.5 2"/></svg>
-      ציור
+      <span data-i18n="viewer.draw">ציור</span>
     </button>
     <button type="button" id="save-share" class="bar-btn bar-btn-primary" disabled>
       <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M18 16a3 3 0 0 0-2 .8l-7.1-4.1a3 3 0 0 0 0-1.4L16 7.2A3 3 0 1 0 15 5v.3L7.9 9.4a3 3 0 1 0 0 5.2l7.1 4.1v.3a3 3 0 1 0 3-3z"/></svg>
-      שמור ושתף
+      <span data-i18n="viewer.saveShare">שמור ושתף</span>
     </button>
   </nav>
 
@@ -73,42 +73,42 @@
     <div class="tray-top">
       <button type="button" id="draw-tray-toggle" class="tray-handle" aria-expanded="true" aria-controls="draw-tools">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-        <span class="tray-handle-label">הסתר כלים</span>
+        <span class="tray-handle-label" data-i18n="draw.hideTools">הסתר כלים</span>
       </button>
       <button type="button" id="draw-scroll" class="scroll-toggle" aria-pressed="false">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M8 7l4-4 4 4M8 17l4 4 4-4"/></svg>
-        מצב גלילה
+        <span data-i18n="draw.scroll">מצב גלילה</span>
       </button>
     </div>
     <div id="draw-tools" class="draw-tools">
       <div class="pen-row">
-        <div class="pens" role="group" aria-label="כלי ציור">
-          <button type="button" class="pen-btn" data-tool="pen" aria-label="עט">
+        <div class="pens" role="group" aria-label="כלי ציור" data-i18n-aria="draw.tools">
+          <button type="button" class="pen-btn" data-tool="pen" aria-label="עט" data-i18n-aria="draw.pen">
             <svg viewBox="0 0 40 90" aria-hidden="true"><path class="pen-tip" d="M14 24 20 4l6 20z"/><rect class="pen-body" x="11" y="24" width="18" height="70" rx="4"/><rect class="pen-tip" x="11" y="32" width="18" height="7"/></svg>
           </button>
-          <button type="button" class="pen-btn" data-tool="felt" aria-label="טוש">
+          <button type="button" class="pen-btn" data-tool="felt" aria-label="טוש" data-i18n-aria="draw.felt">
             <svg viewBox="0 0 40 90" aria-hidden="true"><path class="pen-tip" d="M12 24 15 8h10l3 16z"/><rect class="pen-body" x="11" y="24" width="18" height="70" rx="4"/><rect class="pen-tip" x="11" y="32" width="18" height="7"/></svg>
           </button>
-          <button type="button" class="pen-btn pen-marker" data-tool="marker" aria-label="מרקר הדגשה">
+          <button type="button" class="pen-btn pen-marker" data-tool="marker" aria-label="מרקר הדגשה" data-i18n-aria="draw.marker">
             <svg viewBox="0 0 40 90" aria-hidden="true"><path class="pen-tip" d="M12 24V6l16 6v12z"/><rect class="pen-body" x="11" y="24" width="18" height="70" rx="4"/><rect class="pen-tip" x="11" y="32" width="18" height="7"/></svg>
           </button>
         </div>
         <span id="draw-tool-name" class="draw-tool-name" aria-live="polite"></span>
-        <button type="button" id="draw-undo" class="draw-undo" aria-label="בטל קו אחרון" disabled>
+        <button type="button" id="draw-undo" class="draw-undo" aria-label="בטל קו אחרון" data-i18n-aria="draw.undo" disabled>
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg>
         </button>
       </div>
-      <div class="color-row" role="group" aria-label="צבע">
-        <button type="button" class="color-btn" data-color="#1c2033" aria-label="שחור" style="--c: #1c2033"><span></span></button>
-        <button type="button" class="color-btn" data-color="#2f4fc4" aria-label="כחול" style="--c: #2f4fc4"><span></span></button>
-        <button type="button" class="color-btn" data-color="#d6385a" aria-label="אדום" style="--c: #d6385a"><span></span></button>
-        <button type="button" class="color-btn" data-color="#177a52" aria-label="ירוק" style="--c: #177a52"><span></span></button>
-        <button type="button" class="color-btn" data-color="#e8730c" aria-label="כתום" style="--c: #e8730c"><span></span></button>
-        <button type="button" class="color-btn" data-color="#f2c230" aria-label="צהוב" style="--c: #f2c230"><span></span></button>
-        <button type="button" class="color-btn" data-color="#7b3fc4" aria-label="סגול" style="--c: #7b3fc4"><span></span></button>
+      <div class="color-row" role="group" aria-label="צבע" data-i18n-aria="draw.color">
+        <button type="button" class="color-btn" data-color="#1c2033" aria-label="שחור" data-i18n-aria="color.black" style="--c: #1c2033"><span></span></button>
+        <button type="button" class="color-btn" data-color="#2f4fc4" aria-label="כחול" data-i18n-aria="color.blue" style="--c: #2f4fc4"><span></span></button>
+        <button type="button" class="color-btn" data-color="#d6385a" aria-label="אדום" data-i18n-aria="color.red" style="--c: #d6385a"><span></span></button>
+        <button type="button" class="color-btn" data-color="#177a52" aria-label="ירוק" data-i18n-aria="color.green" style="--c: #177a52"><span></span></button>
+        <button type="button" class="color-btn" data-color="#e8730c" aria-label="כתום" data-i18n-aria="color.orange" style="--c: #e8730c"><span></span></button>
+        <button type="button" class="color-btn" data-color="#f2c230" aria-label="צהוב" data-i18n-aria="color.yellow" style="--c: #f2c230"><span></span></button>
+        <button type="button" class="color-btn" data-color="#7b3fc4" aria-label="סגול" data-i18n-aria="color.purple" style="--c: #7b3fc4"><span></span></button>
       </div>
       <div class="width-row">
-        <label for="draw-width" class="muted">עובי</label>
+        <label for="draw-width" class="muted" data-i18n="draw.width">עובי</label>
         <span class="width-dot width-dot-sm" aria-hidden="true"></span>
         <input id="draw-width" type="range" min="1" max="20" step="1" value="3">
         <span class="width-dot width-dot-lg" aria-hidden="true"></span>
@@ -119,31 +119,31 @@
   <dialog id="sig-picker" class="modal sheet" aria-labelledby="sig-picker-title">
     <div class="modal-card">
       <header class="modal-header">
-        <h2 id="sig-picker-title">בחירת חתימה</h2>
-        <button type="button" class="icon-btn" data-action="close" aria-label="סגור">✕</button>
+        <h2 id="sig-picker-title" data-i18n="picker.title">בחירת חתימה</h2>
+        <button type="button" class="icon-btn" data-action="close" aria-label="סגור" data-i18n-aria="pad.close">✕</button>
       </header>
       <ul class="sig-choices"></ul>
-      <button type="button" class="btn btn-secondary btn-block" data-action="new">+ חתימה חדשה</button>
+      <button type="button" class="btn btn-secondary btn-block" data-action="new" data-i18n="home.addSig">+ חתימה חדשה</button>
     </div>
   </dialog>
 
   <dialog id="ready-dialog" class="modal sheet" aria-labelledby="ready-title">
     <div class="modal-card">
       <header class="modal-header">
-        <h2 id="ready-title">המסמך החתום מוכן</h2>
-        <button type="button" class="icon-btn" data-action="close" aria-label="סגור">✕</button>
+        <h2 id="ready-title" data-i18n="ready.title">המסמך החתום מוכן</h2>
+        <button type="button" class="icon-btn" data-action="close" aria-label="סגור" data-i18n-aria="pad.close">✕</button>
       </header>
-      <p class="muted">בחרו איך להמשיך:</p>
+      <p class="muted" data-i18n="ready.text">בחרו איך להמשיך:</p>
       <div class="modal-actions">
-        <button type="button" class="btn btn-secondary" data-action="download">הורדה</button>
-        <button type="button" class="btn btn-primary" data-action="share">שיתוף</button>
+        <button type="button" class="btn btn-secondary" data-action="download" data-i18n="ready.download">הורדה</button>
+        <button type="button" class="btn btn-primary" data-action="share" data-i18n="ready.share">שיתוף</button>
       </div>
     </div>
   </dialog>
 
   <div id="busy" class="busy" hidden>
     <div class="spinner" aria-hidden="true"></div>
-    <p>מכין את המסמך החתום…</p>
+    <p data-i18n="viewer.busy">מכין את המסמך החתום…</p>
   </div>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
