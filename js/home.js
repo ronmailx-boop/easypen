@@ -6,6 +6,7 @@
 
   const Storage = window.EasyPenStorage;
   const { toast } = window.EasyPenUI;
+  const { t } = window.EasyPenI18n;
 
   const fileInput = document.getElementById('file-input');
   const uploadError = document.getElementById('upload-error');
@@ -15,7 +16,7 @@
   const addSigBtn = document.getElementById('add-sig-btn');
   const installBtn = document.getElementById('install-btn');
 
-  const MSG_PDF_ONLY = 'כרגע נתמכים קבצי PDF בלבד';
+  const MSG_PDF_ONLY = t('home.pdfOnly');
 
   // Object URLs of the previews currently on screen (revoked on re-render)
   let previewUrls = [];
@@ -29,7 +30,7 @@
     const params = new URLSearchParams(location.search);
     const error = params.get('error');
     if (error === 'type') showUploadError(MSG_PDF_ONLY);
-    else if (error === 'share') showUploadError('לא התקבל קובץ מהשיתוף. נסו שוב או העלו את הקובץ ידנית.');
+    else if (error === 'share') showUploadError(t('home.shareError'));
     if (error) history.replaceState(null, '', location.pathname);
   }
 
@@ -51,7 +52,7 @@
       location.href = 'viewer.html';
     } catch (err) {
       console.error(err);
-      showUploadError('לא ניתן לפתוח את הקובץ. ייתכן שהאחסון בדפדפן חסום (למשל בגלישה בסתר).');
+      showUploadError(t('home.openError'));
     }
   }
 
@@ -61,7 +62,7 @@
       list = await Storage.listSignatures();
     } catch (err) {
       console.error(err);
-      toast('לא ניתן לטעון את החתימות השמורות', 'error');
+      toast(t('home.sigsLoadError'), 'error');
     }
     previewUrls.forEach((u) => URL.revokeObjectURL(u));
     previewUrls = [];
@@ -74,18 +75,18 @@
       li.className = 'sig-card';
       const img = document.createElement('img');
       img.src = url;
-      img.alt = 'תצוגה מקדימה של חתימה שמורה';
+      img.alt = t('home.sigPreview');
       const actions = document.createElement('div');
       actions.className = 'sig-card-actions';
       const edit = document.createElement('button');
       edit.type = 'button';
       edit.className = 'btn btn-ghost btn-sm';
-      edit.textContent = 'עריכה';
+      edit.textContent = t('home.edit');
       edit.addEventListener('click', () => editSignature(sig));
       const del = document.createElement('button');
       del.type = 'button';
       del.className = 'btn btn-ghost btn-sm danger-text';
-      del.textContent = 'מחיקה';
+      del.textContent = t('home.delete');
       del.addEventListener('click', () => deleteSignature(sig));
       actions.append(edit, del);
       li.append(img, actions);
@@ -94,45 +95,45 @@
 
     const max = Storage.MAX_SIGNATURES;
     sigEmpty.hidden = list.length > 0;
-    sigCount.textContent = list.length ? `${list.length} מתוך ${max}` : '';
+    sigCount.textContent = list.length ? t('home.sigCount', { n: list.length, max }) : '';
     addSigBtn.hidden = list.length >= max;
   }
 
   async function addSignature() {
-    const result = await window.openSignatureDialog({ title: 'חתימה חדשה', confirmLabel: 'שמור לשימוש חוזר' });
+    const result = await window.openSignatureDialog({ title: t('home.newSig'), confirmLabel: t('home.saveForReuse') });
     if (!result) return;
     try {
       await Storage.addSignature(result.blob);
-      toast('החתימה נשמרה', 'success');
+      toast(t('home.sigSaved'), 'success');
     } catch (err) {
-      toast(err.code === 'LIMIT' ? 'אפשר לשמור עד 3 חתימות. מחקו חתימה קיימת כדי להוסיף חדשה.' : 'שמירת החתימה נכשלה', 'error');
+      toast(err.code === 'LIMIT' ? t('home.sigLimit') : t('home.sigSaveError'), 'error');
     }
     renderSignatures();
   }
 
   async function editSignature(sig) {
     const result = await window.openSignatureDialog({
-      title: 'עריכת חתימה',
+      title: t('home.editSig'),
       initialBlob: sig.blob,
-      confirmLabel: 'שמור'
+      confirmLabel: t('home.save')
     });
     if (!result) return;
     try {
       await Storage.updateSignature(sig.id, result.blob);
-      toast('החתימה עודכנה', 'success');
+      toast(t('home.sigUpdated'), 'success');
     } catch (err) {
-      toast('עדכון החתימה נכשל', 'error');
+      toast(t('home.sigUpdateError'), 'error');
     }
     renderSignatures();
   }
 
   async function deleteSignature(sig) {
-    if (!confirm('למחוק את החתימה?')) return;
+    if (!confirm(t('home.deleteConfirm'))) return;
     try {
       await Storage.deleteSignature(sig.id);
-      toast('החתימה נמחקה');
+      toast(t('home.sigDeleted'));
     } catch (err) {
-      toast('מחיקת החתימה נכשלה', 'error');
+      toast(t('home.sigDeleteError'), 'error');
     }
     renderSignatures();
   }

@@ -4,7 +4,7 @@
  *  - Handles the Web Share Target POST (files shared from WhatsApp/Gmail/…):
  *    stores the PDF in IndexedDB and redirects to the editor.
  */
-importScripts('js/version.js', 'js/storage.js');
+importScripts('js/version.js', 'js/i18n.js', 'js/storage.js');
 
 const VERSION = `easypen-v${self.EASYPEN_VERSION}`;
 const SHELL_CACHE = `${VERSION}-shell`;
@@ -19,6 +19,7 @@ const SHELL = [
   'manifest.json',
   'css/style.css',
   'js/version.js',
+  'js/i18n.js',
   'js/storage.js',
   'js/ui.js',
   'js/home.js',
@@ -133,7 +134,7 @@ async function cacheFirst(request, event) {
       const fallback = await caches.match(scopeUrl('index.html'));
       if (fallback) return fallback;
     }
-    return new Response('אין חיבור לרשת', {
+    return new Response(self.EasyPenI18n.t('sw.offline'), {
       status: 503,
       headers: { 'Content-Type': 'text/plain; charset=utf-8' }
     });
