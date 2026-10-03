@@ -33,14 +33,24 @@ after(async () => {
   await server?.close();
 });
 
-beforeEach(async () => {
-  // Fresh context = fresh IndexedDB, caches and Service Worker for every test
-  context = await browser.newContext({ ...MOBILE, locale: 'he-IL', acceptDownloads: true });
+// Fresh context = fresh IndexedDB, caches and Service Worker; locale = the device language
+async function newSession(locale) {
+  context = await browser.newContext({ ...MOBILE, locale, acceptDownloads: true });
   page = await context.newPage();
   pageErrors = [];
   page.on('pageerror', (e) => pageErrors.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error') pageErrors.push(m.text()); });
-});
+}
+
+beforeEach(() => newSession('he-IL'));
+
+// Switches the current test to a phone set to English
+async function useEnglish() {
+  await context.close();
+  await newSession('en-US');
+}
+
+const hebrewOnScreen = () => page.evaluate(() => (document.title + document.body.innerText).match(/[\u0590-\u05FF]+/g));
 
 afterEach(async () => {
   await context.close();
@@ -453,6 +463,8 @@ test('editor: pinch zoom enlarges the pages in the app, bars stay in place', asy
 
   const before = await info();
   assert.equal(before.width, 374);
+  // The PDF is drawn left to right even in the Hebrew interface (RTL breaks Latin text)
+  assert.equal(await page.$eval('.page canvas', (c) => getComputedStyle(c).direction), 'ltr');
   await pinch(100, 200);
   const zoomed = await info();
   assert.equal(zoomed.width, 2 * 390 - 16, 'pages area twice as wide');
@@ -552,6 +564,49 @@ test('english: an English device gets the home screen in English, left to right'
   } finally {
     await en.close();
   }
+});
+
+test('english: the editor in English, left to right, handles mirrored', async () => {
+  await useEnglish();
+  await openInEditor();
+  assert.deepEqual(await page.evaluate(() => [document.documentElement.lang, document.documentElement.dir]), ['en', 'ltr']);
+  assert.equal(await page.title(), 'Edit document - EasyPen');
+  assert.equal(await page.textContent('#doc-pages'), '4 pages');
+  assert.equal(await hebrewOnScreen(), null, 'no Hebrew in the editor');
+  const labels = await page.$$eval('.bottom-bar .bar-btn', (bs) => bs.map((b) => [b.textContent.trim(), b.scrollWidth <= b.clientWidth]));
+  assert.deepEqual(labels, [['Signature', true], ['Text', true], ['Draw', true], ['Save & Share', true]]);
+  // Back arrow points left
+  assert.notEqual(await page.$eval('#back-btn svg', (s) => getComputedStyle(s).transform), 'none');
+
+  // Signature: resize handle on the bottom-right corner; resizing keeps the left edge
+  await drawNewSignatureAndPlace();
+  const sig = page.locator('.ov-sig');
+  const box = await sig.boundingBox();
+  const handle = await page.locator('.ov-sig .ov-resize').boundingBox();
+  assert.ok(Math.abs(handle.x + handle.width / 2 - (box.x + box.width)) < 2, 'handle at the right edge');
+  await dragBy(page.locator('.ov-sig .ov-resize'), 30, 0);
+  const bigger = await sig.boundingBox();
+  assert.ok(Math.abs(bigger.x - box.x) < 1, 'left edge stays');
+  assert.ok(bigger.width > box.width + 20, `wider: ${box.width} -> ${bigger.width}`);
+  await sig.focus();
+  await page.keyboard.press('+');
+  assert.ok(Math.abs((await sig.boundingBox()).x - box.x) < 1, 'keyboard resize keeps the left edge');
+
+  // A new text box starts left to right
+  await page.click('#add-text');
+  const p1 = await page.locator('.page[data-page="1"]').boundingBox();
+  await page.mouse.click(p1.x + 60, p1.y + 300);
+  assert.equal(await page.getAttribute('.ov-text-content', 'dir'), 'ltr');
+  await page.keyboard.type('Hello');
+  await page.keyboard.press('Escape');
+
+  // Drawing tray and the exported file name
+  await page.click('#draw-btn');
+  assert.equal(await hebrewOnScreen(), null, 'no Hebrew in drawing mode');
+  assert.equal((await page.textContent('#draw-tray-toggle')).trim(), 'Hide tools');
+  await page.click('#draw-done');
+  const { name } = await exportViaDownload();
+  assert.equal(name, 'test-signed.pdf');
 });
 
 test('my signatures: add up to 3, edit and delete', async () => {

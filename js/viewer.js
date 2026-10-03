@@ -11,6 +11,8 @@
 
   const Storage = window.EasyPenStorage;
   const { toast } = window.EasyPenUI;
+  const { t, dir: UI_DIR } = window.EasyPenI18n;
+  const RTL = UI_DIR === 'rtl';
 
   const TEXT_FONT = 'Arial, Helvetica, "Noto Sans Hebrew", sans-serif';
   const TEXT_COLOR = '#111827';
@@ -25,9 +27,9 @@
 
   const SVG_NS = 'http://www.w3.org/2000/svg';
   const DRAW_TOOLS = {
-    pen: { label: 'עט', mult: 1, opacity: 1, cap: 'round' },
-    felt: { label: 'טוש', mult: 2, opacity: 1, cap: 'round' },
-    marker: { label: 'מרקר הדגשה', mult: 4, opacity: 0.35, cap: 'butt' }
+    pen: { label: t('draw.pen'), mult: 1, opacity: 1, cap: 'round' },
+    felt: { label: t('draw.felt'), mult: 2, opacity: 1, cap: 'round' },
+    marker: { label: t('draw.marker'), mult: 4, opacity: 0.35, cap: 'butt' }
   };
   const STROKE_UNIT = 1 / 400;                           // stroke width per slider step, fraction of page width
   const INK_EXPORT_PX_PER_PT = 3;                        // raster resolution of exported drawings
@@ -97,11 +99,11 @@
       record = await Storage.getCurrentDocument();
     } catch (err) {
       console.error(err);
-      showStatus('לא ניתן לגשת לאחסון המקומי בדפדפן.', { error: true });
+      showStatus(t('viewer.storageError'), { error: true });
       return;
     }
     if (!record || !record.blob) {
-      showStatus('לא נמצא מסמך פתוח. חזרו למסך הבית ובחרו קובץ PDF.', { error: true });
+      showStatus(t('viewer.noDocument'), { error: true });
       return;
     }
 
@@ -114,15 +116,15 @@
     } catch (err) {
       console.error(err);
       const messages = {
-        NOT_PDF: 'כרגע נתמכים קבצי PDF בלבד',
-        PASSWORD: 'המסמך מוגן בסיסמה ולא ניתן לפתוח אותו כרגע.'
+        NOT_PDF: t('home.pdfOnly'),
+        PASSWORD: t('viewer.password')
       };
-      const offline = !navigator.onLine ? ' ייתכן שהאפליקציה עדיין לא נשמרה לשימוש ללא חיבור.' : '';
-      showStatus(messages[err.code] || ('לא ניתן לפתוח את הקובץ. ייתכן שהוא פגום.' + offline), { error: true });
+      const offline = !navigator.onLine ? ' ' + t('viewer.notOffline') : '';
+      showStatus(messages[err.code] || (t('viewer.openError') + offline), { error: true });
       return;
     }
 
-    el.docPages.textContent = state.doc.numPages === 1 ? 'עמוד אחד' : `${state.doc.numPages} עמודים`;
+    el.docPages.textContent = state.doc.numPages === 1 ? t('viewer.onePage') : t('viewer.pages', { n: state.doc.numPages });
     await buildPages();
     el.status.hidden = true;
     [el.addSig, el.addText, el.drawBtn, el.saveShare].forEach((b) => { b.disabled = false; });
@@ -143,7 +145,7 @@
       pageEl.className = 'page';
       pageEl.dataset.page = String(n);
       pageEl.style.aspectRatio = `${size.width} / ${size.height}`;
-      pageEl.setAttribute('aria-label', `עמוד ${n}`);
+      pageEl.setAttribute('aria-label', t('viewer.page', { n }));
       const canvas = document.createElement('canvas');
       canvas.setAttribute('aria-hidden', 'true');
       // Drawings: SVG in PDF points, so strokes scale with the page
@@ -204,6 +206,8 @@
     const swap = page.rendered;
     const canvas = swap ? document.createElement('canvas') : page.canvas;
     canvas.setAttribute('aria-hidden', 'true');
+    // pdf.js draws with the canvas direction: inherited RTL breaks Latin text in the PDF
+    canvas.dir = 'ltr';
     page.rendering = state.doc.render(page.num, canvas, width)
       .then(() => {
         if (swap) {
@@ -217,7 +221,7 @@
       .catch((err) => {
         if (err && err.name !== 'RenderingCancelledException') {
           console.error(err);
-          toast(`שגיאה בהצגת עמוד ${page.num}`, 'error');
+          toast(t('viewer.pageError', { n: page.num }), 'error');
         }
       })
       .finally(() => {
@@ -330,11 +334,11 @@
     node.className = 'ov ov-sig';
     node.tabIndex = 0;
     node.setAttribute('role', 'group');
-    node.setAttribute('aria-label', 'חתימה. חיצים להזזה (Shift לצעד גדול), פלוס ומינוס לשינוי גודל, Delete למחיקה');
+    node.setAttribute('aria-label', t('viewer.sigItem'));
     const blobUrl = URL.createObjectURL(blob);
     const imgEl = document.createElement('img');
     imgEl.src = blobUrl;
-    imgEl.alt = 'חתימה';
+    imgEl.alt = t('viewer.signature');
     imgEl.draggable = false;
     const handle = document.createElement('span');
     handle.className = 'ov-resize';
@@ -356,7 +360,8 @@
 
   function detectDir(text) {
     const m = /[֐-ࣿיִ-﷿ﹰ-﻿]|[A-Za-zÀ-ɏ]/.exec(text);
-    return m && /[A-Za-zÀ-ɏ]/.test(m[0]) ? 'ltr' : 'rtl';
+    if (!m) return UI_DIR;
+    return /[A-Za-zÀ-ɏ]/.test(m[0]) ? 'ltr' : 'rtl';
   }
 
   function addTextItem(page, fx, fy) {
@@ -364,13 +369,13 @@
     node.className = 'ov ov-text';
     node.tabIndex = 0;
     node.setAttribute('role', 'group');
-    node.setAttribute('aria-label', 'תיבת טקסט. Enter לעריכה, חיצים להזזה, פלוס ומינוס לגודל גופן, Delete למחיקה');
+    node.setAttribute('aria-label', t('viewer.textItem'));
     const content = document.createElement('div');
     content.className = 'ov-text-content';
-    content.dir = 'rtl';
+    content.dir = UI_DIR;
     content.setAttribute('role', 'textbox');
     content.setAttribute('aria-multiline', 'true');
-    content.setAttribute('aria-label', 'טקסט במסמך');
+    content.setAttribute('aria-label', t('viewer.textContent'));
     content.spellcheck = false;
     const handle = document.createElement('span');
     handle.className = 'ov-move';
@@ -500,7 +505,8 @@
     const fw = clamp(item.fw * factor, minFw, 1);
     item.fh = fw * item.aspect * (pr.width / pr.height);
     item.fw = fw;
-    item.fx = rightEdge - fw;   // same anchor as the resize handle: top-right corner stays
+    // Same anchor as the resize handle: the top corner on the start side (right in Hebrew) stays
+    if (RTL) item.fx = rightEdge - fw;
     keepInside(item);
   }
 
@@ -569,10 +575,13 @@
       // Let the item be drawn above the following pages while it is dragged across them
       item.page.el.classList.add('has-dragging');
       if (isResize) {
-        // Handle sits on the bottom-left corner (RTL): the top-right corner stays put
+        // Handle sits on the bottom corner at the end side (left in Hebrew, right in English):
+        // the opposite top corner stays put
         const minFw = MIN_SIZE_PX / start.pw;
         const rightEdge = start.fx + start.fw;
-        let fw = clamp(start.fw - dx / start.pw, minFw, rightEdge);
+        let fw = RTL
+          ? clamp(start.fw - dx / start.pw, minFw, rightEdge)
+          : clamp(start.fw + dx / start.pw, minFw, 1 - start.fx);
         let fh = fw * item.aspect * (start.pw / start.ph);
         if (start.fy + fh > 1) {
           fh = 1 - start.fy;
@@ -580,7 +589,7 @@
         }
         item.fw = fw;
         item.fh = fh;
-        item.fx = rightEdge - fw;
+        if (RTL) item.fx = rightEdge - fw;
         applyPosition(item);
       } else {
         // Free movement while dragging (may leave the page); clamped on drop
@@ -678,7 +687,7 @@
       btn.className = 'sig-choice';
       const img = document.createElement('img');
       img.src = url;
-      img.alt = 'חתימה שמורה';
+      img.alt = t('viewer.savedSig');
       btn.appendChild(img);
       btn.addEventListener('click', () => {
         close();
@@ -705,16 +714,16 @@
   async function drawNewSignature(savedCount) {
     const canSave = savedCount < Storage.MAX_SIGNATURES;
     const result = await window.openSignatureDialog({
-      title: 'חתימה חדשה',
+      title: t('home.newSig'),
       showSaveOption: canSave,
       saveChecked: canSave,
-      confirmLabel: 'הוסף למסמך'
+      confirmLabel: t('viewer.addToDoc')
     });
     if (!result) return;
     if (canSave && result.save) {
       Storage.addSignature(result.blob).catch((err) => {
         console.warn(err);
-        toast('החתימה נוספה למסמך אך לא נשמרה לשימוש חוזר', 'error');
+        toast(t('viewer.sigNotSaved'), 'error');
       });
     }
     addSignatureItem(result.blob).catch(onPlaceError);
@@ -722,7 +731,7 @@
 
   function onPlaceError(err) {
     console.error(err);
-    toast('לא ניתן להוסיף את החתימה', 'error');
+    toast(t('viewer.sigAddError'), 'error');
   }
 
   /* ------------------------------------------------------------------ */
@@ -767,7 +776,7 @@
       state.drawSnapshot = state.strokes.slice();
       setTrayCollapsed(false, false);
       updateDrawTray();
-      toast('מציירים באצבע אחת. בשתי אצבעות מגדילים, מקטינים וגוללים', 'info', 4000);
+      toast(t('draw.hint'), 'info', 4000);
     } else {
       cancelStroke();
       ink.pointers.clear();
@@ -921,7 +930,7 @@
     document.body.classList.toggle('tray-collapsed', collapsed);
     el.drawTools.inert = collapsed;
     el.drawTrayToggle.setAttribute('aria-expanded', String(!collapsed));
-    el.drawTrayToggle.querySelector('.tray-handle-label').textContent = collapsed ? 'הצג כלים' : 'הסתר כלים';
+    el.drawTrayToggle.querySelector('.tray-handle-label').textContent = t(collapsed ? 'draw.showTools' : 'draw.hideTools');
   }
 
   // Scroll mode: the drawing layer lets touches through, so one finger scrolls the pages
@@ -1166,7 +1175,7 @@
 
   function signedFileName() {
     const baseName = state.fileName.replace(/\.pdf$/i, '');
-    return `${baseName}-חתום.pdf`;
+    return `${baseName}-${t('viewer.signedSuffix')}.pdf`;
   }
 
   let lastFile = null;
@@ -1176,7 +1185,7 @@
     select(null);
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     if (!state.items.length && !state.strokes.length) {
-      toast('עדיין לא הוספתם חתימה, טקסט או ציור למסמך', 'info');
+      toast(t('viewer.nothingAdded'), 'info');
       return;
     }
     el.busy.hidden = false;
@@ -1189,7 +1198,7 @@
       lastFile = new File([bytes], signedFileName(), { type: 'application/pdf' });
     } catch (err) {
       console.error(err);
-      toast('יצירת המסמך החתום נכשלה. נסו שוב.', 'error', 5000);
+      toast(t('viewer.exportError'), 'error', 5000);
       return;
     } finally {
       el.busy.hidden = true;
@@ -1202,10 +1211,10 @@
     const result = await window.EasyPenShare.shareOrDownload(file);
     if (result === 'shared') {
       state.dirty = false;
-      toast('המסמך שותף בהצלחה', 'success');
+      toast(t('viewer.shared'), 'success');
     } else if (result === 'downloaded') {
       state.dirty = false;
-      toast('המסמך החתום נשמר בהורדות', 'success');
+      toast(t('viewer.downloaded'), 'success');
     } else if (result === 'needs-gesture') {
       // Preparing took too long for the browser's "user tap" window - ask for one more tap
       el.readyDialog.showModal();
@@ -1224,7 +1233,7 @@
       if (!lastFile) return;
       window.EasyPenShare.download(lastFile);
       state.dirty = false;
-      toast('המסמך החתום נשמר בהורדות', 'success');
+      toast(t('viewer.downloaded'), 'success');
     });
   }
 
@@ -1274,7 +1283,7 @@
   });
 
   el.backBtn.addEventListener('click', (e) => {
-    if (state.dirty && !confirm('השינויים במסמך לא נשמרו. לצאת בכל זאת?')) e.preventDefault();
+    if (state.dirty && !confirm(t('viewer.leaveConfirm'))) e.preventDefault();
   });
   window.addEventListener('beforeunload', (e) => {
     if (!state.dirty) return;
