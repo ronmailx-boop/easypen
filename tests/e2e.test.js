@@ -410,13 +410,17 @@ test('editor: drawing tray collapses to its handle, bars stay pinned while zoome
   assert.equal(await page.getAttribute('#draw-scroll', 'aria-pressed'), 'false');
   await page.click('#draw-scroll');
 
-  // Opening the tools turns scroll mode off
+  // Opening the tools keeps scroll mode and its button; picking a pen turns it off
   await page.click('#draw-tray-toggle');
-  assert.equal(await page.getAttribute('#draw-scroll', 'aria-pressed'), 'false');
-  assert.equal(await page.isVisible('#draw-scroll'), false);
   await page.waitForTimeout(300);
   assert.equal(await page.getAttribute('#draw-tray-toggle', 'aria-expanded'), 'true');
   assert.ok((await rect('.pen-row'))[3] <= 780, 'tools back on screen');
+  assert.equal(await page.isVisible('#draw-scroll'), true);
+  assert.equal(await page.getAttribute('#draw-scroll', 'aria-pressed'), 'true');
+  await page.click('.pen-btn[data-tool="pen"]');
+  assert.equal(await page.getAttribute('#draw-scroll', 'aria-pressed'), 'false');
+  await page.click('#draw-scroll');
+  assert.equal(await page.getAttribute('#draw-scroll', 'aria-pressed'), 'true', 'scroll mode works with the tools open');
 });
 
 test('editor: pinch zoom enlarges the pages in the app, bars stay in place', async () => {

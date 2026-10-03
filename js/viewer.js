@@ -920,7 +920,6 @@
     }
     document.body.classList.toggle('tray-collapsed', collapsed);
     el.drawTools.inert = collapsed;
-    if (!collapsed) setScrollMode(false);   // opening the tools means drawing again
     el.drawTrayToggle.setAttribute('aria-expanded', String(!collapsed));
     el.drawTrayToggle.querySelector('.tray-handle-label').textContent = collapsed ? 'הצג כלים' : 'הסתר כלים';
   }
@@ -957,6 +956,7 @@
       }
       if (btn.dataset.tool) state.draw.tool = btn.dataset.tool;
       else state.draw.color = btn.dataset.color;
+      setScrollMode(false);   // picking a pen or colour means drawing again
       saveDrawPrefs();
       updateDrawTray();
     });

@@ -788,12 +788,12 @@ html:has(> body.viewer),
 .tray-handle svg { transition: transform .2s ease; }
 .tray-collapsed .tray-handle svg { transform: rotate(180deg); }
 
-/* Scroll mode (only while the tray is tucked away): fingers scroll and zoom, nothing is drawn */
+/* Scroll mode: fingers scroll and zoom, nothing is drawn */
 .scroll-toggle {
   position: absolute;
   inset-inline-end: 12px;
   top: 4px;
-  display: none;
+  display: flex;
   align-items: center;
   gap: 4px;
   height: 36px;
@@ -808,7 +808,6 @@ html:has(> body.viewer),
   cursor: pointer;
 }
 
-.tray-collapsed .scroll-toggle { display: flex; }
 .scroll-toggle[aria-pressed="true"] { border-color: var(--primary); background: var(--primary-soft); color: var(--primary-dark); }
 
 .scroll-mode .draw-layer {
