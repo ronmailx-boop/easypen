@@ -50,6 +50,8 @@
     drawUndo: document.getElementById('draw-undo'),
     drawWidth: document.getElementById('draw-width'),
     drawToolName: document.getElementById('draw-tool-name'),
+    drawTrayToggle: document.getElementById('draw-tray-toggle'),
+    drawTools: document.getElementById('draw-tools'),
     saveShare: document.getElementById('save-share'),
     modeHint: document.getElementById('mode-hint'),
     modeCancel: document.getElementById('mode-cancel'),
@@ -751,6 +753,7 @@
       select(null);
       if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
       state.drawSnapshot = state.strokes.slice();
+      setTrayCollapsed(false, false);
       updateDrawTray();
       toast('מציירים באצבע אחת. בשתי אצבעות מגדילים, מקטינים וגוללים', 'info', 4000);
     } else {
@@ -911,15 +914,36 @@
     svg.addEventListener('pointercancel', onEnd);
   }
 
+  // Tucks the tray down to its handle so more of the page shows
+  function setTrayCollapsed(collapsed, animate = true) {
+    if (animate) {
+      el.drawTray.classList.add('is-sliding');
+      setTimeout(() => el.drawTray.classList.remove('is-sliding'), 250);
+    }
+    document.body.classList.toggle('tray-collapsed', collapsed);
+    el.drawTools.inert = collapsed;
+    el.drawTrayToggle.setAttribute('aria-expanded', String(!collapsed));
+    el.drawTrayToggle.querySelector('.tray-handle-label').textContent = collapsed ? 'הצג כלים' : 'הסתר כלים';
+  }
+
+  function toggleTray() {
+    setTrayCollapsed(!document.body.classList.contains('tray-collapsed'));
+  }
+
   function wireDrawTray() {
     loadDrawPrefs();
     el.drawBtn.addEventListener('click', () => setDrawMode(true));
     el.drawDone.addEventListener('click', () => setDrawMode(false));
     el.drawCancel.addEventListener('click', cancelDrawing);
     el.drawUndo.addEventListener('click', undoStroke);
+    el.drawTrayToggle.addEventListener('click', toggleTray);
     el.drawTray.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-tool], [data-color]');
-      if (!btn) return;
+      if (!btn) {
+        // A tap on an empty part of the tray also tucks it away / brings it back
+        if (!e.target.closest('button, input, label')) toggleTray();
+        return;
+      }
       if (btn.dataset.tool) state.draw.tool = btn.dataset.tool;
       else state.draw.color = btn.dataset.color;
       saveDrawPrefs();
@@ -930,6 +954,45 @@
       saveDrawPrefs();
       updateDrawTray();
     });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Bars pinned to the visible screen while pinch-zoomed               */
+  /* ------------------------------------------------------------------ */
+
+  // Browsers keep fixed/sticky bars attached to the page, so on pinch-zoom they grow and
+  // slide off screen. Counter-scale them and move them to the edges of the visible area
+  // (CSS: transform var(--pin-top) / var(--pin-bottom), origin at the viewport edge).
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed;left:0;right:0;bottom:0;height:0;visibility:hidden;pointer-events:none';
+  document.body.appendChild(probe);
+  let pinFrame = 0;
+
+  function pinBars() {
+    pinFrame = 0;
+    const vv = window.visualViewport;
+    const style = document.body.style;
+    // Scale 1 includes the iOS keyboard case: bars stay where they always were
+    if (!vv || Math.abs(vv.scale - 1) < 0.01) {
+      style.removeProperty('--pin-top');
+      style.removeProperty('--pin-bottom');
+      return;
+    }
+    // Where fixed bars actually sit (the layout viewport), in the same coordinates as vv.offset*
+    const layout = probe.getBoundingClientRect();
+    const k = 1 / vv.scale;
+    const dx = vv.offsetLeft + vv.width / 2 - (layout.left + layout.right) / 2;
+    style.setProperty('--pin-top', `translate(${dx}px, ${vv.offsetTop}px) scale(${k})`);
+    style.setProperty('--pin-bottom', `translate(${dx}px, ${vv.offsetTop + vv.height - layout.bottom}px) scale(${k})`);
+  }
+
+  function schedulePin() {
+    if (!pinFrame) pinFrame = requestAnimationFrame(pinBars);
+  }
+
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', schedulePin);
+    window.visualViewport.addEventListener('scroll', schedulePin);
   }
 
   /* ------------------------------------------------------------------ */

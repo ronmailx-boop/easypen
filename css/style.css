@@ -269,14 +269,18 @@ img { max-width: 100%; }
   font-weight: 600;
   box-shadow: var(--shadow);
   opacity: 0;
-  transform: translateY(12px);
+  transform: var(--pin-bottom,) translateY(12px);
+  transform-origin: 50% calc(100% + var(--bar-h) + 1rem + var(--safe-bottom));
   pointer-events: none;
   transition: opacity .2s, transform .2s;
 }
 
 .home .toast { bottom: calc(1rem + var(--safe-bottom)); }
-.draw-mode .toast { bottom: calc(var(--tray-h) + 1rem + var(--safe-bottom)); }
-.toast.show { opacity: 1; transform: none; }
+.draw-mode .toast {
+  bottom: calc(var(--tray-h) + 1rem + var(--safe-bottom));
+  transform-origin: 50% calc(100% + var(--tray-h) + 1rem + var(--safe-bottom));
+}
+.toast.show { opacity: 1; transform: var(--pin-bottom,); }
 .toast[data-type="error"] { background: var(--danger); }
 .toast[data-type="success"] { background: var(--success); }
 
@@ -425,12 +429,18 @@ img { max-width: 100%; }
 /* ---------- Viewer ---------- */
 
 .viewer {
-  --tray-h: 208px;   /* height of the drawing tray */
+  --tray-h: 228px;   /* height of the drawing tray */
   padding-bottom: calc(var(--bar-h) + var(--safe-bottom));
   background: #e6e9f2;
 }
 
 .viewer-header { justify-content: flex-start; }
+
+/* Headers stay at the top of the visible screen while pinch-zoomed (see pinBars in viewer.js) */
+.viewer .app-header {
+  transform: var(--pin-top,);
+  transform-origin: 50% 0;
+}
 
 .doc-title {
   display: flex;
@@ -633,6 +643,8 @@ img { max-width: 100%; }
   border-radius: 14px;
   background: var(--surface);
   box-shadow: var(--shadow);
+  transform: var(--pin-bottom,);
+  transform-origin: 50% calc(100% + var(--bar-h) + .5rem + var(--safe-bottom));
 }
 
 .mode-hint { background: var(--primary-soft); font-weight: 600; }
@@ -659,6 +671,8 @@ img { max-width: 100%; }
   padding: 8px 8px calc(8px + var(--safe-bottom));
   background: var(--surface);
   border-top: 1px solid var(--border);
+  transform: var(--pin-bottom,);
+  transform-origin: 50% 100%;
   box-shadow: 0 -4px 16px rgba(30, 27, 107, .08);
 }
 
@@ -714,6 +728,7 @@ img { max-width: 100%; }
 .draw-mode .bottom-bar { display: none; }
 
 .viewer.draw-mode { padding-bottom: calc(var(--tray-h) + var(--safe-bottom)); }
+.viewer.tray-collapsed { --tray-h: 37px; }
 
 .draw-title { font-weight: 700; }
 .draw-done { font-weight: 800; }
@@ -731,8 +746,34 @@ img { max-width: 100%; }
   background: var(--surface);
   border-top: 1px solid var(--border);
   box-shadow: 0 -4px 16px rgba(30, 27, 107, .08);
+  transform: var(--pin-bottom,) translateY(var(--collapse, 0px));
+  transform-origin: 50% 100%;
 }
 
+/* Tapping the handle tucks the tray down, leaving only the handle */
+.tray-collapsed .draw-tray { --collapse: calc(100% - 37px - var(--safe-bottom));   /* handle + top border */ }
+.draw-tray.is-sliding { transition: transform .2s ease; }
+
+.tray-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  margin: 0 -16px -10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: .8rem;
+  cursor: pointer;
+}
+
+.draw-tools { display: flex; flex-direction: column; gap: 10px; }
+
+.tray-handle svg { transition: transform .2s ease; }
+.tray-collapsed .tray-handle svg { transform: rotate(180deg); }
 .pen-row {
   display: flex;
   align-items: flex-end;
