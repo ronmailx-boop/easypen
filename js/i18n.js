@@ -122,6 +122,13 @@
       'ready.text': 'בחרו איך להמשיך:',
       'ready.download': 'הורדה',
       'ready.share': 'שיתוף',
+      'legal.title': 'מידע משפטי - EasyPen',
+      'legal.docs': 'מסמכים משפטיים',
+      'legal.privacy': 'פרטיות',
+      'legal.cookies': 'עוגיות',
+      'legal.accessibility': 'נגישות',
+      'legal.loading': 'טוען…',
+      'legal.loadError': 'לא ניתן לטעון את המסמך. בדקו את החיבור לרשת ונסו שוב.',
       'sw.offline': 'אין חיבור לרשת'
     },
     en: {
@@ -236,6 +243,13 @@
       'ready.text': 'Choose how to continue:',
       'ready.download': 'Download',
       'ready.share': 'Share',
+      'legal.title': 'Legal information - EasyPen',
+      'legal.docs': 'Legal documents',
+      'legal.privacy': 'Privacy',
+      'legal.cookies': 'Cookies',
+      'legal.accessibility': 'Accessibility',
+      'legal.loading': 'Loading…',
+      'legal.loadError': 'The document could not be loaded. Check your network connection and try again.',
       'sw.offline': 'No network connection'
     }
   };

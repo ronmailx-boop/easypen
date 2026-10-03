@@ -706,6 +706,32 @@ test('legal pages: linked from home, every document renders, works offline', asy
   assert.equal(await page.textContent('#legal-content h1'), 'הצהרת נגישות');
 });
 
+test('english: legal pages in English, also offline', async () => {
+  await useEnglish();
+  const expected = { privacy: 'Privacy Policy', terms: 'Terms of Use', cookies: 'Cookie Policy', accessibility: 'Accessibility Statement' };
+  for (const [doc, title] of Object.entries(expected)) {
+    await page.goto(`${server.baseUrl}legal.html?doc=${doc}`);
+    await page.waitForSelector('#legal-content h1');
+    assert.equal(await page.textContent('#legal-content h1'), title);
+    assert.equal(await page.title(), `${title} - EasyPen`);
+    assert.equal(await page.evaluate(() => document.documentElement.dir), 'ltr');
+    assert.equal(await hebrewOnScreen(), null, `${doc}: no Hebrew`);
+    const raw = await page.$$eval('#legal-content p, #legal-content li, #legal-content td', (els) =>
+      els.map((e) => e.textContent).filter((t) => /(^#|\*\*|\|---|\]\()/.test(t)));
+    assert.deepEqual(raw, [], `${doc}: no unrendered Markdown`);
+  }
+  // Links between the English documents stay on this page
+  await page.goto(`${server.baseUrl}legal.html?doc=cookies`);
+  await page.waitForSelector('#legal-content table');
+  assert.equal(await page.getAttribute('#legal-content a[href*="privacy"]', 'href'), 'legal.html?doc=privacy');
+
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await context.setOffline(true);
+  await page.goto(`${server.baseUrl}legal.html?doc=terms`);
+  await page.waitForSelector('#legal-content h1');
+  assert.equal(await page.textContent('#legal-content h1'), 'Terms of Use');
+});
+
 test('legal pages: Markdown renderer never outputs markup from the text', async () => {
   await page.goto(`${server.baseUrl}legal.html?doc=privacy`);
   await page.waitForSelector('#legal-content h1');
