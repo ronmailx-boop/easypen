@@ -40,11 +40,22 @@
     <button type="button" id="mode-cancel" class="btn btn-ghost btn-sm" data-i18n="viewer.cancel">ביטול</button>
   </div>
 
+  <div id="sample-hint" class="mode-hint sample-hint" hidden>
+    <span data-i18n="sample.hint">הקישו על החתימה או על הצבע במסמך</span>
+    <button type="button" id="sample-cancel" class="btn btn-ghost btn-sm" data-i18n="viewer.cancel">ביטול</button>
+  </div>
+
   <div id="item-toolbar" class="item-toolbar" hidden>
     <div class="text-tools" hidden>
       <button type="button" class="icon-btn" data-action="font-down" aria-label="הקטנת גופן" data-i18n-aria="viewer.fontDown">A−</button>
       <span class="font-size" aria-live="polite"></span>
       <button type="button" class="icon-btn" data-action="font-up" aria-label="הגדלת גופן" data-i18n-aria="viewer.fontUp">A+</button>
+    </div>
+    <div class="sig-size width-row" hidden>
+      <label for="sig-size" class="visually-hidden" data-i18n="viewer.sigSize">גודל החתימה</label>
+      <span class="width-dot width-dot-sm" aria-hidden="true"></span>
+      <input id="sig-size" type="range" min="5" max="100" step="1" value="35">
+      <span class="width-dot width-dot-lg" aria-hidden="true"></span>
     </div>
     <button type="button" class="btn btn-danger btn-sm" data-action="delete" data-i18n="viewer.delete">מחק</button>
     <button type="button" class="btn btn-primary btn-sm" data-action="done" data-i18n="viewer.done">סיום</button>

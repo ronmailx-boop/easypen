@@ -58,6 +58,10 @@
     saveShare: document.getElementById('save-share'),
     modeHint: document.getElementById('mode-hint'),
     modeCancel: document.getElementById('mode-cancel'),
+    sampleHint: document.getElementById('sample-hint'),
+    sampleCancel: document.getElementById('sample-cancel'),
+    sigSizeTools: document.querySelector('#item-toolbar .sig-size'),
+    sigSize: document.getElementById('sig-size'),
     toolbar: document.getElementById('item-toolbar'),
     textTools: document.querySelector('#item-toolbar .text-tools'),
     fontSizeLabel: document.querySelector('#item-toolbar .font-size'),
@@ -365,6 +369,7 @@
     if (item.type === 'signature') {
       item.el.style.width = `${item.fw * 100}%`;
       item.el.style.height = `${item.fh * 100}%`;
+      syncSigSize(item);
     }
   }
 
@@ -552,7 +557,9 @@
     el.toolbar.hidden = !item;
     if (!item) return;
     el.textTools.hidden = item.type !== 'text';
+    el.sigSizeTools.hidden = item.type !== 'signature';
     if (item.type === 'text') el.fontSizeLabel.textContent = `${FONT_SIZES[item.fontIndex]}pt`;
+    else syncSigSize(item);
   }
 
   /* ---------------- drag / resize (Pointer Events) ------------------ */
@@ -565,6 +572,20 @@
     });
     item.el.addEventListener('keydown', (e) => onItemKeyDown(e, item));
   }
+
+  /* ---------------- signature size slider -------------------------- */
+
+  // Slider value = signature width in percent of the page width
+  function syncSigSize(item) {
+    if (state.selected === item && item.type === 'signature') el.sigSize.value = String(Math.round(item.fw * 100));
+  }
+
+  el.sigSize.addEventListener('input', () => {
+    const item = state.selected;
+    if (!item || item.type !== 'signature') return;
+    resizeSignatureBy(item, Number(el.sigSize.value) / 100 / item.fw);
+    markDirty();
+  });
 
   /* ---------------- keyboard (alternative to drag / resize) --------- */
 
@@ -787,7 +808,8 @@
       title: t('home.newSig'),
       showSaveOption: canSave,
       saveChecked: canSave,
-      confirmLabel: t('viewer.addToDoc')
+      confirmLabel: t('viewer.addToDoc'),
+      pickColor: pickColorFromDocument
     });
     if (!result) return;
     if (canSave && result.save) {
@@ -797,6 +819,88 @@
       });
     }
     addSignatureItem(result.blob).catch(onPlaceError);
+  }
+
+  /* ---------------- colour picking from the document --------------- */
+
+  const SAMPLE_RADIUS_PX = 10;       // area around the finger that is read, CSS pixels
+  const MIN_INK_CONTRAST = 40;       // RGB distance from the paper that counts as ink
+
+  /*
+   * The ink colour around (x, y) on the rendered page: the paper is the brightest
+   * quarter of the pixels, the ink the pixels farthest from it (the core of the line). Works on a thin line
+   * and on grey paper in photographed documents. null when there is only paper.
+   */
+  function sampleInk(page, x, y) {
+    const c = page.canvas;
+    const r = c.getBoundingClientRect();
+    if (!page.rendered || !r.width || x < r.left || x > r.right || y < r.top || y > r.bottom) return null;
+    const k = c.width / r.width;
+    const rad = Math.max(2, Math.round(SAMPLE_RADIUS_PX * k));
+    const cx = Math.round((x - r.left) * k);
+    const cy = Math.round((y - r.top) * k);
+    const x0 = clamp(cx - rad, 0, c.width - 1);
+    const y0 = clamp(cy - rad, 0, c.height - 1);
+    const w = Math.min(c.width - x0, rad * 2 + 1);
+    const h = Math.min(c.height - y0, rad * 2 + 1);
+    const data = c.getContext('2d').getImageData(x0, y0, w, h).data;
+    const px = [];
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i + 3] < 128) continue;
+      px.push([data[i], data[i + 1], data[i + 2], data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114]);
+    }
+    if (!px.length) return null;
+    const avg = (list) => [0, 1, 2].map((ch) => Math.round(list.reduce((sum, p) => sum + p[ch], 0) / list.length));
+    const paper = avg(px.slice().sort((a, b) => b[3] - a[3]).slice(0, Math.max(1, px.length >> 2)));
+    const dist = (p) => Math.hypot(p[0] - paper[0], p[1] - paper[1], p[2] - paper[2]);
+    const maxDist = Math.max(...px.map(dist));
+    let rgb;
+    if (maxDist >= MIN_INK_CONTRAST) {
+      // The core of the line: its soft (anti-aliased) edges are lighter
+      rgb = avg(px.filter((p) => dist(p) >= maxDist * 0.8));
+    } else {
+      // One colour all around: a filled area is a colour too, white paper is not
+      rgb = avg(px);
+      if (rgb[0] * 0.299 + rgb[1] * 0.587 + rgb[2] * 0.114 > 225) return null;
+    }
+    return '#' + rgb.map((v) => v.toString(16).padStart(2, '0')).join('');
+  }
+
+  // Lets the user tap a colour in the document; resolves with '#rrggbb', or null when cancelled
+  function pickColorFromDocument() {
+    setTextMode(false);
+    select(null);
+    return new Promise((resolve) => {
+      const finish = (color) => {
+        el.sampleHint.hidden = true;
+        document.body.classList.remove('sample-mode');
+        el.pages.removeEventListener('click', onTap, true);
+        el.sampleCancel.removeEventListener('click', onCancel);
+        document.removeEventListener('keydown', onKey, true);
+        resolve(color);
+      };
+      // A click (not pointerdown), so scrolling to the colour doesn't pick on the way
+      const onTap = (e) => {
+        const pageEl = e.target.closest('.page');
+        if (!pageEl) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const color = sampleInk(pageFromEl(pageEl), e.clientX, e.clientY);
+        if (color) finish(color);
+        else toast(t('sample.none'), 'info');
+      };
+      const onCancel = () => finish(null);
+      const onKey = (e) => {
+        if (e.key !== 'Escape') return;
+        e.stopPropagation();
+        finish(null);
+      };
+      el.sampleHint.hidden = false;
+      document.body.classList.add('sample-mode');
+      el.pages.addEventListener('click', onTap, true);
+      el.sampleCancel.addEventListener('click', onCancel);
+      document.addEventListener('keydown', onKey, true);
+    });
   }
 
   function onPlaceError(err) {

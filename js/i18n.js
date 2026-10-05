@@ -135,6 +135,12 @@
       'legal.loadError': 'לא ניתן לטעון את המסמך. בדקו את החיבור לרשת ונסו שוב.',
       'order.up': 'הזזת עמוד {n} למעלה',
       'order.down': 'הזזת עמוד {n} למטה',
+      'viewer.sigSize': 'גודל החתימה',
+      'pad.sample': 'דגימה',
+      'pad.sampleLabel': 'דגימת צבע מהמסמך',
+      'pad.sampled': 'מהמסמך',
+      'sample.hint': 'הקישו על החתימה או על הצבע במסמך',
+      'sample.none': 'לא נמצא צבע במקום הזה. הקישו בדיוק על הקו.',
       'sw.offline': 'אין חיבור לרשת'
     },
     en: {
@@ -262,6 +268,12 @@
       'legal.loadError': 'The document could not be loaded. Check your network connection and try again.',
       'order.up': 'Move page {n} up',
       'order.down': 'Move page {n} down',
+      'viewer.sigSize': 'Signature size',
+      'pad.sample': 'Pick',
+      'pad.sampleLabel': 'Pick a colour from the document',
+      'pad.sampled': 'Picked',
+      'sample.hint': 'Tap the signature or colour in the document',
+      'sample.none': 'No colour found there. Tap right on the line.',
       'sw.offline': 'No network connection'
     }
   };

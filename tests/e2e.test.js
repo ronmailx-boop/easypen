@@ -753,6 +753,77 @@ test('english: the editor in English, left to right, handles mirrored', async ()
   assert.equal(name, 'test-signed.pdf');
 });
 
+test('signature: size slider, and ink colour picked from the document', async () => {
+  await openInEditor();
+  await drawNewSignatureAndPlace();
+  const sig = page.locator('.ov-sig');
+  const pageBox = await page.locator('.page[data-page="1"]').boundingBox();
+
+  // Slider = width in % of the page; the top-right corner (Hebrew) stays put
+  assert.equal(await page.isVisible('#sig-size'), true);
+  assert.equal(await page.inputValue('#sig-size'), '35');
+  const before = await sig.boundingBox();
+  await page.$eval('#sig-size', (s) => { s.value = '60'; s.dispatchEvent(new Event('input', { bubbles: true })); });
+  const after = await sig.boundingBox();
+  assert.ok(Math.abs(after.width / pageBox.width - 0.6) < 0.01, `60% of the page: ${after.width / pageBox.width}`);
+  assert.ok(Math.abs(after.x + after.width - (before.x + before.width)) < 1, 'right edge stays');
+  // Keyboard resize moves the slider too
+  await sig.focus();
+  await page.keyboard.press('-');
+  assert.equal(await page.inputValue('#sig-size'), String(Math.round(60 / 1.1)));
+  await page.click('#item-toolbar [data-action="delete"]');
+
+  // Picking a colour: the red frame on page 1 (PDF x 200..400, top edge at y 360 of 842)
+  await page.click('#add-sig');
+  await page.waitForSelector('#sig-picker[open]');
+  await page.click('#sig-picker [data-action="new"]');
+  await page.waitForSelector('dialog.sig-dialog[open]');
+  await page.click('dialog.sig-dialog [data-action="sample"]');
+  await page.waitForSelector('#sample-hint', { state: 'visible' });
+  assert.equal(await page.isVisible('dialog.sig-dialog'), false, 'the dialog steps aside');
+  assert.equal(await page.isVisible('.bottom-bar'), false);
+  const at = async (fx, fy) => {
+    const b = await page.locator('.page[data-page="1"]').boundingBox();
+    return { x: b.x + b.width * fx, y: b.y + b.height * fy };
+  };
+  // White paper: no colour, still picking
+  let p = await at(0.1, 0.4);
+  await page.mouse.click(p.x, p.y);
+  await page.waitForFunction(() => document.getElementById('toast').classList.contains('show'));
+  assert.equal(await page.textContent('#toast'), 'לא נמצא צבע במקום הזה. הקישו בדיוק על הקו.');
+  assert.equal(await page.isVisible('#sample-hint'), true);
+  p = await at(300 / 595, (842 - 360) / 842);
+  await page.mouse.click(p.x, p.y);
+  await page.waitForSelector('dialog.sig-dialog[open]');
+  assert.equal(await page.isVisible('#sample-hint'), false);
+  const sampled = await page.$eval('dialog.sig-dialog .ink-sampled', (l) => ({
+    hidden: l.hidden, checked: l.querySelector('input').checked, color: l.style.getPropertyValue('--c')
+  }));
+  assert.equal(sampled.hidden, false);
+  assert.equal(sampled.checked, true);
+  const rgb = sampled.color.match(/[0-9a-f]{2}/g).map((h) => parseInt(h, 16));
+  assert.ok(rgb[0] > 180 && rgb[1] < 90 && rgb[2] < 90, `red picked: ${sampled.color}`);
+
+  // The new signature is drawn in that colour
+  await drawSignature();
+  await page.click('dialog.sig-dialog [data-action="confirm"]');
+  await page.waitForSelector('dialog.sig-dialog', { state: 'detached' });
+  const ink = await page.$eval('.ov-sig img', async (img) => {
+    await img.decode();
+    const c = document.createElement('canvas');
+    c.width = img.naturalWidth;
+    c.height = img.naturalHeight;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const d = ctx.getImageData(0, 0, c.width, c.height).data;
+    let best = null;
+    for (let i = 0; i < d.length; i += 4) if (d[i + 3] === 255) { best = [d[i], d[i + 1], d[i + 2]]; break; }
+    return best;
+  });
+  assert.ok(ink && Math.abs(ink[0] - rgb[0]) < 3 && Math.abs(ink[1] - rgb[1]) < 3 && Math.abs(ink[2] - rgb[2]) < 3,
+    `signature ink ${ink} = picked ${rgb}`);
+});
+
 test('my signatures: add up to 3, edit and delete', async () => {
   await page.goto(server.baseUrl);
   await page.waitForSelector('#sig-empty', { state: 'visible' });   // shown after the async IndexedDB read
