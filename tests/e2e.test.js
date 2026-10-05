@@ -222,6 +222,12 @@ async function makeJpeg(width, height, color, { exif6 = false, type = 'image/jpe
   return jpeg;
 }
 
+// Confirms the page order screen shown for more than one image
+async function confirmOrder() {
+  await page.waitForSelector('#order-dialog[open]');
+  await page.click('#order-dialog [data-action="confirm"]');
+}
+
 // The compressed picture itself: from the start-of-scan marker to the end
 const scanData = (jpeg) => jpeg.subarray(jpeg.indexOf(Buffer.from([0xFF, 0xDA])));
 
@@ -234,6 +240,18 @@ test('photos: 4 JPGs become a 4-page PDF, signed and exported with the original 
     await makeJpeg(400, 400, '#8e44ad')
   ];
   await page.setInputFiles('#file-input', photos.map((buffer, i) => ({ name: `photo${i + 1}.jpg`, mimeType: 'image/jpeg', buffer })));
+
+  // Page order screen: in the chosen order, arrows disabled at the ends; move image 4 one place up
+  await page.waitForSelector('#order-dialog[open]');
+  const names = () => page.$$eval('.order-item .order-name', (els) => els.map((e) => e.textContent));
+  assert.deepEqual(await names(), ['photo1.jpg', 'photo2.jpg', 'photo3.jpg', 'photo4.jpg']);
+  assert.equal(await page.isDisabled('.order-item >> nth=0 >> [data-move="up"]'), true);
+  assert.equal(await page.isDisabled('.order-item >> nth=3 >> [data-move="down"]'), true);
+  await page.click('.order-item >> nth=3 >> [data-move="up"]');
+  assert.deepEqual(await names(), ['photo1.jpg', 'photo2.jpg', 'photo4.jpg', 'photo3.jpg']);
+  assert.equal(await page.evaluate(() => document.activeElement.getAttribute('aria-label')), 'הזזת תמונה 3 למעלה', 'focus follows the moved image');
+  assert.equal(await page.textContent('.order-item >> nth=2 >> .order-num'), '3');
+  await page.click('#order-dialog [data-action="confirm"]');
   await page.waitForURL(/viewer\.html/);
   await page.waitForSelector('.page.is-rendered');
   assert.equal(await page.textContent('#doc-name'), 'photo1.pdf');
@@ -243,7 +261,7 @@ test('photos: 4 JPGs become a 4-page PDF, signed and exported with the original 
     const r = e.getBoundingClientRect();
     return Math.round((r.width / r.height) * 100) / 100;
   }));
-  assert.deepEqual(ratios, [0.75, 1.33, 1.33, 1]);
+  assert.deepEqual(ratios, [0.75, 1.33, 1, 1.33]);
 
   await drawNewSignatureAndPlace();
   const { name, bytes } = await exportViaDownload();
@@ -254,7 +272,7 @@ test('photos: 4 JPGs become a 4-page PDF, signed and exported with the original 
   const { PDFDocument } = require(path.resolve(__dirname, '../vendor/pdf-lib/pdf-lib.min.js'));
   const doc = await PDFDocument.load(bytes);
   assert.equal(doc.getPageCount(), 4);
-  assert.deepEqual(doc.getPages().map((p) => p.getRotation().angle), [0, 0, 90, 0]);
+  assert.deepEqual(doc.getPages().map((p) => p.getRotation().angle), [0, 0, 0, 90]);
 });
 
 test('photos: PNG images keep their full size and transparency', async () => {
@@ -265,6 +283,7 @@ test('photos: PNG images keep their full size and transparency', async () => {
     { name: 'Screenshot.png', mimeType: 'image/png', buffer: png },
     { name: 'photo.jpg', mimeType: 'image/jpeg', buffer: jpg }
   ]);
+  await confirmOrder();
   await page.waitForURL(/viewer\.html/);
   await page.waitForSelector('.page.is-rendered');
   assert.equal(await page.textContent('#doc-pages'), '2 עמודים');
@@ -301,6 +320,16 @@ test('photos: mixed, too many or broken files are refused with a message', async
     { name: 'good.jpg', mimeType: 'image/jpeg', buffer: jpeg },
     { name: 'broken.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('not a photo') }
   ]);
+  // Cancel on the order screen: nothing happens, stays home
+  await page.waitForSelector('#order-dialog[open]');
+  await page.click('#order-dialog .modal-actions [data-action="cancel"]');
+  await page.waitForSelector('#order-dialog', { state: 'hidden' });
+  assert.equal(await page.textContent('#upload-error'), '');
+  await page.setInputFiles('#file-input', [
+    { name: 'good.jpg', mimeType: 'image/jpeg', buffer: jpeg },
+    { name: 'broken.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('not a photo') }
+  ]);
+  await confirmOrder();
   await page.waitForFunction(() => document.getElementById('upload-error').textContent);
   assert.equal(await page.textContent('#upload-error'), 'לא ניתן לקרוא את התמונה broken.jpg. ייתכן שהיא פגומה.');
   assert.match(page.url(), /index\.html|\/$/, 'stays on the home screen');
@@ -644,6 +673,22 @@ test('english: an English device gets the home screen in English, left to right'
     };
   });
   assert.deepEqual(i18n.missing, []);
+
+  // The Hebrew written in the HTML is the same as in i18n.js (a text changed in one place only)
+  for (const url of ['index.html', 'viewer.html', 'legal.html', 'share-target/']) {
+    const stale = await page.evaluate(async (url) => {
+      const { STRINGS } = window.EasyPenI18n;
+      // The file as written (the live page changes some texts while it runs)
+      const doc = new DOMParser().parseFromString(await (await fetch(url)).text(), 'text/html');
+      const all = [...doc.querySelectorAll('[data-i18n], [data-i18n-aria], [data-i18n-alt]')];
+      return all.flatMap((el) => [
+        el.dataset.i18n && [el.dataset.i18n, el.textContent.trim()],
+        el.dataset.i18nAria && [el.dataset.i18nAria, el.getAttribute('aria-label')],
+        el.dataset.i18nAlt && [el.dataset.i18nAlt, el.alt]
+      ]).filter((pair) => pair && pair[1] !== STRINGS.he[pair[0]]);
+    }, url);
+    assert.deepEqual(stale, [], `${url}: Hebrew in the HTML matches i18n.js`);
+  }
   assert.deepEqual(i18n.picks, ['he', 'he', 'he', 'en', 'en', 'en', 'en']);
 
   const en = await browser.newContext({ ...MOBILE, locale: 'en-US' });
@@ -920,6 +965,7 @@ test('service worker: share target opens shared PDFs, rejects other types, works
     { name: 'IMG_1.jpg', type: 'image/jpeg', b64: jpg.toString('base64') },
     { name: 'Screenshot.png', type: 'image/png', b64: png.toString('base64') }
   ] });
+  await confirmOrder();
   await page.waitForURL(/viewer\.html/);
   await page.waitForSelector('.page.is-rendered');
   assert.equal(await page.textContent('#doc-name'), 'IMG_1.pdf');

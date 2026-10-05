@@ -38,7 +38,7 @@
   <main class="home-main">
     <section class="upload-card">
       <h1 data-i18n="home.heading">חתימה על מסמך</h1>
-      <p class="muted" data-i18n="home.intro">בחרו קובץ PDF, הוסיפו חתימה או טקסט ושתפו הלאה.</p>
+      <p class="muted" data-i18n="home.intro">בחרו קובץ PDF או תמונות, הוסיפו חתימה או טקסט ושתפו הלאה.</p>
       <label class="btn btn-primary btn-xl upload-btn">
         <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M11 16V7.8l-3.6 3.6L6 10l6-6 6 6-1.4 1.4L13 7.8V16h-2zm-6 4v-5h2v3h10v-3h2v5H5z"/></svg>
         <span data-i18n="home.upload">העלה מסמך</span>
@@ -79,6 +79,21 @@
     <p class="footer-copy" dir="ltr">© 2026 vplus studio</p>
     <p class="footer-version"><span data-i18n="footer.version">גרסה</span> <span data-app-version>10</span></p>
   </footer>
+
+  <dialog id="order-dialog" class="modal sheet order-dialog" aria-labelledby="order-title">
+    <div class="modal-card">
+      <header class="modal-header">
+        <h2 id="order-title" data-i18n="order.title">סדר העמודים</h2>
+        <button type="button" class="icon-btn" data-action="cancel" aria-label="סגור" data-i18n-aria="pad.close">✕</button>
+      </header>
+      <p class="modal-hint" data-i18n="order.hint">העמוד הראשון למעלה. אפשר להזיז תמונות בחצים.</p>
+      <ol class="order-list"></ol>
+      <footer class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-action="cancel" data-i18n="pad.cancel">ביטול</button>
+        <button type="button" class="btn btn-primary" data-action="confirm" data-i18n="order.continue">המשך</button>
+      </footer>
+    </div>
+  </dialog>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 

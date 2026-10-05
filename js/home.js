@@ -68,6 +68,10 @@
       showUploadError(t('home.tooManyImages', { max: MAX_IMAGES }));
       return;
     }
+    if (images.length > 1) {
+      images = await chooseOrder(images);
+      if (!images) return;
+    }
     uploadBtn.classList.add('is-busy');
     uploadStatus.textContent = t('home.converting');
     let blob;
@@ -82,6 +86,80 @@
       uploadStatus.textContent = '';
     }
     await openDocument(`${(images[0].name || 'photos').replace(/\.(jpe?g|png)$/i, '')}.pdf`, blob);
+  }
+
+  /*
+   * Page order screen: thumbnails top to bottom, arrows move an image one place.
+   * Resolves with the images in the chosen order, or null when cancelled.
+   */
+  function chooseOrder(images) {
+    const dialog = document.getElementById('order-dialog');
+    const list = dialog.querySelector('.order-list');
+    const order = images.slice();
+    // Thumbnails: the browser shows JPGs upright by their EXIF tag, like the PDF pages
+    const urls = new Map(order.map((img) => [img, URL.createObjectURL(img.blob || img)]));
+    const arrow = (d) => `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="${d}"/></svg>`;
+    const UP = arrow('M12 5.5 5 12.5l1.4 1.4 4.6-4.6V19h2V9.3l4.6 4.6 1.4-1.4z');
+    const DOWN = arrow('M12 18.5 19 11.5l-1.4-1.4-4.6 4.6V5h-2v9.7l-4.6-4.6L5 11.5z');
+
+    function render(focus) {
+      list.replaceChildren(...order.map((img, i) => {
+        const li = document.createElement('li');
+        li.className = 'order-item';
+        const num = document.createElement('span');
+        num.className = 'order-num';
+        num.textContent = String(i + 1);
+        const thumb = document.createElement('img');
+        thumb.src = urls.get(img);
+        thumb.alt = t('order.image', { n: i + 1, name: img.name || '' });
+        thumb.decoding = 'async';
+        const name = document.createElement('span');
+        name.className = 'order-name';
+        name.textContent = img.name || '';
+        const moves = document.createElement('div');
+        moves.className = 'order-moves';
+        [['up', -1, UP], ['down', 1, DOWN]].forEach(([dir, step, icon]) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'icon-btn';
+          btn.dataset.move = dir;
+          btn.setAttribute('aria-label', t(`order.${dir}`, { n: i + 1 }));
+          btn.innerHTML = icon;   // fixed SVG markup, no user text
+          btn.disabled = (step < 0 && i === 0) || (step > 0 && i === order.length - 1);
+          btn.addEventListener('click', () => {
+            const j = i + step;
+            [order[i], order[j]] = [order[j], order[i]];
+            // Keep the focus on the moved image (the other arrow once it reaches an end)
+            render({ index: j, dir: (j === 0 || j === order.length - 1) ? (step < 0 ? 'down' : 'up') : dir });
+          });
+          moves.appendChild(btn);
+        });
+        li.append(num, thumb, name, moves);
+        return li;
+      }));
+      if (focus) list.children[focus.index].querySelector(`[data-move="${focus.dir}"]`).focus();
+    }
+
+    return new Promise((resolve) => {
+      const finish = (value) => {
+        dialog.close();
+        list.replaceChildren();
+        urls.forEach((u) => URL.revokeObjectURL(u));
+        dialog.removeEventListener('click', onClick);
+        dialog.removeEventListener('cancel', onCancel);
+        resolve(value);
+      };
+      const onClick = (e) => {
+        const action = e.target.closest('[data-action]');
+        if (action) finish(action.dataset.action === 'confirm' ? order : null);
+      };
+      const onCancel = (e) => { e.preventDefault(); finish(null); };
+      dialog.addEventListener('click', onClick);
+      dialog.addEventListener('cancel', onCancel);
+      render();
+      dialog.showModal();
+      dialog.querySelector('[data-action="confirm"]').focus();
+    });
   }
 
   async function openDocument(name, blob) {
