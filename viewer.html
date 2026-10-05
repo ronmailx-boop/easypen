@@ -41,9 +41,13 @@
   </div>
 
   <div id="sample-hint" class="mode-hint sample-hint" hidden>
-    <span data-i18n="sample.hint">הקישו על החתימה או על הצבע במסמך</span>
+    <span id="sample-swatch" class="sample-swatch" aria-hidden="true" hidden></span>
+    <span class="sample-text" data-i18n="sample.hint">גררו אצבע על הצבע הרצוי</span>
     <button type="button" id="sample-cancel" class="btn btn-ghost btn-sm" data-i18n="viewer.cancel">ביטול</button>
+    <button type="button" id="sample-confirm" class="btn btn-primary btn-sm" data-i18n="sample.confirm" disabled>בחירה</button>
   </div>
+
+  <div id="loupe" class="loupe" aria-hidden="true" hidden><canvas></canvas></div>
 
   <div id="item-toolbar" class="item-toolbar" hidden>
     <div class="text-tools" hidden>

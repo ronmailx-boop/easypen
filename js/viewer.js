@@ -60,6 +60,9 @@
     modeCancel: document.getElementById('mode-cancel'),
     sampleHint: document.getElementById('sample-hint'),
     sampleCancel: document.getElementById('sample-cancel'),
+    sampleConfirm: document.getElementById('sample-confirm'),
+    sampleSwatch: document.getElementById('sample-swatch'),
+    loupe: document.getElementById('loupe'),
     sigSizeTools: document.querySelector('#item-toolbar .sig-size'),
     sigSize: document.getElementById('sig-size'),
     toolbar: document.getElementById('item-toolbar'),
@@ -823,82 +826,147 @@
 
   /* ---------------- colour picking from the document --------------- */
 
-  const SAMPLE_RADIUS_PX = 10;       // area around the finger that is read, CSS pixels
-  const MIN_INK_CONTRAST = 40;       // RGB distance from the paper that counts as ink
+  const LOUPE_SIZE = 112;     // CSS pixels
+  const LOUPE_ZOOM = 4;       // how much the loupe enlarges the page
+  const LOUPE_LIFT = 72;      // the loupe sits above the finger, which hides the spot
 
-  /*
-   * The ink colour around (x, y) on the rendered page: the paper is the brightest
-   * quarter of the pixels, the ink the pixels farthest from it (the core of the line). Works on a thin line
-   * and on grey paper in photographed documents. null when there is only paper.
-   */
-  function sampleInk(page, x, y) {
+  // Colour of the rendered page at screen point (x, y): a 3x3 canvas-pixel average
+  function colorAt(page, x, y) {
     const c = page.canvas;
     const r = c.getBoundingClientRect();
     if (!page.rendered || !r.width || x < r.left || x > r.right || y < r.top || y > r.bottom) return null;
     const k = c.width / r.width;
-    const rad = Math.max(2, Math.round(SAMPLE_RADIUS_PX * k));
-    const cx = Math.round((x - r.left) * k);
-    const cy = Math.round((y - r.top) * k);
-    const x0 = clamp(cx - rad, 0, c.width - 1);
-    const y0 = clamp(cy - rad, 0, c.height - 1);
-    const w = Math.min(c.width - x0, rad * 2 + 1);
-    const h = Math.min(c.height - y0, rad * 2 + 1);
-    const data = c.getContext('2d').getImageData(x0, y0, w, h).data;
-    const px = [];
-    for (let i = 0; i < data.length; i += 4) {
-      if (data[i + 3] < 128) continue;
-      px.push([data[i], data[i + 1], data[i + 2], data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114]);
-    }
-    if (!px.length) return null;
-    const avg = (list) => [0, 1, 2].map((ch) => Math.round(list.reduce((sum, p) => sum + p[ch], 0) / list.length));
-    const paper = avg(px.slice().sort((a, b) => b[3] - a[3]).slice(0, Math.max(1, px.length >> 2)));
-    const dist = (p) => Math.hypot(p[0] - paper[0], p[1] - paper[1], p[2] - paper[2]);
-    const maxDist = Math.max(...px.map(dist));
-    let rgb;
-    if (maxDist >= MIN_INK_CONTRAST) {
-      // The core of the line: its soft (anti-aliased) edges are lighter
-      rgb = avg(px.filter((p) => dist(p) >= maxDist * 0.8));
-    } else {
-      // One colour all around: a filled area is a colour too, white paper is not
-      rgb = avg(px);
-      if (rgb[0] * 0.299 + rgb[1] * 0.587 + rgb[2] * 0.114 > 225) return null;
-    }
+    const cx = clamp(Math.round((x - r.left) * k) - 1, 0, c.width - 3);
+    const cy = clamp(Math.round((y - r.top) * k) - 1, 0, c.height - 3);
+    const d = c.getContext('2d').getImageData(cx, cy, 3, 3).data;
+    const rgb = [0, 1, 2].map((ch) => {
+      let sum = 0;
+      for (let i = ch; i < d.length; i += 4) sum += d[i];
+      return Math.round(sum / 9);
+    });
     return '#' + rgb.map((v) => v.toString(16).padStart(2, '0')).join('');
   }
 
-  // Lets the user tap a colour in the document; resolves with '#rrggbb', or null when cancelled
+  // Enlarged view of the page around (x, y), its rim in the colour under the centre ring
+  function showLoupe(page, x, y, color) {
+    const loupe = el.loupe;
+    const canvas = loupe.querySelector('canvas');
+    const dpr = window.devicePixelRatio || 1;
+    const size = Math.round(LOUPE_SIZE * dpr);
+    if (canvas.width !== size) { canvas.width = size; canvas.height = size; }
+    const src = page.canvas;
+    const r = src.getBoundingClientRect();
+    const k = src.width / r.width;
+    const span = (LOUPE_SIZE / LOUPE_ZOOM) * k;   // source canvas pixels shown across the loupe
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.fillStyle = '#e6e9f2';
+    ctx.fillRect(0, 0, size, size);
+    ctx.drawImage(src, (x - r.left) * k - span / 2, (y - r.top) * k - span / 2, span, span, 0, 0, size, size);
+    loupe.style.setProperty('--c', color);
+    const vw = document.documentElement.clientWidth;
+    const left = clamp(x - LOUPE_SIZE / 2, 4, vw - LOUPE_SIZE - 4);
+    const top = y - LOUPE_LIFT - LOUPE_SIZE < 4 ? y + LOUPE_LIFT : y - LOUPE_LIFT - LOUPE_SIZE;
+    loupe.style.transform = `translate(${left}px, ${top}px)`;
+    loupe.hidden = false;
+  }
+
+  /*
+   * Lets the user pick a colour in the document: one finger is pressed and dragged over
+   * the page with a loupe showing the exact spot; lifting it leaves a marker and shows the
+   * colour in the bar, "בחירה" confirms. Two fingers zoom and scroll.
+   * Resolves with '#rrggbb', or null when cancelled.
+   */
   function pickColorFromDocument() {
     setTextMode(false);
     select(null);
     return new Promise((resolve) => {
+      let picked = null;
+      let pointerId = null;
+      let marker = null;
+
+      const setPicked = (page, x, y, color) => {
+        picked = color;
+        el.sampleSwatch.style.setProperty('--c', color);
+        el.sampleSwatch.hidden = false;
+        el.sampleConfirm.disabled = false;
+        // A marker on the page itself, so it stays on the spot when scrolling
+        const r = page.el.getBoundingClientRect();
+        if (!marker) {
+          marker = document.createElement('span');
+          marker.className = 'sample-marker';
+          marker.setAttribute('aria-hidden', 'true');
+        }
+        marker.style.left = `${((x - r.left) / r.width) * 100}%`;
+        marker.style.top = `${((y - r.top) / r.height) * 100}%`;
+        marker.style.setProperty('--c', color);
+        page.el.appendChild(marker);
+      };
+
+      const track = (e) => {
+        const pageEl = e.target.closest && e.target.closest('.page');
+        const page = pageEl ? pageFromEl(pageEl) : pageAtY(e.clientY);
+        const color = page && colorAt(page, e.clientX, e.clientY);
+        if (!color) return;
+        showLoupe(page, e.clientX, e.clientY, color);
+        setPicked(page, e.clientX, e.clientY, color);
+      };
+
+      const onDown = (e) => {
+        if (pointerId !== null) {
+          // A second finger: zoom / scroll instead (pinch zoom below)
+          pointerId = null;
+          el.loupe.hidden = true;
+          return;
+        }
+        if (e.button > 0 || !e.target.closest('.page')) return;
+        e.preventDefault();
+        pointerId = e.pointerId;
+        el.pages.setPointerCapture(e.pointerId);
+        track(e);
+      };
+      const onMove = (e) => {
+        if (e.pointerId === pointerId) track(e);
+      };
+      const onUp = (e) => {
+        if (e.pointerId !== pointerId) return;
+        pointerId = null;
+        el.loupe.hidden = true;
+      };
+
       const finish = (color) => {
         el.sampleHint.hidden = true;
+        el.loupe.hidden = true;
+        el.sampleSwatch.hidden = true;
+        if (marker) marker.remove();
         document.body.classList.remove('sample-mode');
-        el.pages.removeEventListener('click', onTap, true);
+        el.pages.removeEventListener('pointerdown', onDown);
+        el.pages.removeEventListener('pointermove', onMove);
+        el.pages.removeEventListener('pointerup', onUp);
+        el.pages.removeEventListener('pointercancel', onUp);
         el.sampleCancel.removeEventListener('click', onCancel);
+        el.sampleConfirm.removeEventListener('click', onConfirm);
         document.removeEventListener('keydown', onKey, true);
         resolve(color);
       };
-      // A click (not pointerdown), so scrolling to the colour doesn't pick on the way
-      const onTap = (e) => {
-        const pageEl = e.target.closest('.page');
-        if (!pageEl) return;
-        e.preventDefault();
-        e.stopPropagation();
-        const color = sampleInk(pageFromEl(pageEl), e.clientX, e.clientY);
-        if (color) finish(color);
-        else toast(t('sample.none'), 'info');
-      };
       const onCancel = () => finish(null);
+      const onConfirm = () => { if (picked) finish(picked); };
       const onKey = (e) => {
         if (e.key !== 'Escape') return;
         e.stopPropagation();
         finish(null);
       };
+
+      el.sampleSwatch.hidden = true;
+      el.sampleConfirm.disabled = true;
       el.sampleHint.hidden = false;
       document.body.classList.add('sample-mode');
-      el.pages.addEventListener('click', onTap, true);
+      el.pages.addEventListener('pointerdown', onDown);
+      el.pages.addEventListener('pointermove', onMove);
+      el.pages.addEventListener('pointerup', onUp);
+      el.pages.addEventListener('pointercancel', onUp);
       el.sampleCancel.addEventListener('click', onCancel);
+      el.sampleConfirm.addEventListener('click', onConfirm);
       document.addEventListener('keydown', onKey, true);
     });
   }
