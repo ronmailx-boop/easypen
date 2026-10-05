@@ -70,6 +70,7 @@
   const state = {
     doc: null,            // PdfDocument
     fileName: 'document.pdf',
+    fromImages: false,     // made of images: pages can be reordered
     pages: [],            // { num, el, canvas, layer, widthPt, heightPt, rendered, renderedWidth, rendering }
     items: [],            // overlay items
     selected: null,
@@ -108,6 +109,7 @@
     }
 
     state.fileName = record.name || 'document.pdf';
+    state.fromImages = !!record.fromImages;
     el.docName.textContent = state.fileName;
 
     try {
@@ -157,6 +159,7 @@
       const layer = document.createElement('div');
       layer.className = 'overlay-layer';
       pageEl.append(canvas, ink, layer);
+      if (state.fromImages && state.doc.numPages > 1) pageEl.appendChild(buildPageMoves(pageEl));
       frag.appendChild(pageEl);
       const page = {
         num: n, el: pageEl, canvas, ink, layer,
@@ -168,6 +171,7 @@
       wireInk(page);
     }
     el.pages.appendChild(frag);
+    updatePageMoves();
 
     io = new IntersectionObserver((entries) => {
       for (const entry of entries) {
@@ -190,6 +194,72 @@
     });
 
     state.pages.forEach((p) => { io.observe(p.el); ro.observe(p.el); });
+  }
+
+  /* ---------------- page order (documents made of images) ---------- */
+
+  const MOVE_ICONS = {
+    up: 'M12 5.5 5 12.5l1.4 1.4 4.6-4.6V19h2V9.3l4.6 4.6 1.4-1.4z',
+    down: 'M12 18.5 19 11.5l-1.4-1.4-4.6 4.6V5h-2v9.7l-4.6-4.6L5 11.5z'
+  };
+
+  // Arrows on the page itself, so the image is seen at full size while ordering
+  function buildPageMoves(pageEl) {
+    const box = document.createElement('div');
+    box.className = 'page-moves';
+    const num = document.createElement('span');
+    num.className = 'page-num';
+    num.setAttribute('aria-hidden', 'true');
+    box.appendChild(num);
+    ['up', 'down'].forEach((dir) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'page-move';
+      btn.dataset.move = dir;
+      btn.innerHTML = `<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="${MOVE_ICONS[dir]}"/></svg>`;
+      btn.addEventListener('click', () => movePage(pageFromEl(pageEl), dir));
+      box.appendChild(btn);
+    });
+    // Taps on the arrows are not a place for text or a reason to deselect
+    box.addEventListener('pointerdown', (e) => e.stopPropagation());
+    return box;
+  }
+
+  // Pages in the order they are shown (and exported)
+  function pagesInOrder() {
+    return Array.from(el.pages.querySelectorAll('.page'), pageFromEl);
+  }
+
+  // Numbers, labels and the arrows at the ends follow the shown order
+  function updatePageMoves() {
+    const order = pagesInOrder();
+    order.forEach((page, i) => {
+      const n = i + 1;
+      page.el.setAttribute('aria-label', t('viewer.page', { n }));
+      const box = page.el.querySelector('.page-moves');
+      if (!box) return;
+      box.querySelector('.page-num').textContent = `${n}/${order.length}`;
+      const up = box.querySelector('[data-move="up"]');
+      const down = box.querySelector('[data-move="down"]');
+      up.setAttribute('aria-label', t('order.up', { n }));
+      down.setAttribute('aria-label', t('order.down', { n }));
+      up.disabled = i === 0;
+      down.disabled = i === order.length - 1;
+    });
+  }
+
+  function movePage(page, dir) {
+    const order = pagesInOrder();
+    const i = order.indexOf(page);
+    const j = dir === 'up' ? i - 1 : i + 1;
+    if (j < 0 || j >= order.length) return;
+    el.pages.insertBefore(page.el, dir === 'up' ? order[j].el : order[j].el.nextSibling);
+    updatePageMoves();
+    markDirty();
+    // Follow the page to its new place; keep the focus on it (the other arrow at an end)
+    page.el.scrollIntoView({ block: 'center' });
+    const btn = page.el.querySelector(`[data-move="${dir}"]`);
+    (btn.disabled ? page.el.querySelector(`[data-move="${dir === 'up' ? 'down' : 'up'}"]`) : btn).focus({ preventScroll: true });
   }
 
   function pageFromEl(node) {
@@ -1184,7 +1254,9 @@
     setTextMode(false);
     select(null);
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-    if (!state.items.length && !state.strokes.length) {
+    const order = pagesInOrder().map((p) => p.num);
+    const reordered = order.some((num, i) => num !== i + 1);
+    if (!state.items.length && !state.strokes.length && !reordered) {
       toast(t('viewer.nothingAdded'), 'info');
       return;
     }
@@ -1194,7 +1266,7 @@
       // Let the busy indicator paint before the heavy work
       await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
       const overlays = await collectOverlays();
-      const bytes = await window.PdfHandler.exportPdf(state.doc, overlays);
+      const bytes = await window.PdfHandler.exportPdf(state.doc, overlays, order);
       lastFile = new File([bytes], signedFileName(), { type: 'application/pdf' });
     } catch (err) {
       console.error(err);

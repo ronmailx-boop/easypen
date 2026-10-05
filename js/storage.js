@@ -94,9 +94,10 @@
     },
 
     // The single, local, one-off document session.
-    async setCurrentDocument(name, blob) {
+    // options.fromImages: made of images on the home screen (its pages can be reordered)
+    async setCurrentDocument(name, blob, options = {}) {
       return withStore('session', 'readwrite', (s) =>
-        s.put({ name, blob, createdAt: Date.now() }, 'current'));
+        s.put({ name, blob, fromImages: !!options.fromImages, createdAt: Date.now() }, 'current'));
     },
 
     async getCurrentDocument() {
