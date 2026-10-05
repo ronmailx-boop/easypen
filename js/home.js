@@ -15,6 +15,9 @@
   const sigCount = document.getElementById('sig-count');
   const addSigBtn = document.getElementById('add-sig-btn');
   const installBtn = document.getElementById('install-btn');
+  const uploadBtn = document.querySelector('.upload-btn');
+  const uploadStatus = document.getElementById('upload-status');
+  const Images = window.EasyPenImages;
 
   const MSG_PDF_ONLY = t('home.pdfOnly');
 
@@ -29,7 +32,7 @@
   function handleQueryErrors() {
     const params = new URLSearchParams(location.search);
     const error = params.get('error');
-    if (error === 'type') showUploadError(MSG_PDF_ONLY);
+    if (error === 'type') showUploadError(t('home.sharePdfOnly'));
     else if (error === 'share') showUploadError(t('home.shareError'));
     if (error) history.replaceState(null, '', location.pathname);
   }
@@ -38,17 +41,44 @@
     return file.type === 'application/pdf' || /\.pdf$/i.test(file.name || '');
   }
 
+  // One PDF, or up to MAX_IMAGES JPG photos that become one PDF (a page per photo)
   async function onFileSelected() {
-    const file = fileInput.files && fileInput.files[0];
+    const files = Array.from(fileInput.files || []);
     fileInput.value = '';
     showUploadError('');
-    if (!file) return;
-    if (!looksLikePdf(file)) {
-      showUploadError(MSG_PDF_ONLY);
+    if (!files.length) return;
+    const { isJpeg, MAX_IMAGES } = Images;
+    const photos = files.every(isJpeg);
+    if (!photos && !(files.length === 1 && looksLikePdf(files[0]))) {
+      showUploadError(files.some(looksLikePdf) || files.every((f) => looksLikePdf(f) || isJpeg(f))
+        ? t('home.oneDocument', { max: MAX_IMAGES })
+        : MSG_PDF_ONLY);
       return;
     }
+    if (photos && files.length > MAX_IMAGES) {
+      showUploadError(t('home.tooManyImages', { max: MAX_IMAGES }));
+      return;
+    }
+
+    let name = files[0].name || 'document.pdf';
+    let blob = files[0];
+    if (photos) {
+      uploadBtn.classList.add('is-busy');
+      uploadStatus.textContent = t('home.converting');
+      try {
+        blob = new Blob([await Images.imagesToPdf(files)], { type: 'application/pdf' });
+        name = `${(files[0].name || 'photos').replace(/\.jpe?g$/i, '')}.pdf`;
+      } catch (err) {
+        console.error(err);
+        showUploadError(err.code === 'NOT_JPEG' ? t('home.imageError', { name: err.fileName }) : t('home.openError'));
+        return;
+      } finally {
+        uploadBtn.classList.remove('is-busy');
+        uploadStatus.textContent = '';
+      }
+    }
     try {
-      await Storage.setCurrentDocument(file.name || 'document.pdf', file);
+      await Storage.setCurrentDocument(name, blob);
       location.href = 'viewer.html';
     } catch (err) {
       console.error(err);
