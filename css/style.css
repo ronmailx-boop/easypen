@@ -362,10 +362,14 @@ img { max-width: 100%; }
 
 .sig-tools {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
+  gap: .25rem .5rem;
   margin-top: .5rem;
 }
+
+.sample-btn { display: inline-flex; align-items: center; gap: .3rem; }
 
 .ink-colors { display: flex; gap: .75rem; }
 
@@ -389,6 +393,7 @@ img { max-width: 100%; }
 
 .ink-black { background: #111827; }
 .ink-blue { background: #1e3a8a; }
+.ink-sampled .ink-dot { background: var(--c, #000); }
 .ink input:checked + .ink-dot { border-color: #fff; box-shadow: 0 0 0 2px var(--primary); }
 .ink input:focus-visible + .ink-dot { outline: 3px solid var(--secondary); outline-offset: 2px; }
 
@@ -674,6 +679,17 @@ html:has(> body.viewer),
 }
 
 .font-size { min-width: 3.2em; text-align: center; font-weight: 700; }
+
+/* Signature size slider (like the drawing width) */
+.item-toolbar .sig-size { flex: 1; min-width: 0; gap: 8px; }
+
+/* Picking a colour from the document: tap on the page, nothing else reacts */
+.sample-mode .pages { cursor: crosshair; }
+.sample-mode .overlay-layer,
+.sample-mode .overlay-layer *,
+.sample-mode .page-moves { pointer-events: none; }
+.sample-mode .bottom-bar { display: none; }
+.sample-hint { bottom: calc(.5rem + var(--safe-bottom)); }
 
 /* Sticky bottom action bar */
 .bottom-bar {

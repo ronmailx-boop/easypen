@@ -52,6 +52,13 @@
       this._changed();
     }
 
+    // New ink colour for the whole signature, including what was already drawn
+    setColor(color) {
+      this.color = color;
+      this.strokes.forEach((s) => { s.color = color; });
+      this.redraw();
+    }
+
     clear() {
       this.strokes = [];
       this.baseImage = null;
@@ -196,6 +203,8 @@
    *   initialBlob  - existing signature to edit
    *   showSaveOption / saveChecked - show the "שמור לשימוש חוזר" checkbox (placing flow)
    *   confirmLabel - main button text
+   *   pickColor    - optional async () => '#rrggbb' | null: picks the ink colour elsewhere
+   *                  (the document); the dialog steps aside meanwhile
    * Resolves with { blob, save } or null when cancelled.
    */
   function openSignatureDialog(options = {}) {
@@ -204,7 +213,8 @@
       initialBlob = null,
       showSaveOption = false,
       saveChecked = true,
-      confirmLabel = t('pad.save')
+      confirmLabel = t('pad.save'),
+      pickColor = null
     } = options;
 
     return new Promise((resolve) => {
@@ -226,7 +236,12 @@
             <div class="ink-colors" role="radiogroup" aria-label="צבע דיו" data-i18n-aria="pad.inkColor">
               <label class="ink"><input type="radio" name="ink" value="black" checked><span class="ink-dot ink-black"></span><span data-i18n="pad.black">שחור</span></label>
               <label class="ink"><input type="radio" name="ink" value="blue"><span class="ink-dot ink-blue"></span><span data-i18n="pad.blue">כחול</span></label>
+              <label class="ink ink-sampled" hidden><input type="radio" name="ink" value="sampled"><span class="ink-dot"></span><span data-i18n="pad.sampled">מהמסמך</span></label>
             </div>
+            <button type="button" class="btn btn-ghost btn-sm sample-btn" data-action="sample" aria-label="דגימת צבע מהמסמך" data-i18n-aria="pad.sampleLabel" hidden>
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="m20.7 5.6-2.3-2.3a1 1 0 0 0-1.4 0l-3.1 3.1-1.9-1.9-1.4 1.4 1.4 1.4L3 16.3V21h4.7l9-9 1.4 1.4 1.4-1.4-1.9-1.9 3.1-3.1a1 1 0 0 0 0-1.4zM6.9 19H5v-1.9l8.1-8.1 1.9 1.9L6.9 19z"/></svg>
+              <span data-i18n="pad.sample">דגימה</span>
+            </button>
             <button type="button" class="btn btn-ghost" data-action="clear" data-i18n="pad.clear">נקה</button>
           </div>
           <label class="check save-option" hidden>
@@ -270,8 +285,29 @@
         resolve(value);
       };
 
+      // A signature is one colour: changing it recolours what was drawn so far
+      let sampled = null;
       dialog.querySelectorAll('input[name="ink"]').forEach((r) => {
-        r.addEventListener('change', () => { pad.color = INK_COLORS[r.value]; });
+        r.addEventListener('change', () => pad.setColor(r.value === 'sampled' ? sampled : INK_COLORS[r.value]));
+      });
+      const sampleBtn = dialog.querySelector('[data-action="sample"]');
+      sampleBtn.hidden = !pickColor;
+      sampleBtn.addEventListener('click', async () => {
+        dialog.close();
+        let color = null;
+        try {
+          color = await pickColor();
+        } catch (err) {
+          console.error(err);
+        }
+        dialog.showModal();
+        if (!color) return;
+        sampled = color;
+        const option = dialog.querySelector('.ink-sampled');
+        option.hidden = false;
+        option.style.setProperty('--c', color);
+        option.querySelector('input').checked = true;
+        pad.setColor(color);
       });
       dialog.querySelector('[data-action="clear"]').addEventListener('click', () => pad.clear());
       dialog.querySelectorAll('[data-action="cancel"]').forEach((b) =>
