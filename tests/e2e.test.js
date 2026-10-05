@@ -4,6 +4,7 @@
  */
 const { test, before, after, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
+const path = require('path');
 const { chromium } = require('playwright');
 const { start } = require('./helpers/server');
 const { createTestPdf } = require('./helpers/fixtures');
@@ -191,7 +192,86 @@ test('home screen: rejects non-PDF files', async () => {
   await page.goto(server.baseUrl);
   assert.equal(await page.title(), 'EasyPen - חתימה דיגיטלית');
   await page.setInputFiles('#file-input', { name: 'contract.docx', mimeType: 'application/msword', buffer: Buffer.from('x') });
-  assert.equal(await page.textContent('#upload-error'), 'כרגע נתמכים קבצי PDF בלבד');
+  assert.equal(await page.textContent('#upload-error'), 'כרגע נתמכים קבצי PDF ותמונות JPG בלבד');
+});
+
+// JPG photo made by the browser; `exif6` adds an EXIF "rotate 90°" tag like a sideways phone photo
+async function makeJpeg(width, height, color, { exif6 = false } = {}) {
+  const base64 = await page.evaluate(async ({ width, height, color }) => {
+    const c = document.createElement('canvas');
+    c.width = width;
+    c.height = height;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(width * 0.1, height * 0.1, width * 0.3, height * 0.2);   // marks the top-left corner
+    const blob = await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.9));
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    let bin = '';
+    bytes.forEach((b) => { bin += String.fromCharCode(b); });
+    return btoa(bin);
+  }, { width, height, color });
+  let jpeg = Buffer.from(base64, 'base64');
+  if (exif6) {
+    const tiff = Buffer.from('4d4d002a00000008000101120003000000010006000000000000', 'hex');
+    const app1 = Buffer.concat([Buffer.from([0xFF, 0xE1, 0, 2 + 6 + tiff.length]), Buffer.from('Exif\0\0', 'latin1'), tiff]);
+    const afterApp0 = 4 + jpeg.readUInt16BE(4);
+    jpeg = Buffer.concat([jpeg.subarray(0, afterApp0), app1, jpeg.subarray(afterApp0)]);
+  }
+  return jpeg;
+}
+
+// The compressed picture itself: from the start-of-scan marker to the end
+const scanData = (jpeg) => jpeg.subarray(jpeg.indexOf(Buffer.from([0xFF, 0xDA])));
+
+test('photos: 4 JPGs become a 4-page PDF, signed and exported with the original image data', async () => {
+  await page.goto(server.baseUrl);
+  const photos = [
+    await makeJpeg(600, 800, '#c0392b'),
+    await makeJpeg(800, 600, '#2980b9'),
+    await makeJpeg(600, 800, '#27ae60', { exif6: true }),
+    await makeJpeg(400, 400, '#8e44ad')
+  ];
+  await page.setInputFiles('#file-input', photos.map((buffer, i) => ({ name: `photo${i + 1}.jpg`, mimeType: 'image/jpeg', buffer })));
+  await page.waitForURL(/viewer\.html/);
+  await page.waitForSelector('.page.is-rendered');
+  assert.equal(await page.textContent('#doc-name'), 'photo1.pdf');
+  assert.equal(await page.textContent('#doc-pages'), '4 עמודים');
+  // Page shapes follow the photos; the EXIF-rotated one shows upright (landscape)
+  const ratios = await page.$$eval('.page', (els) => els.map((e) => {
+    const r = e.getBoundingClientRect();
+    return Math.round((r.width / r.height) * 100) / 100;
+  }));
+  assert.deepEqual(ratios, [0.75, 1.33, 1.33, 1]);
+
+  await drawNewSignatureAndPlace();
+  const { name, bytes } = await exportViaDownload();
+  assert.equal(name, 'photo1-חתום.pdf');
+
+  // Every photo is in the signed PDF byte for byte: no re-compression, no quality loss
+  photos.forEach((jpeg, i) => assert.ok(bytes.indexOf(scanData(jpeg)) >= 0, `photo ${i + 1} image data unchanged`));
+  const { PDFDocument } = require(path.resolve(__dirname, '../vendor/pdf-lib/pdf-lib.min.js'));
+  const doc = await PDFDocument.load(bytes);
+  assert.equal(doc.getPageCount(), 4);
+  assert.deepEqual(doc.getPages().map((p) => p.getRotation().angle), [0, 0, 90, 0]);
+});
+
+test('photos: mixed, too many or broken files are refused with a message', async () => {
+  await page.goto(server.baseUrl);
+  const jpeg = await makeJpeg(100, 100, '#000');
+  await page.setInputFiles('#file-input', [pdfFile(), { name: 'a.jpg', mimeType: 'image/jpeg', buffer: jpeg }]);
+  assert.equal(await page.textContent('#upload-error'), 'אפשר לבחור קובץ PDF אחד, או תמונות JPG (עד 20)');
+  await page.setInputFiles('#file-input', Array.from({ length: 21 }, (_, i) => ({ name: `p${i}.jpg`, mimeType: 'image/jpeg', buffer: jpeg })));
+  assert.equal(await page.textContent('#upload-error'), 'אפשר לבחור עד 20 תמונות בפעם אחת');
+  await page.setInputFiles('#file-input', [
+    { name: 'good.jpg', mimeType: 'image/jpeg', buffer: jpeg },
+    { name: 'broken.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('not a photo') }
+  ]);
+  await page.waitForFunction(() => document.getElementById('upload-error').textContent);
+  assert.equal(await page.textContent('#upload-error'), 'לא ניתן לקרוא את התמונה broken.jpg. ייתכן שהיא פגומה.');
+  assert.match(page.url(), /index\.html|\/$/, 'stays on the home screen');
+  pageErrors.length = 0;   // the failed conversion is logged on purpose
 });
 
 test('editor: file with .pdf name but non-PDF content shows an error', async () => {
@@ -199,7 +279,7 @@ test('editor: file with .pdf name but non-PDF content shows an error', async () 
   await page.setInputFiles('#file-input', { name: 'fake.pdf', mimeType: 'application/pdf', buffer: Buffer.from('not a pdf') });
   await page.waitForURL(/viewer\.html/);
   await page.waitForSelector('.status-screen.is-error');
-  assert.equal(await page.textContent('#status-text'), 'כרגע נתמכים קבצי PDF בלבד');
+  assert.equal(await page.textContent('#status-text'), 'כרגע נתמכים קבצי PDF ותמונות JPG בלבד');
   pageErrors.length = 0;   // the app logs the load failure on purpose
 });
 
@@ -555,7 +635,7 @@ test('english: an English device gets the home screen in English, left to right'
     await p.click('dialog.sig-dialog [data-action="cancel"] >> nth=-1');
 
     await p.goto(server.baseUrl + '?error=type');
-    assert.equal(await p.textContent('#upload-error'), 'Only PDF files are supported for now');
+    assert.equal(await p.textContent('#upload-error'), 'Sharing to the app supports only PDF files for now. JPG photos can be added with "Upload document".');
 
     await p.goto(server.baseUrl + 'share-target/');
     assert.equal(await p.evaluate(() => document.documentElement.dir), 'ltr');
@@ -788,7 +868,7 @@ test('service worker: share target opens shared PDFs, rejects other types, works
   await page.goto(server.baseUrl);
   await share('doc.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', Buffer.from('x').toString('base64'));
   await page.waitForURL(/index\.html/);
-  assert.equal(await page.textContent('#upload-error'), 'כרגע נתמכים קבצי PDF בלבד');
+  assert.equal(await page.textContent('#upload-error'), 'בשיתוף לאפליקציה נתמכים כרגע קבצי PDF בלבד. תמונות JPG אפשר להעלות בכפתור "העלה מסמך".');
 
   await context.setOffline(true);
   await page.goto(server.baseUrl);

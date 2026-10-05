@@ -24,6 +24,7 @@ const SHELL = [
   'js/ui.js',
   'js/home.js',
   'js/signature-pad.js',
+  'js/images-to-pdf.js',
   'js/pdf-handler.js',
   'js/share.js',
   'js/viewer.js',

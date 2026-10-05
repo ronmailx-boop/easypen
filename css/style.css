@@ -185,6 +185,9 @@ img { max-width: 100%; }
   margin-bottom: .5rem;
 }
 
+.upload-btn.is-busy { opacity: .6; pointer-events: none; }
+.upload-status:empty { display: none; }
+
 .upload-btn:focus-within {
   outline: 3px solid var(--secondary);
   outline-offset: 3px;
