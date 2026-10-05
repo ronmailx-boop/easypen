@@ -32,7 +32,7 @@
   function handleQueryErrors() {
     const params = new URLSearchParams(location.search);
     const error = params.get('error');
-    if (error === 'type') showUploadError(t('home.sharePdfOnly'));
+    if (error === 'type') showUploadError(MSG_PDF_ONLY);
     else if (error === 'share') showUploadError(t('home.shareError'));
     if (error) history.replaceState(null, '', location.pathname);
   }
@@ -41,42 +41,50 @@
     return file.type === 'application/pdf' || /\.pdf$/i.test(file.name || '');
   }
 
-  // One PDF, or up to MAX_IMAGES JPG photos that become one PDF (a page per photo)
+  // One PDF, or up to MAX_IMAGES JPG / PNG images that become one PDF (a page per image)
   async function onFileSelected() {
     const files = Array.from(fileInput.files || []);
     fileInput.value = '';
     showUploadError('');
     if (!files.length) return;
-    const { isJpeg, MAX_IMAGES } = Images;
-    const photos = files.every(isJpeg);
-    if (!photos && !(files.length === 1 && looksLikePdf(files[0]))) {
-      showUploadError(files.some(looksLikePdf) || files.every((f) => looksLikePdf(f) || isJpeg(f))
-        ? t('home.oneDocument', { max: MAX_IMAGES })
-        : MSG_PDF_ONLY);
+    const { isImage, MAX_IMAGES } = Images;
+    if (files.every(isImage)) {
+      await openImages(files);
       return;
     }
-    if (photos && files.length > MAX_IMAGES) {
+    if (files.length === 1 && looksLikePdf(files[0])) {
+      await openDocument(files[0].name || 'document.pdf', files[0]);
+      return;
+    }
+    showUploadError(files.every((f) => looksLikePdf(f) || isImage(f))
+      ? t('home.oneDocument', { max: MAX_IMAGES })
+      : MSG_PDF_ONLY);
+  }
+
+  // images: File objects or { name, blob } (shared to the app, see sw.js)
+  async function openImages(images) {
+    const { MAX_IMAGES } = Images;
+    if (images.length > MAX_IMAGES) {
       showUploadError(t('home.tooManyImages', { max: MAX_IMAGES }));
       return;
     }
-
-    let name = files[0].name || 'document.pdf';
-    let blob = files[0];
-    if (photos) {
-      uploadBtn.classList.add('is-busy');
-      uploadStatus.textContent = t('home.converting');
-      try {
-        blob = new Blob([await Images.imagesToPdf(files)], { type: 'application/pdf' });
-        name = `${(files[0].name || 'photos').replace(/\.jpe?g$/i, '')}.pdf`;
-      } catch (err) {
-        console.error(err);
-        showUploadError(err.code === 'NOT_JPEG' ? t('home.imageError', { name: err.fileName }) : t('home.openError'));
-        return;
-      } finally {
-        uploadBtn.classList.remove('is-busy');
-        uploadStatus.textContent = '';
-      }
+    uploadBtn.classList.add('is-busy');
+    uploadStatus.textContent = t('home.converting');
+    let blob;
+    try {
+      blob = new Blob([await Images.imagesToPdf(images)], { type: 'application/pdf' });
+    } catch (err) {
+      console.error(err);
+      showUploadError(err.code === 'NOT_IMAGE' ? t('home.imageError', { name: err.fileName }) : t('home.openError'));
+      return;
+    } finally {
+      uploadBtn.classList.remove('is-busy');
+      uploadStatus.textContent = '';
     }
+    await openDocument(`${(images[0].name || 'photos').replace(/\.(jpe?g|png)$/i, '')}.pdf`, blob);
+  }
+
+  async function openDocument(name, blob) {
     try {
       await Storage.setCurrentDocument(name, blob);
       location.href = 'viewer.html';
@@ -84,6 +92,24 @@
       console.error(err);
       showUploadError(t('home.openError'));
     }
+  }
+
+  // Images shared to the app wait in storage until this screen turns them into a PDF
+  async function openSharedImages() {
+    if (new URLSearchParams(location.search).get('source') !== 'share-images') return false;
+    history.replaceState(null, '', location.pathname);
+    let images = null;
+    try {
+      images = await Storage.takeSharedImages();
+    } catch (err) {
+      console.error(err);
+    }
+    if (!images || !images.length) {
+      showUploadError(t('home.shareError'));
+      return true;
+    }
+    await openImages(images);
+    return true;
   }
 
   async function renderSignatures() {
@@ -189,5 +215,6 @@
   handleQueryErrors();
   renderSignatures();
   // Each document is a one-off local session: leaving the editor discards it
-  Storage.clearCurrentDocument().catch(() => {});
+  // (cleared first, so it can't remove a document made from shared images)
+  Storage.clearCurrentDocument().catch(() => {}).then(openSharedImages);
 })();

@@ -103,7 +103,16 @@ async function handleShareTarget(request) {
     const files = form.getAll('file').filter((f) => f && typeof f !== 'string');
     if (!files.length) return Response.redirect(scopeUrl('index.html?error=share'), 303);
     const file = files.find((f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name || ''));
-    if (!file) return Response.redirect(scopeUrl('index.html?error=type'), 303);
+    if (!file) {
+      // JPG / PNG images: the home screen turns them into one PDF (pdf-lib isn't loaded here)
+      const images = files.filter((f) => /^image\/(jpeg|png)$/.test(f.type) || /\.(jpe?g|png)$/i.test(f.name || ''));
+      if (!images.length) return Response.redirect(scopeUrl('index.html?error=type'), 303);
+      await self.EasyPenStorage.setSharedImages(await Promise.all(images.map(async (f) => ({
+        name: f.name || 'photo.jpg',
+        blob: new Blob([await f.arrayBuffer()], { type: f.type || 'image/jpeg' })
+      }))));
+      return Response.redirect(scopeUrl('index.html?source=share-images'), 303);
+    }
     const blob = new Blob([await file.arrayBuffer()], { type: 'application/pdf' });
     await self.EasyPenStorage.setCurrentDocument(file.name || 'document.pdf', blob);
     return Response.redirect(scopeUrl('viewer.html?source=share'), 303);

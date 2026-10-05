@@ -10,10 +10,10 @@ Using the App means you accept these Terms and the [Privacy Policy](privacy-poli
 
 ## 2. The Service
 
-The App lets you open PDF files or JPG photos (combined into one PDF file, a page per photo), add a handwritten signature, text and drawings to them, and share or download the resulting file.
+The App lets you open PDF files or JPG and PNG images (combined into one PDF file, a page per image), add a handwritten signature, text and drawings to them, and share or download the resulting file.
 
 - Processing happens on your device only. Files are not sent to the Operator.
-- At this stage, only PDF files and JPG photos are supported.
+- At this stage, only PDF files and JPG and PNG images are supported.
 - At this stage, the Service is provided free of charge.
 
 ## 3. Capacity

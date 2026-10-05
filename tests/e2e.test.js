@@ -192,12 +192,12 @@ test('home screen: rejects non-PDF files', async () => {
   await page.goto(server.baseUrl);
   assert.equal(await page.title(), 'EasyPen - חתימה דיגיטלית');
   await page.setInputFiles('#file-input', { name: 'contract.docx', mimeType: 'application/msword', buffer: Buffer.from('x') });
-  assert.equal(await page.textContent('#upload-error'), 'כרגע נתמכים קבצי PDF ותמונות JPG בלבד');
+  assert.equal(await page.textContent('#upload-error'), 'כרגע נתמכים קבצי PDF ותמונות JPG או PNG בלבד');
 });
 
 // JPG photo made by the browser; `exif6` adds an EXIF "rotate 90°" tag like a sideways phone photo
-async function makeJpeg(width, height, color, { exif6 = false } = {}) {
-  const base64 = await page.evaluate(async ({ width, height, color }) => {
+async function makeJpeg(width, height, color, { exif6 = false, type = 'image/jpeg' } = {}) {
+  const base64 = await page.evaluate(async ({ width, height, color, type }) => {
     const c = document.createElement('canvas');
     c.width = width;
     c.height = height;
@@ -206,12 +206,12 @@ async function makeJpeg(width, height, color, { exif6 = false } = {}) {
     ctx.fillRect(0, 0, width, height);
     ctx.fillStyle = '#fff';
     ctx.fillRect(width * 0.1, height * 0.1, width * 0.3, height * 0.2);   // marks the top-left corner
-    const blob = await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.9));
+    const blob = await new Promise((r) => c.toBlob(r, type, 0.9));
     const bytes = new Uint8Array(await blob.arrayBuffer());
     let bin = '';
     bytes.forEach((b) => { bin += String.fromCharCode(b); });
     return btoa(bin);
-  }, { width, height, color });
+  }, { width, height, color, type });
   let jpeg = Buffer.from(base64, 'base64');
   if (exif6) {
     const tiff = Buffer.from('4d4d002a00000008000101120003000000010006000000000000', 'hex');
@@ -257,11 +257,44 @@ test('photos: 4 JPGs become a 4-page PDF, signed and exported with the original 
   assert.deepEqual(doc.getPages().map((p) => p.getRotation().angle), [0, 0, 90, 0]);
 });
 
+test('photos: PNG images keep their full size and transparency', async () => {
+  await page.goto(server.baseUrl);
+  const png = await makeJpeg(1500, 1000, 'rgba(0, 128, 0, 0.5)', { type: 'image/png' });
+  const jpg = await makeJpeg(600, 800, '#c0392b');
+  await page.setInputFiles('#file-input', [
+    { name: 'Screenshot.png', mimeType: 'image/png', buffer: png },
+    { name: 'photo.jpg', mimeType: 'image/jpeg', buffer: jpg }
+  ]);
+  await page.waitForURL(/viewer\.html/);
+  await page.waitForSelector('.page.is-rendered');
+  assert.equal(await page.textContent('#doc-pages'), '2 עמודים');
+  await drawNewSignatureAndPlace();
+  const { name, bytes } = await exportViaDownload();
+  assert.equal(name, 'Screenshot-חתום.pdf');
+  assert.ok(bytes.indexOf(scanData(jpg)) >= 0, 'JPG unchanged next to a PNG');
+
+  // The PNG is stored at its own size, losslessly, with its transparency as a mask
+  const { PDFDocument, PDFName, PDFRawStream } = require(path.resolve(__dirname, '../vendor/pdf-lib/pdf-lib.min.js'));
+  const doc = await PDFDocument.load(bytes);
+  const images = doc.context.enumerateIndirectObjects()
+    .map(([, obj]) => obj)
+    .filter((obj) => obj instanceof PDFRawStream && obj.dict.get(PDFName.of('Subtype')) === PDFName.of('Image'))
+    .map((obj) => ({
+      w: obj.dict.get(PDFName.of('Width')).asNumber(),
+      h: obj.dict.get(PDFName.of('Height')).asNumber(),
+      filter: String(obj.dict.get(PDFName.of('Filter'))),
+      mask: !!obj.dict.get(PDFName.of('SMask'))
+    }));
+  const pngImage = images.find((i) => i.w === 1500 && i.h === 1000 && i.filter === '/FlateDecode');
+  assert.ok(pngImage, `PNG embedded at 1500x1000, lossless: ${JSON.stringify(images)}`);
+  assert.equal(pngImage.mask, true, 'transparency kept');
+});
+
 test('photos: mixed, too many or broken files are refused with a message', async () => {
   await page.goto(server.baseUrl);
   const jpeg = await makeJpeg(100, 100, '#000');
   await page.setInputFiles('#file-input', [pdfFile(), { name: 'a.jpg', mimeType: 'image/jpeg', buffer: jpeg }]);
-  assert.equal(await page.textContent('#upload-error'), 'אפשר לבחור קובץ PDF אחד, או תמונות JPG (עד 20)');
+  assert.equal(await page.textContent('#upload-error'), 'אפשר לבחור קובץ PDF אחד, או תמונות JPG או PNG (עד 20)');
   await page.setInputFiles('#file-input', Array.from({ length: 21 }, (_, i) => ({ name: `p${i}.jpg`, mimeType: 'image/jpeg', buffer: jpeg })));
   assert.equal(await page.textContent('#upload-error'), 'אפשר לבחור עד 20 תמונות בפעם אחת');
   await page.setInputFiles('#file-input', [
@@ -279,7 +312,7 @@ test('editor: file with .pdf name but non-PDF content shows an error', async () 
   await page.setInputFiles('#file-input', { name: 'fake.pdf', mimeType: 'application/pdf', buffer: Buffer.from('not a pdf') });
   await page.waitForURL(/viewer\.html/);
   await page.waitForSelector('.status-screen.is-error');
-  assert.equal(await page.textContent('#status-text'), 'כרגע נתמכים קבצי PDF ותמונות JPG בלבד');
+  assert.equal(await page.textContent('#status-text'), 'כרגע נתמכים קבצי PDF ותמונות JPG או PNG בלבד');
   pageErrors.length = 0;   // the app logs the load failure on purpose
 });
 
@@ -635,7 +668,7 @@ test('english: an English device gets the home screen in English, left to right'
     await p.click('dialog.sig-dialog [data-action="cancel"] >> nth=-1');
 
     await p.goto(server.baseUrl + '?error=type');
-    assert.equal(await p.textContent('#upload-error'), 'Sharing to the app supports only PDF files for now. JPG photos can be added with "Upload document".');
+    assert.equal(await p.textContent('#upload-error'), 'Only PDF files and JPG or PNG images are supported for now');
 
     await p.goto(server.baseUrl + 'share-target/');
     assert.equal(await p.evaluate(() => document.documentElement.dir), 'ltr');
@@ -865,10 +898,38 @@ test('service worker: share target opens shared PDFs, rejects other types, works
   await page.waitForSelector('.page.is-rendered');
   assert.equal(await page.textContent('#doc-name'), 'חוזה שכירות.pdf');
 
+  // Photos (JPG + PNG): stored by the SW, turned into one PDF by the home screen
+  const jpg = await makeJpeg(600, 800, '#c0392b');
+  const png = await makeJpeg(1200, 900, '#2980b9', { type: 'image/png' });
+  await page.goto(server.baseUrl);
+  await page.evaluate(({ files }) => {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.enctype = 'multipart/form-data';
+    form.action = 'share-target/';
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.name = 'file';
+    const dt = new DataTransfer();
+    files.forEach(({ name, type, b64 }) => dt.items.add(new File([Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))], name, { type })));
+    input.files = dt.files;
+    form.append(input);
+    document.body.append(form);
+    form.submit();
+  }, { files: [
+    { name: 'IMG_1.jpg', type: 'image/jpeg', b64: jpg.toString('base64') },
+    { name: 'Screenshot.png', type: 'image/png', b64: png.toString('base64') }
+  ] });
+  await page.waitForURL(/viewer\.html/);
+  await page.waitForSelector('.page.is-rendered');
+  assert.equal(await page.textContent('#doc-name'), 'IMG_1.pdf');
+  assert.equal(await page.textContent('#doc-pages'), '2 עמודים');
+  assert.equal(await page.evaluate(() => EasyPenStorage.takeSharedImages()), null, 'shared images used once');
+
   await page.goto(server.baseUrl);
   await share('doc.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', Buffer.from('x').toString('base64'));
   await page.waitForURL(/index\.html/);
-  assert.equal(await page.textContent('#upload-error'), 'בשיתוף לאפליקציה נתמכים כרגע קבצי PDF בלבד. תמונות JPG אפשר להעלות בכפתור "העלה מסמך".');
+  assert.equal(await page.textContent('#upload-error'), 'כרגע נתמכים קבצי PDF ותמונות JPG או PNG בלבד');
 
   await context.setOffline(true);
   await page.goto(server.baseUrl);

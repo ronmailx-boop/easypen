@@ -1,10 +1,11 @@
 /*
- * EasyPen - JPG photos to one PDF, one page per photo.
+ * EasyPen - JPG / PNG images to one PDF, one page per image.
  * Exposes a global `EasyPenImages`.
  *
- * Quality: the JPG bytes go into the PDF unchanged (DCTDecode stream, no re-encoding),
- * and exporting the signed PDF copies them as they are. The page size only sets how
- * big the photo is shown, not its resolution.
+ * Quality: JPG bytes go into the PDF unchanged (DCTDecode stream, no re-encoding).
+ * PNG is lossless: its pixels are stored compressed without loss (FlateDecode, same
+ * size, transparency kept). Exporting the signed PDF copies both as they are.
+ * The page size only sets how big the image is shown, not its resolution.
  * Orientation: phone photos are often stored sideways with an EXIF "rotate" tag, which
  * PDF viewers ignore. The tag is reset to "normal" (2 bytes of metadata, pixels untouched)
  * and the page gets the same rotation as /Rotate instead.
@@ -19,8 +20,15 @@
   // EXIF orientation -> clockwise page rotation (mirrored variants lose only the mirroring)
   const EXIF_ROTATION = { 1: 0, 2: 0, 3: 180, 4: 180, 5: 90, 6: 90, 7: 270, 8: 270 };
 
-  function isJpeg(file) {
-    return file.type === 'image/jpeg' || /\.jpe?g$/i.test(file.name || '');
+  function isImage(file) {
+    return /^image\/(jpeg|png)$/.test(file.type) || /\.(jpe?g|png)$/i.test(file.name || '');
+  }
+
+  // By content, not by name: JPG starts with FF D8, PNG with 89 'PNG'
+  function kindOf(b) {
+    if (b[0] === 0xFF && b[1] === 0xD8) return 'jpg';
+    if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4E && b[3] === 0x47) return 'png';
+    return null;
   }
 
   let pdfLibPromise = null;
@@ -79,23 +87,29 @@
   }
 
   /*
-   * files: JPG File/Blob objects, in page order. Resolves with the PDF bytes.
-   * Errors: code 'NOT_JPEG' (with .fileName) for a file that isn't a readable JPG.
+   * files: JPG / PNG File objects (or { name, blob }), in page order. Resolves with the PDF bytes.
+   * Errors: code 'NOT_IMAGE' (with .fileName) for a file that isn't a readable JPG or PNG.
    */
   async function imagesToPdf(files) {
     const { PDFDocument, degrees } = await loadPdfLib();
     const pdf = await PDFDocument.create();
     for (const file of files) {
-      const bytes = new Uint8Array(await file.arrayBuffer());
+      const bytes = new Uint8Array(await (file.blob || file).arrayBuffer());
       let image;
       try {
-        if (bytes[0] !== 0xFF || bytes[1] !== 0xD8) throw new Error('No JPG header');
-        const rotation = takeExifRotation(bytes);
-        image = await pdf.embedJpg(bytes);
-        image.rotation = rotation;
+        const kind = kindOf(bytes);
+        if (kind === 'jpg') {
+          const rotation = takeExifRotation(bytes);
+          image = await pdf.embedJpg(bytes);
+          image.rotation = rotation;
+        } else if (kind === 'png') {
+          image = await pdf.embedPng(bytes);
+        } else {
+          throw new Error('Not a JPG or PNG');
+        }
       } catch (e) {
         const err = new Error(e.message);
-        err.code = 'NOT_JPEG';
+        err.code = 'NOT_IMAGE';
         err.fileName = file.name || '';
         throw err;
       }
@@ -110,5 +124,5 @@
     return pdf.save();
   }
 
-  global.EasyPenImages = { MAX_IMAGES, isJpeg, imagesToPdf, takeExifRotation };
+  global.EasyPenImages = { MAX_IMAGES, isImage, imagesToPdf, takeExifRotation };
 })(window);
