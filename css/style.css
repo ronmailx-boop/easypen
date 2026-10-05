@@ -429,6 +429,63 @@ img { max-width: 100%; }
 .sig-choice:hover { border-color: var(--primary); }
 .sig-choice img { max-height: 100%; object-fit: contain; }
 
+/* Page order of images (home screen) */
+.order-dialog .modal-card {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 2rem);
+}
+
+.order-list {
+  flex: 1;
+  display: grid;
+  gap: .5rem;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.order-item {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .4rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.order-num {
+  min-width: 1.6em;
+  font-weight: 800;
+  text-align: center;
+  color: var(--primary-dark);
+}
+
+.order-item img {
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  background: #fff;
+  object-fit: contain;
+}
+
+.order-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: .85rem;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-moves { display: flex; gap: .25rem; }
+.order-moves .icon-btn { border: 1px solid var(--border); background: var(--surface); }
+.order-moves .icon-btn:disabled { opacity: .3; }
+
 /* ---------- Viewer ---------- */
 
 /* The editor zooms its pages itself (see pinch zoom in viewer.js): browser zoom would move

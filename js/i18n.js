@@ -133,6 +133,12 @@
       'legal.accessibility': 'נגישות',
       'legal.loading': 'טוען…',
       'legal.loadError': 'לא ניתן לטעון את המסמך. בדקו את החיבור לרשת ונסו שוב.',
+      'order.title': 'סדר העמודים',
+      'order.hint': 'העמוד הראשון למעלה. אפשר להזיז תמונות בחצים.',
+      'order.up': 'הזזת תמונה {n} למעלה',
+      'order.down': 'הזזת תמונה {n} למטה',
+      'order.image': 'עמוד {n}: {name}',
+      'order.continue': 'המשך',
       'sw.offline': 'אין חיבור לרשת'
     },
     en: {
@@ -258,6 +264,12 @@
       'legal.accessibility': 'Accessibility',
       'legal.loading': 'Loading…',
       'legal.loadError': 'The document could not be loaded. Check your network connection and try again.',
+      'order.title': 'Page order',
+      'order.hint': 'The first page is at the top. Use the arrows to move images.',
+      'order.up': 'Move image {n} up',
+      'order.down': 'Move image {n} down',
+      'order.image': 'Page {n}: {name}',
+      'order.continue': 'Continue',
       'sw.offline': 'No network connection'
     }
   };
