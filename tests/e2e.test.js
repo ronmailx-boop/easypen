@@ -222,12 +222,6 @@ async function makeJpeg(width, height, color, { exif6 = false, type = 'image/jpe
   return jpeg;
 }
 
-// Confirms the page order screen shown for more than one image
-async function confirmOrder() {
-  await page.waitForSelector('#order-dialog[open]');
-  await page.click('#order-dialog [data-action="confirm"]');
-}
-
 // The compressed picture itself: from the start-of-scan marker to the end
 const scanData = (jpeg) => jpeg.subarray(jpeg.indexOf(Buffer.from([0xFF, 0xDA])));
 
@@ -240,23 +234,25 @@ test('photos: 4 JPGs become a 4-page PDF, signed and exported with the original 
     await makeJpeg(400, 400, '#8e44ad')
   ];
   await page.setInputFiles('#file-input', photos.map((buffer, i) => ({ name: `photo${i + 1}.jpg`, mimeType: 'image/jpeg', buffer })));
-
-  // Page order screen: in the chosen order, arrows disabled at the ends; move image 4 one place up
-  await page.waitForSelector('#order-dialog[open]');
-  const names = () => page.$$eval('.order-item .order-name', (els) => els.map((e) => e.textContent));
-  assert.deepEqual(await names(), ['photo1.jpg', 'photo2.jpg', 'photo3.jpg', 'photo4.jpg']);
-  assert.equal(await page.isDisabled('.order-item >> nth=0 >> [data-move="up"]'), true);
-  assert.equal(await page.isDisabled('.order-item >> nth=3 >> [data-move="down"]'), true);
-  await page.click('.order-item >> nth=3 >> [data-move="up"]');
-  assert.deepEqual(await names(), ['photo1.jpg', 'photo2.jpg', 'photo4.jpg', 'photo3.jpg']);
-  assert.equal(await page.evaluate(() => document.activeElement.getAttribute('aria-label')), 'הזזת תמונה 3 למעלה', 'focus follows the moved image');
-  assert.equal(await page.textContent('.order-item >> nth=2 >> .order-num'), '3');
-  await page.click('#order-dialog [data-action="confirm"]');
   await page.waitForURL(/viewer\.html/);
   await page.waitForSelector('.page.is-rendered');
   assert.equal(await page.textContent('#doc-name'), 'photo1.pdf');
   assert.equal(await page.textContent('#doc-pages'), '4 עמודים');
-  // Page shapes follow the photos; the EXIF-rotated one shows upright (landscape)
+
+  // Page order: arrows on each page (full size), disabled at the ends; move page 4 one place up
+  const shown = () => page.$$eval('.page', (els) => els.map((e) => [e.dataset.page, e.querySelector('.page-num').textContent]));
+  assert.deepEqual(await shown(), [['1', '1/4'], ['2', '2/4'], ['3', '3/4'], ['4', '4/4']]);
+  assert.equal(await page.isDisabled('.page[data-page="1"] [data-move="up"]'), true);
+  assert.equal(await page.isDisabled('.page[data-page="4"] [data-move="down"]'), true);
+  await page.click('.page[data-page="4"] [data-move="up"]');
+  assert.deepEqual(await shown(), [['1', '1/4'], ['2', '2/4'], ['4', '3/4'], ['3', '4/4']]);
+  assert.equal(await page.evaluate(() => document.activeElement.getAttribute('aria-label')), 'הזזת עמוד 3 למעלה', 'focus follows the moved page');
+  assert.equal(await page.getAttribute('.page[data-page="4"]', 'aria-label'), 'עמוד 3');
+  await page.click('#draw-btn');
+  assert.equal(await page.isVisible('.page-moves'), false, 'no arrows while drawing');
+  await page.click('#draw-done');
+
+  // Page shapes follow the photos in the new order; the EXIF-rotated one shows upright (landscape)
   const ratios = await page.$$eval('.page', (els) => els.map((e) => {
     const r = e.getBoundingClientRect();
     return Math.round((r.width / r.height) * 100) / 100;
@@ -283,7 +279,6 @@ test('photos: PNG images keep their full size and transparency', async () => {
     { name: 'Screenshot.png', mimeType: 'image/png', buffer: png },
     { name: 'photo.jpg', mimeType: 'image/jpeg', buffer: jpg }
   ]);
-  await confirmOrder();
   await page.waitForURL(/viewer\.html/);
   await page.waitForSelector('.page.is-rendered');
   assert.equal(await page.textContent('#doc-pages'), '2 עמודים');
@@ -320,16 +315,6 @@ test('photos: mixed, too many or broken files are refused with a message', async
     { name: 'good.jpg', mimeType: 'image/jpeg', buffer: jpeg },
     { name: 'broken.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('not a photo') }
   ]);
-  // Cancel on the order screen: nothing happens, stays home
-  await page.waitForSelector('#order-dialog[open]');
-  await page.click('#order-dialog .modal-actions [data-action="cancel"]');
-  await page.waitForSelector('#order-dialog', { state: 'hidden' });
-  assert.equal(await page.textContent('#upload-error'), '');
-  await page.setInputFiles('#file-input', [
-    { name: 'good.jpg', mimeType: 'image/jpeg', buffer: jpeg },
-    { name: 'broken.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('not a photo') }
-  ]);
-  await confirmOrder();
   await page.waitForFunction(() => document.getElementById('upload-error').textContent);
   assert.equal(await page.textContent('#upload-error'), 'לא ניתן לקרוא את התמונה broken.jpg. ייתכן שהיא פגומה.');
   assert.match(page.url(), /index\.html|\/$/, 'stays on the home screen');
@@ -605,6 +590,7 @@ test('editor: pinch zoom enlarges the pages in the app, bars stay in place', asy
 
   const before = await info();
   assert.equal(before.width, 374);
+  assert.equal(await page.locator('.page-moves').count(), 0, 'a PDF has no page order arrows');
   // The PDF is drawn left to right even in the Hebrew interface (RTL breaks Latin text)
   assert.equal(await page.$eval('.page canvas', (c) => getComputedStyle(c).direction), 'ltr');
   await pinch(100, 200);
@@ -965,7 +951,6 @@ test('service worker: share target opens shared PDFs, rejects other types, works
     { name: 'IMG_1.jpg', type: 'image/jpeg', b64: jpg.toString('base64') },
     { name: 'Screenshot.png', type: 'image/png', b64: png.toString('base64') }
   ] });
-  await confirmOrder();
   await page.waitForURL(/viewer\.html/);
   await page.waitForSelector('.page.is-rendered');
   assert.equal(await page.textContent('#doc-name'), 'IMG_1.pdf');

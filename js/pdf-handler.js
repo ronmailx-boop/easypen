@@ -163,13 +163,14 @@
    * Encrypted PDFs cannot be safely modified by pdf-lib, so they are
    * re-built from rendered page images instead (see rasterizeExport).
    */
-  async function exportPdf(doc, overlays) {
+  // order: original page numbers in the order the pages should come out (optional)
+  async function exportPdf(doc, overlays, order) {
     const { PDFDocument } = global.PDFLib;
     let pdfDoc;
     try {
       pdfDoc = await PDFDocument.load(doc.bytes, { updateMetadata: false });
     } catch (e) {
-      if (e && /encrypt/i.test(e.message || '')) return rasterizeExport(doc, overlays);
+      if (e && /encrypt/i.test(e.message || '')) return rasterizeExport(doc, overlays, order);
       throw e;
     }
     const pages = pdfDoc.getPages();
@@ -177,18 +178,24 @@
       const page = pages[pageNum - 1];
       if (page) await drawOverlaysOnPage(pdfDoc, page, list);
     }
+    if (order && order.some((num, i) => num !== i + 1)) {
+      // Same page objects in a new order: content, images and overlays are untouched
+      for (let i = pages.length - 1; i >= 0; i--) pdfDoc.removePage(i);
+      order.forEach((num) => pdfDoc.addPage(pages[num - 1]));
+    }
     pdfDoc.setModificationDate(new Date());
     pdfDoc.setProducer('EasyPen');
     return pdfDoc.save();
   }
 
   // Fallback: new PDF whose pages are high resolution images of the original pages.
-  async function rasterizeExport(doc, overlays) {
+  async function rasterizeExport(doc, overlays, order) {
     const { PDFDocument } = global.PDFLib;
     const out = await PDFDocument.create();
     const byPage = groupByPage(overlays);
     const canvas = document.createElement('canvas');
-    for (let n = 1; n <= doc.numPages; n++) {
+    const nums = order || Array.from({ length: doc.numPages }, (_, i) => i + 1);
+    for (const n of nums) {
       const page = await doc.getPage(n);
       const size = page.getViewport({ scale: 1 });
       const scale = Math.min(2.5, Math.sqrt(12e6 / (size.width * size.height)));
