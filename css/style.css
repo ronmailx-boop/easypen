@@ -685,11 +685,67 @@ html:has(> body.viewer),
 
 /* Picking a colour from the document: tap on the page, nothing else reacts */
 .sample-mode .pages { cursor: crosshair; }
+/* One finger picks (no scrolling); two fingers zoom and scroll (pinch zoom in viewer.js) */
+.sample-mode .page { touch-action: none; }
 .sample-mode .overlay-layer,
 .sample-mode .overlay-layer *,
 .sample-mode .page-moves { pointer-events: none; }
 .sample-mode .bottom-bar { display: none; }
 .sample-hint { bottom: calc(.5rem + var(--safe-bottom)); }
+.sample-text { flex: 1; min-width: 0; }
+
+.sample-swatch {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: 0 0 0 2px #fff, 0 0 0 3px var(--border);
+}
+
+/* Enlarged view above the finger; the rim shows the colour under the centre ring */
+.loupe {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 60;
+  width: 112px;
+  height: 112px;
+  overflow: hidden;
+  border: 6px solid var(--c, #fff);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .35), 0 6px 18px rgba(20, 25, 70, .35);
+  pointer-events: none;
+}
+
+.loupe canvas { display: block; width: 100%; height: 100%; }
+
+.loupe::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #000;
+  transform: translate(-50%, -50%);
+}
+
+/* The picked spot on the page */
+.sample-marker {
+  position: absolute;
+  z-index: 4;
+  width: 22px;
+  height: 22px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: 0 0 0 1.5px #000, 0 2px 6px rgba(0, 0, 0, .35);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
 
 /* Sticky bottom action bar */
 .bottom-bar {

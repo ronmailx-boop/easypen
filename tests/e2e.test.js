@@ -786,23 +786,32 @@ test('signature: size slider, and ink colour picked from the document', async ()
     const b = await page.locator('.page[data-page="1"]').boundingBox();
     return { x: b.x + b.width * fx, y: b.y + b.height * fy };
   };
-  // White paper: no colour, still picking
+  // Pressing shows the loupe (rim = colour under the ring); any colour counts, also the white paper
+  assert.equal(await page.isDisabled('#sample-confirm'), true, 'nothing picked yet');
   let p = await at(0.1, 0.4);
-  await page.mouse.click(p.x, p.y);
-  await page.waitForFunction(() => document.getElementById('toast').classList.contains('show'));
-  assert.equal(await page.textContent('#toast'), 'לא נמצא צבע במקום הזה. הקישו בדיוק על הקו.');
-  assert.equal(await page.isVisible('#sample-hint'), true);
-  p = await at(300 / 595, (842 - 360) / 842);
-  await page.mouse.click(p.x, p.y);
+  await page.mouse.move(p.x, p.y);
+  await page.mouse.down();
+  assert.equal(await page.isVisible('#loupe'), true, 'loupe while the finger is down');
+  assert.equal(await page.$eval('#loupe', (l) => l.style.getPropertyValue('--c')), '#ffffff');
+  // Drag onto the red frame line (PDF x 200..400, top edge at y 360 of 842)
+  const line = await at(300 / 595, (842 - 360) / 842);
+  await page.mouse.move(line.x, line.y, { steps: 5 });
+  await page.mouse.up();
+  assert.equal(await page.isVisible('#loupe'), false, 'loupe gone when the finger lifts');
+  assert.equal(await page.isVisible('.page[data-page="1"] .sample-marker'), true, 'marker stays on the spot');
+  assert.equal(await page.isVisible('#sample-swatch'), true);
+  assert.equal(await page.isVisible('dialog.sig-dialog'), false, 'still picking until confirmed');
+  await page.click('#sample-confirm');
   await page.waitForSelector('dialog.sig-dialog[open]');
   assert.equal(await page.isVisible('#sample-hint'), false);
+  assert.equal(await page.locator('.sample-marker').count(), 0, 'marker removed');
   const sampled = await page.$eval('dialog.sig-dialog .ink-sampled', (l) => ({
     hidden: l.hidden, checked: l.querySelector('input').checked, color: l.style.getPropertyValue('--c')
   }));
   assert.equal(sampled.hidden, false);
   assert.equal(sampled.checked, true);
   const rgb = sampled.color.match(/[0-9a-f]{2}/g).map((h) => parseInt(h, 16));
-  assert.ok(rgb[0] > 180 && rgb[1] < 90 && rgb[2] < 90, `red picked: ${sampled.color}`);
+  assert.ok(rgb[0] > 180 && rgb[1] < 120 && rgb[2] < 120, `red picked: ${sampled.color}`);
 
   // The new signature is drawn in that colour
   await drawSignature();

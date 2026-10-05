@@ -139,8 +139,8 @@
       'pad.sample': 'דגימה',
       'pad.sampleLabel': 'דגימת צבע מהמסמך',
       'pad.sampled': 'מהמסמך',
-      'sample.hint': 'הקישו על החתימה או על הצבע במסמך',
-      'sample.none': 'לא נמצא צבע במקום הזה. הקישו בדיוק על הקו.',
+      'sample.hint': 'גררו אצבע על הצבע הרצוי',
+      'sample.confirm': 'בחירה',
       'sw.offline': 'אין חיבור לרשת'
     },
     en: {
@@ -272,8 +272,8 @@
       'pad.sample': 'Pick',
       'pad.sampleLabel': 'Pick a colour from the document',
       'pad.sampled': 'Picked',
-      'sample.hint': 'Tap the signature or colour in the document',
-      'sample.none': 'No colour found there. Tap right on the line.',
+      'sample.hint': 'Drag a finger onto the colour you want',
+      'sample.confirm': 'Choose',
       'sw.offline': 'No network connection'
     }
   };
