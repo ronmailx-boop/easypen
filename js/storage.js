@@ -105,6 +105,18 @@
 
     async clearCurrentDocument() {
       return withStore('session', 'readwrite', (s) => s.delete('current'));
+    },
+
+    // Images shared to the app (sw.js), waiting for the home screen to make a PDF of them
+    async setSharedImages(images) {
+      return withStore('session', 'readwrite', (s) => s.put({ images, createdAt: Date.now() }, 'shared-images'));
+    },
+
+    // Returns [{ name, blob }] once and removes them
+    async takeSharedImages() {
+      const record = await withStore('session', 'readonly', (s) => s.get('shared-images'));
+      await withStore('session', 'readwrite', (s) => s.delete('shared-images'));
+      return record ? record.images : null;
     }
   };
 
