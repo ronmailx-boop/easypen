@@ -260,11 +260,14 @@
     const i = order.indexOf(page);
     const j = dir === 'up' ? i - 1 : i + 1;
     if (j < 0 || j >= order.length) return;
+    // The arrows stay under the finger: the page moves in the list, the screen follows it
+    const box = page.el.querySelector('.page-moves');
+    const before = box.getBoundingClientRect().top;
     el.pages.insertBefore(page.el, dir === 'up' ? order[j].el : order[j].el.nextSibling);
+    window.scrollBy(0, box.getBoundingClientRect().top - before);
     updatePageMoves();
     markDirty();
-    // Follow the page to its new place; keep the focus on it (the other arrow at an end)
-    page.el.scrollIntoView({ block: 'center' });
+    // Keep the focus on the moved page (the other arrow once it reaches an end)
     const btn = page.el.querySelector(`[data-move="${dir}"]`);
     (btn.disabled ? page.el.querySelector(`[data-move="${dir === 'up' ? 'down' : 'up'}"]`) : btn).focus({ preventScroll: true });
   }

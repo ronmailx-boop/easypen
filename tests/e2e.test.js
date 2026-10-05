@@ -244,9 +244,20 @@ test('photos: 4 JPGs become a 4-page PDF, signed and exported with the original 
   assert.deepEqual(await shown(), [['1', '1/4'], ['2', '2/4'], ['3', '3/4'], ['4', '4/4']]);
   assert.equal(await page.isDisabled('.page[data-page="1"] [data-move="up"]'), true);
   assert.equal(await page.isDisabled('.page[data-page="4"] [data-move="down"]'), true);
+  await page.locator('.page[data-page="4"] .page-moves').scrollIntoViewIfNeeded();
+  const arrowsAt = () => page.$eval('.page[data-page="4"] .page-moves', (b) => Math.round(b.getBoundingClientRect().top));
+  const before = await arrowsAt();
   await page.click('.page[data-page="4"] [data-move="up"]');
   assert.deepEqual(await shown(), [['1', '1/4'], ['2', '2/4'], ['4', '3/4'], ['3', '4/4']]);
-  assert.equal(await page.evaluate(() => document.activeElement.getAttribute('aria-label')), 'הזזת עמוד 3 למעלה', 'focus follows the moved page');
+  const near = async (msg) => assert.ok(Math.abs(await arrowsAt() - before) <= 2, msg);
+  await near('the arrows stay under the finger');
+  // Again from the same spot, then back down
+  await page.click('.page[data-page="4"] [data-move="up"]');
+  await near('again');
+  assert.deepEqual(await shown(), [['1', '1/4'], ['4', '2/4'], ['2', '3/4'], ['3', '4/4']]);
+  await page.click('.page[data-page="4"] [data-move="down"]');
+  await near('and back down');
+  assert.equal(await page.evaluate(() => document.activeElement.getAttribute('aria-label')), 'הזזת עמוד 3 למטה', 'focus follows the moved page');
   assert.equal(await page.getAttribute('.page[data-page="4"]', 'aria-label'), 'עמוד 3');
   await page.click('#draw-btn');
   assert.equal(await page.isVisible('.page-moves'), false, 'no arrows while drawing');
