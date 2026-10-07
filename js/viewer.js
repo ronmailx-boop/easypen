@@ -70,6 +70,8 @@
     fontSizeLabel: document.querySelector('#item-toolbar .font-size'),
     sigPicker: document.getElementById('sig-picker'),
     readyDialog: document.getElementById('ready-dialog'),
+    nameDialog: document.getElementById('name-dialog'),
+    nameInput: document.getElementById('file-name-input'),
     busy: document.getElementById('busy'),
     backBtn: document.getElementById('back-btn')
   };
@@ -1419,9 +1421,53 @@
   }
 
   // "-signed" when something was added; a combined document saved as it is gets "-combined"
-  function exportFileName(added) {
+  function defaultBaseName(added) {
     const baseName = state.fileName.replace(/\.pdf$/i, '');
-    return `${baseName}-${t(added ? 'viewer.signedSuffix' : 'viewer.combinedSuffix')}.pdf`;
+    return `${baseName}-${t(added ? 'viewer.signedSuffix' : 'viewer.combinedSuffix')}`;
+  }
+
+  // Characters file systems reject, control characters and a trailing ".pdf"
+  function cleanBaseName(raw) {
+    return String(raw || '')
+      .replace(/[\u0000-\u001f\u007f<>:"/\\|?*]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/(\.pdf)+$/i, '')
+      .replace(/^[.\s]+|[.\s]+$/g, '')
+      .slice(0, 100);
+  }
+
+  let chosenBaseName = null;
+
+  // Resolves with the chosen name (without ".pdf"), or null when cancelled
+  function askFileName(suggested) {
+    const d = el.nameDialog;
+    el.nameInput.value = suggested;
+    return new Promise((resolve) => {
+      let result = null;
+      const form = d.querySelector('form');
+      const onSubmit = (e) => {
+        e.preventDefault();
+        result = cleanBaseName(el.nameInput.value) || suggested;
+        d.close();
+      };
+      const onClose = () => {
+        form.removeEventListener('submit', onSubmit);
+        d.removeEventListener('close', onClose);
+        resolve(result);
+      };
+      form.addEventListener('submit', onSubmit);
+      d.addEventListener('close', onClose);
+      d.showModal();
+      el.nameInput.focus();
+      el.nameInput.select();
+    });
+  }
+
+  function wireNameDialog() {
+    el.nameDialog.querySelectorAll('[data-action="close"]').forEach((b) => {
+      b.addEventListener('click', () => el.nameDialog.close());
+    });
   }
 
   let lastFile = null;
@@ -1438,6 +1484,11 @@
       toast(t('viewer.nothingAdded'), 'info');
       return;
     }
+    // A name the user typed is kept for the next save; otherwise the suggestion follows the edits
+    const suggested = defaultBaseName(added);
+    const baseName = await askFileName(chosenBaseName || suggested);
+    if (!baseName) return;
+    chosenBaseName = baseName === suggested ? null : baseName;
     el.busy.hidden = false;
     el.saveShare.disabled = true;
     try {
@@ -1445,7 +1496,7 @@
       await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
       const overlays = await collectOverlays();
       const bytes = await window.PdfHandler.exportPdf(state.doc, overlays, order);
-      lastFile = new File([bytes], exportFileName(added), { type: 'application/pdf' });
+      lastFile = new File([bytes], `${baseName}.pdf`, { type: 'application/pdf' });
     } catch (err) {
       console.error(err);
       toast(t('viewer.exportError'), 'error', 5000);
@@ -1542,6 +1593,7 @@
   });
 
   wireReadyDialog();
+  wireNameDialog();
   wireDrawTray();
   init();
 })();

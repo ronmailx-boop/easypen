@@ -177,9 +177,13 @@ async function changedBoxes(originalBytes, exportedBytes) {
   return result;
 }
 
-async function exportViaDownload() {
-  const download = page.waitForEvent('download');
+// `name` replaces the suggested file name in the name dialog
+async function exportViaDownload(name) {
   await page.click('#save-share');
+  await page.waitForSelector('#name-dialog[open]');
+  if (name !== undefined) await page.fill('#file-name-input', name);
+  const download = page.waitForEvent('download');
+  await page.click('#name-dialog [type="submit"]');
   const d = await download;
   const chunks = [];
   for await (const c of await d.createReadStream()) chunks.push(c);
@@ -460,6 +464,30 @@ test('editor: signatures and text are exported at the exact position on every pa
   }
 
   assert.equal(await page.textContent('#toast'), 'המסמך החתום נשמר בהורדות');
+});
+
+test('save: the file name can be changed (and is cleaned) before saving', async () => {
+  await openInEditor();
+  await drawNewSignatureAndPlace();
+
+  // Cancel keeps the document and saves nothing
+  await page.click('#save-share');
+  await page.waitForSelector('#name-dialog[open]');
+  assert.equal(await page.inputValue('#file-name-input'), 'test-חתום');
+  await page.click('#name-dialog .btn-secondary');
+  assert.equal(await page.locator('#name-dialog[open]').count(), 0);
+
+  const first = await exportViaDownload('  הסכם/שכירות: <2026>.pdf ');
+  assert.equal(first.name, 'הסכםשכירות 2026.pdf');
+  assert.equal(first.bytes.subarray(0, 5).toString(), '%PDF-');
+
+  // The typed name is suggested next time; an empty name falls back to it
+  await page.click('#save-share');
+  await page.waitForSelector('#name-dialog[open]');
+  assert.equal(await page.inputValue('#file-name-input'), 'הסכםשכירות 2026');
+  await page.click('#name-dialog .btn-secondary');
+  const second = await exportViaDownload('  ');
+  assert.equal(second.name, 'הסכםשכירות 2026.pdf');
 });
 
 test('editor: empty text box is discarded and deleting items works', async () => {
@@ -883,6 +911,7 @@ test('signature: size slider, and ink colour picked from the document', async ()
   await drawSignature();
   await page.click('dialog.sig-dialog [data-action="confirm"]');
   await page.waitForSelector('dialog.sig-dialog', { state: 'detached' });
+  await page.waitForSelector('.ov-sig img');
   const ink = await page.$eval('.ov-sig img', async (img) => {
     await img.decode();
     const c = document.createElement('canvas');

@@ -331,6 +331,29 @@ img { max-width: 100%; }
 
 .modal-actions .btn { flex: 1; }
 
+/* File name before saving */
+.name-field {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.name-field:focus-within { outline: 2px solid var(--primary); outline-offset: 1px; }
+.name-field input {
+  flex: 1;
+  min-width: 0;
+  padding: .7rem .8rem;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 16px; /* no zoom-in on iPhone */
+  outline: none;
+}
+.name-ext { padding-inline-end: .8rem; color: var(--muted); }
+
 /* Signature drawing */
 .sig-canvas-wrap {
   position: relative;

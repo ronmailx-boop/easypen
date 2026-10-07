@@ -142,6 +142,24 @@
     </div>
   </dialog>
 
+  <dialog id="name-dialog" class="modal sheet" aria-labelledby="name-title">
+    <form class="modal-card" method="dialog">
+      <header class="modal-header">
+        <h2 id="name-title" data-i18n="name.title">שם הקובץ</h2>
+        <button type="button" class="icon-btn" data-action="close" aria-label="סגור" data-i18n-aria="pad.close">✕</button>
+      </header>
+      <label for="file-name-input" class="modal-hint" data-i18n="name.hint">אפשר לשנות את השם לפני השמירה והשיתוף</label>
+      <div class="name-field">
+        <input id="file-name-input" type="text" dir="auto" maxlength="100" autocomplete="off" spellcheck="false" enterkeyhint="done">
+        <span class="name-ext" dir="ltr">.pdf</span>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-action="close" data-i18n="name.cancel">ביטול</button>
+        <button type="submit" class="btn btn-primary" data-i18n="name.ok">המשך</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="ready-dialog" class="modal sheet" aria-labelledby="ready-title">
     <div class="modal-card">
       <header class="modal-header">
