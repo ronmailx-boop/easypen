@@ -1,8 +1,11 @@
 /*
- * EasyPen - JPG / PNG images to one PDF, one page per image.
- * Exposes a global `EasyPenImages`.
+ * EasyPen - combines PDF files and JPG / PNG images into one PDF, in the given order:
+ * every page of each PDF, and a page per image. Exposes a global `EasyPenCombine`.
  *
- * Quality: JPG bytes go into the PDF unchanged (DCTDecode stream, no re-encoding).
+ * PDF pages are copied as they are (text, fonts and images untouched, text stays searchable).
+ * Form fields keep their look but may stop being fillable.
+ *
+ * Image quality: JPG bytes go into the PDF unchanged (DCTDecode stream, no re-encoding).
  * PNG is lossless: its pixels are stored compressed without loss (FlateDecode, same
  * size, transparency kept). Exporting the signed PDF copies both as they are.
  * The page size only sets how big the image is shown, not its resolution.
@@ -13,7 +16,7 @@
 (function (global) {
   'use strict';
 
-  const MAX_IMAGES = 20;
+  const MAX_FILES = 20;
   const PAGE_LONG_SIDE = 842;   // points: the long side of A4, so text and signatures get usual sizes
   const PDF_LIB_URL = new URL('vendor/pdf-lib/pdf-lib.min.js', document.baseURI).href;
 
@@ -24,10 +27,16 @@
     return /^image\/(jpeg|png)$/.test(file.type) || /\.(jpe?g|png)$/i.test(file.name || '');
   }
 
-  // By content, not by name: JPG starts with FF D8, PNG with 89 'PNG'
+  function isPdf(file) {
+    return file.type === 'application/pdf' || /\.pdf$/i.test(file.name || '');
+  }
+
+  // By content, not by name: JPG starts with FF D8, PNG with 89 'PNG', PDF has '%PDF-' near the start
   function kindOf(b) {
     if (b[0] === 0xFF && b[1] === 0xD8) return 'jpg';
     if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4E && b[3] === 0x47) return 'png';
+    const head = String.fromCharCode.apply(null, b.subarray(0, 1024));
+    if (head.includes('%PDF-')) return 'pdf';
     return null;
   }
 
@@ -86,43 +95,66 @@
     return 0;
   }
 
+  function fileError(code, file, cause) {
+    const err = new Error(cause ? cause.message : code);
+    err.code = code;
+    err.fileName = file.name || '';
+    return err;
+  }
+
+  async function addImage(pdf, PDFLib, bytes, kind) {
+    let image;
+    if (kind === 'jpg') {
+      const rotation = takeExifRotation(bytes);
+      image = await pdf.embedJpg(bytes);
+      image.rotation = rotation;
+    } else {
+      image = await pdf.embedPng(bytes);
+    }
+    const k = PAGE_LONG_SIDE / Math.max(image.width, image.height);
+    const w = image.width * k;
+    const h = image.height * k;
+    const page = pdf.addPage([w, h]);
+    page.drawImage(image, { x: 0, y: 0, width: w, height: h });
+    if (image.rotation) page.setRotation(PDFLib.degrees(image.rotation));
+  }
+
   /*
-   * files: JPG / PNG File objects (or { name, blob }), in page order. Resolves with the PDF bytes.
-   * Errors: code 'NOT_IMAGE' (with .fileName) for a file that isn't a readable JPG or PNG.
+   * files: PDF / JPG / PNG File objects (or { name, blob }), in order. Resolves with the PDF bytes.
+   * Errors (with .fileName): code 'BAD_FILE' for a file that isn't a readable PDF, JPG or PNG,
+   * 'LOCKED' for an encrypted PDF (its pages can't be copied).
    */
-  async function imagesToPdf(files) {
-    const { PDFDocument, degrees } = await loadPdfLib();
-    const pdf = await PDFDocument.create();
+  async function combineToPdf(files) {
+    const PDFLib = await loadPdfLib();
+    const pdf = await PDFLib.PDFDocument.create();
     for (const file of files) {
       const bytes = new Uint8Array(await (file.blob || file).arrayBuffer());
-      let image;
-      try {
-        const kind = kindOf(bytes);
-        if (kind === 'jpg') {
-          const rotation = takeExifRotation(bytes);
-          image = await pdf.embedJpg(bytes);
-          image.rotation = rotation;
-        } else if (kind === 'png') {
-          image = await pdf.embedPng(bytes);
-        } else {
-          throw new Error('Not a JPG or PNG');
+      const kind = kindOf(bytes);
+      if (kind === 'pdf') {
+        let src;
+        let pages;
+        try {
+          src = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
+          if (!src.isEncrypted) pages = await pdf.copyPages(src, src.getPageIndices());
+        } catch (e) {
+          throw fileError('BAD_FILE', file, e);
         }
-      } catch (e) {
-        const err = new Error(e.message);
-        err.code = 'NOT_IMAGE';
-        err.fileName = file.name || '';
-        throw err;
+        if (src.isEncrypted) throw fileError('LOCKED', file);
+        if (!pages.length) throw fileError('BAD_FILE', file);
+        pages.forEach((p) => pdf.addPage(p));
+      } else if (kind) {
+        try {
+          await addImage(pdf, PDFLib, bytes, kind);
+        } catch (e) {
+          throw fileError('BAD_FILE', file, e);
+        }
+      } else {
+        throw fileError('BAD_FILE', file);
       }
-      const k = PAGE_LONG_SIDE / Math.max(image.width, image.height);
-      const w = image.width * k;
-      const h = image.height * k;
-      const page = pdf.addPage([w, h]);
-      page.drawImage(image, { x: 0, y: 0, width: w, height: h });
-      if (image.rotation) page.setRotation(degrees(image.rotation));
     }
     pdf.setProducer('EasyPen');
     return pdf.save();
   }
 
-  global.EasyPenImages = { MAX_IMAGES, isImage, imagesToPdf, takeExifRotation };
+  global.EasyPenCombine = { MAX_FILES, isImage, isPdf, combineToPdf, takeExifRotation };
 })(window);

@@ -315,21 +315,69 @@ test('photos: PNG images keep their full size and transparency', async () => {
   assert.equal(pngImage.mask, true, 'transparency kept');
 });
 
-test('photos: mixed, too many or broken files are refused with a message', async () => {
+test('combine: PDFs and photos become one PDF, PDF pages copied as they are', async () => {
+  await page.goto(server.baseUrl);
+  const jpg = await makeJpeg(600, 800, '#c0392b');
+  const { PDFDocument, PDFName, StandardFonts } = require(path.resolve(__dirname, '../vendor/pdf-lib/pdf-lib.min.js'));
+  const second = await PDFDocument.create();
+  const font = await second.embedFont(StandardFonts.Helvetica);
+  second.addPage([842, 595]).drawText('Second file', { x: 60, y: 500, size: 30, font });
+  await page.setInputFiles('#file-input', [
+    pdfFile('contract.pdf'),
+    { name: 'id.jpg', mimeType: 'image/jpeg', buffer: jpg },
+    { name: 'appendix.pdf', mimeType: 'application/pdf', buffer: Buffer.from(await second.save()) }
+  ]);
+  await page.waitForURL(/viewer\.html/);
+  await page.waitForSelector('.page.is-rendered');
+  assert.equal(await page.textContent('#doc-name'), 'contract.pdf');
+  assert.equal(await page.textContent('#doc-pages'), '6 עמודים');
+  assert.equal(await page.isVisible('.page[data-page="6"] .page-moves'), true, 'pages can be reordered');
+  await page.locator('.page[data-page="6"] .page-moves').scrollIntoViewIfNeeded();
+  await page.click('.page[data-page="6"] [data-move="up"]');
+
+  await drawNewSignatureAndPlace();
+  const { name, bytes } = await exportViaDownload();
+  assert.equal(name, 'contract-חתום.pdf');
+  assert.ok(bytes.indexOf(scanData(jpg)) >= 0, 'photo image data unchanged');
+  const doc = await PDFDocument.load(bytes);
+  const pages = doc.getPages();
+  assert.equal(pages.length, 6);
+  // PDF pages keep their rotation, and their text stays text (fonts, not a picture)
+  assert.deepEqual(pages.map((p) => p.getRotation().angle), [0, 90, 0, 270, 0, 0]);
+  // In the new order: the second PDF (landscape) moved above the photo
+  assert.deepEqual(pages.map((p) => Math.round(p.getWidth())), [595, 595, 595, 595, 842, 632]);
+  const hasFont = (p) => !!p.node.Resources().lookup(PDFName.of('Font'));
+  assert.deepEqual(pages.slice(0, 5).map(hasFont), [true, true, true, true, true]);
+});
+
+test('combine: too many, broken or encrypted files are refused with a message', async () => {
   await page.goto(server.baseUrl);
   const jpeg = await makeJpeg(100, 100, '#000');
-  await page.setInputFiles('#file-input', [pdfFile(), { name: 'a.jpg', mimeType: 'image/jpeg', buffer: jpeg }]);
-  assert.equal(await page.textContent('#upload-error'), 'אפשר לבחור קובץ PDF אחד, או תמונות JPG או PNG (עד 20)');
   await page.setInputFiles('#file-input', Array.from({ length: 21 }, (_, i) => ({ name: `p${i}.jpg`, mimeType: 'image/jpeg', buffer: jpeg })));
-  assert.equal(await page.textContent('#upload-error'), 'אפשר לבחור עד 20 תמונות בפעם אחת');
-  await page.setInputFiles('#file-input', [
+  assert.equal(await page.textContent('#upload-error'), 'אפשר לבחור עד 20 קבצים בפעם אחת');
+  await page.setInputFiles('#file-input', [pdfFile(), { name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('x') }]);
+  assert.equal(await page.textContent('#upload-error'), 'כרגע נתמכים קבצי PDF ותמונות JPG או PNG בלבד');
+
+  const refused = async (files, message) => {
+    await page.evaluate(() => { document.getElementById('upload-error').textContent = ''; });
+    await page.setInputFiles('#file-input', files);
+    await page.waitForFunction(() => document.getElementById('upload-error').textContent);
+    assert.equal(await page.textContent('#upload-error'), message);
+    assert.match(page.url(), /index\.html|\/$/, 'stays on the home screen');
+  };
+  await refused([
     { name: 'good.jpg', mimeType: 'image/jpeg', buffer: jpeg },
     { name: 'broken.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('not a photo') }
-  ]);
-  await page.waitForFunction(() => document.getElementById('upload-error').textContent);
-  assert.equal(await page.textContent('#upload-error'), 'לא ניתן לקרוא את התמונה broken.jpg. ייתכן שהיא פגומה.');
-  assert.match(page.url(), /index\.html|\/$/, 'stays on the home screen');
-  pageErrors.length = 0;   // the failed conversion is logged on purpose
+  ], 'לא ניתן לקרוא את הקובץ broken.jpg. ייתכן שהוא פגום.');
+  await refused([pdfFile(), { name: 'broken.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.7 broken') }],
+    'לא ניתן לקרוא את הקובץ broken.pdf. ייתכן שהוא פגום.');
+
+  const { PDFDocument } = require(path.resolve(__dirname, '../vendor/pdf-lib/pdf-lib.min.js'));
+  const locked = await PDFDocument.load(pdfBytes);
+  locked.context.trailerInfo.Encrypt = locked.context.register(locked.context.obj({ Filter: 'Standard', V: 1, R: 2 }));
+  await refused([pdfFile(), { name: 'bank.pdf', mimeType: 'application/pdf', buffer: Buffer.from(await locked.save({ useObjectStreams: false })) }],
+    'הקובץ bank.pdf מוגן בהצפנה, ולכן אי אפשר לאחד אותו עם קבצים אחרים. אפשר לפתוח אותו לבד.');
+  pageErrors.length = 0;   // the failed conversions are logged on purpose
 });
 
 test('editor: file with .pdf name but non-PDF content shows an error', async () => {
@@ -992,7 +1040,7 @@ test('legal pages: Markdown renderer never outputs markup from the text', async 
   assert.equal(result.placeholder, '[NAME_HERE]');
 });
 
-test('service worker: share target opens shared PDFs, rejects other types, works offline', async () => {
+test('service worker: share target opens shared PDFs, combines several files, rejects other types, works offline', async () => {
   await page.goto(server.baseUrl);
   await page.evaluate(() => navigator.serviceWorker.ready);
   await page.reload();
@@ -1020,7 +1068,7 @@ test('service worker: share target opens shared PDFs, rejects other types, works
   await page.waitForSelector('.page.is-rendered');
   assert.equal(await page.textContent('#doc-name'), 'חוזה שכירות.pdf');
 
-  // Photos (JPG + PNG): stored by the SW, turned into one PDF by the home screen
+  // Several files (JPG + PNG + PDF): stored by the SW, combined into one PDF by the home screen
   const jpg = await makeJpeg(600, 800, '#c0392b');
   const png = await makeJpeg(1200, 900, '#2980b9', { type: 'image/png' });
   await page.goto(server.baseUrl);
@@ -1040,13 +1088,14 @@ test('service worker: share target opens shared PDFs, rejects other types, works
     form.submit();
   }, { files: [
     { name: 'IMG_1.jpg', type: 'image/jpeg', b64: jpg.toString('base64') },
-    { name: 'Screenshot.png', type: 'image/png', b64: png.toString('base64') }
+    { name: 'Screenshot.png', type: 'image/png', b64: png.toString('base64') },
+    { name: 'form.pdf', type: 'application/pdf', b64: pdfBytes.toString('base64') }
   ] });
   await page.waitForURL(/viewer\.html/);
   await page.waitForSelector('.page.is-rendered');
   assert.equal(await page.textContent('#doc-name'), 'IMG_1.pdf');
-  assert.equal(await page.textContent('#doc-pages'), '2 עמודים');
-  assert.equal(await page.evaluate(() => EasyPenStorage.takeSharedImages()), null, 'shared images used once');
+  assert.equal(await page.textContent('#doc-pages'), '6 עמודים');
+  assert.equal(await page.evaluate(() => EasyPenStorage.takeSharedFiles()), null, 'shared files used once');
 
   await page.goto(server.baseUrl);
   await share('doc.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', Buffer.from('x').toString('base64'));

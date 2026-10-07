@@ -24,7 +24,7 @@ const SHELL = [
   'js/ui.js',
   'js/home.js',
   'js/signature-pad.js',
-  'js/images-to-pdf.js',
+  'js/combine-pdf.js',
   'js/pdf-handler.js',
   'js/share.js',
   'js/viewer.js',
@@ -102,20 +102,22 @@ async function handleShareTarget(request) {
     const form = await request.formData();
     const files = form.getAll('file').filter((f) => f && typeof f !== 'string');
     if (!files.length) return Response.redirect(scopeUrl('index.html?error=share'), 303);
-    const file = files.find((f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name || ''));
-    if (!file) {
-      // JPG / PNG images: the home screen turns them into one PDF (pdf-lib isn't loaded here)
-      const images = files.filter((f) => /^image\/(jpeg|png)$/.test(f.type) || /\.(jpe?g|png)$/i.test(f.name || ''));
-      if (!images.length) return Response.redirect(scopeUrl('index.html?error=type'), 303);
-      await self.EasyPenStorage.setSharedImages(await Promise.all(images.map(async (f) => ({
-        name: f.name || 'photo.jpg',
-        blob: new Blob([await f.arrayBuffer()], { type: f.type || 'image/jpeg' })
-      }))));
-      return Response.redirect(scopeUrl('index.html?source=share-images'), 303);
+    const isPdf = (f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name || '');
+    const isImage = (f) => /^image\/(jpeg|png)$/.test(f.type) || /\.(jpe?g|png)$/i.test(f.name || '');
+    const supported = files.filter((f) => isPdf(f) || isImage(f));
+    if (!supported.length) return Response.redirect(scopeUrl('index.html?error=type'), 303);
+    if (supported.length === 1 && isPdf(supported[0])) {
+      const file = supported[0];
+      const blob = new Blob([await file.arrayBuffer()], { type: 'application/pdf' });
+      await self.EasyPenStorage.setCurrentDocument(file.name || 'document.pdf', blob);
+      return Response.redirect(scopeUrl('viewer.html?source=share'), 303);
     }
-    const blob = new Blob([await file.arrayBuffer()], { type: 'application/pdf' });
-    await self.EasyPenStorage.setCurrentDocument(file.name || 'document.pdf', blob);
-    return Response.redirect(scopeUrl('viewer.html?source=share'), 303);
+    // Several files or an image: the home screen combines them into one PDF (pdf-lib isn't loaded here)
+    await self.EasyPenStorage.setSharedFiles(await Promise.all(supported.map(async (f) => ({
+      name: f.name || (isPdf(f) ? 'document.pdf' : 'photo.jpg'),
+      blob: new Blob([await f.arrayBuffer()], { type: f.type || (isPdf(f) ? 'application/pdf' : 'image/jpeg') })
+    }))));
+    return Response.redirect(scopeUrl('index.html?source=share-files'), 303);
   } catch (err) {
     console.error('Share target failed', err);
     return Response.redirect(scopeUrl('index.html?error=share'), 303);

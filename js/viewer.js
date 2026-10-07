@@ -77,7 +77,7 @@
   const state = {
     doc: null,            // PdfDocument
     fileName: 'document.pdf',
-    fromImages: false,     // made of images: pages can be reordered
+    combined: false,       // combined from several files / images: pages can be reordered
     pages: [],            // { num, el, canvas, layer, widthPt, heightPt, rendered, renderedWidth, rendering }
     items: [],            // overlay items
     selected: null,
@@ -116,7 +116,7 @@
     }
 
     state.fileName = record.name || 'document.pdf';
-    state.fromImages = !!record.fromImages;
+    state.combined = !!record.combined;
     el.docName.textContent = state.fileName;
 
     try {
@@ -166,7 +166,7 @@
       const layer = document.createElement('div');
       layer.className = 'overlay-layer';
       pageEl.append(canvas, ink, layer);
-      if (state.fromImages && state.doc.numPages > 1) pageEl.appendChild(buildPageMoves(pageEl));
+      if (state.combined && state.doc.numPages > 1) pageEl.appendChild(buildPageMoves(pageEl));
       frag.appendChild(pageEl);
       const page = {
         num: n, el: pageEl, canvas, ink, layer,

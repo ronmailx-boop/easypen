@@ -94,10 +94,10 @@
     },
 
     // The single, local, one-off document session.
-    // options.fromImages: made of images on the home screen (its pages can be reordered)
+    // options.combined: combined from several files / images on the home screen (its pages can be reordered)
     async setCurrentDocument(name, blob, options = {}) {
       return withStore('session', 'readwrite', (s) =>
-        s.put({ name, blob, fromImages: !!options.fromImages, createdAt: Date.now() }, 'current'));
+        s.put({ name, blob, combined: !!options.combined, createdAt: Date.now() }, 'current'));
     },
 
     async getCurrentDocument() {
@@ -108,16 +108,16 @@
       return withStore('session', 'readwrite', (s) => s.delete('current'));
     },
 
-    // Images shared to the app (sw.js), waiting for the home screen to make a PDF of them
-    async setSharedImages(images) {
-      return withStore('session', 'readwrite', (s) => s.put({ images, createdAt: Date.now() }, 'shared-images'));
+    // Files shared to the app together (sw.js), waiting for the home screen to combine them
+    async setSharedFiles(files) {
+      return withStore('session', 'readwrite', (s) => s.put({ files, createdAt: Date.now() }, 'shared-files'));
     },
 
     // Returns [{ name, blob }] once and removes them
-    async takeSharedImages() {
-      const record = await withStore('session', 'readonly', (s) => s.get('shared-images'));
-      await withStore('session', 'readwrite', (s) => s.delete('shared-images'));
-      return record ? record.images : null;
+    async takeSharedFiles() {
+      const record = await withStore('session', 'readonly', (s) => s.get('shared-files'));
+      await withStore('session', 'readwrite', (s) => s.delete('shared-files'));
+      return record ? record.files : null;
     }
   };
 
