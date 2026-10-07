@@ -1418,9 +1418,10 @@
     return out;
   }
 
-  function signedFileName() {
+  // "-signed" when something was added; a combined document saved as it is gets "-combined"
+  function exportFileName(added) {
     const baseName = state.fileName.replace(/\.pdf$/i, '');
-    return `${baseName}-${t('viewer.signedSuffix')}.pdf`;
+    return `${baseName}-${t(added ? 'viewer.signedSuffix' : 'viewer.combinedSuffix')}.pdf`;
   }
 
   let lastFile = null;
@@ -1431,7 +1432,9 @@
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     const order = pagesInOrder().map((p) => p.num);
     const reordered = order.some((num, i) => num !== i + 1);
-    if (!state.items.length && !state.strokes.length && !reordered) {
+    const added = state.items.length > 0 || state.strokes.length > 0;
+    // A combined document can be saved as it is (the combining is the change)
+    if (!added && !reordered && !state.combined) {
       toast(t('viewer.nothingAdded'), 'info');
       return;
     }
@@ -1442,7 +1445,7 @@
       await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
       const overlays = await collectOverlays();
       const bytes = await window.PdfHandler.exportPdf(state.doc, overlays, order);
-      lastFile = new File([bytes], signedFileName(), { type: 'application/pdf' });
+      lastFile = new File([bytes], exportFileName(added), { type: 'application/pdf' });
     } catch (err) {
       console.error(err);
       toast(t('viewer.exportError'), 'error', 5000);

@@ -332,6 +332,13 @@ test('combine: PDFs and photos become one PDF, PDF pages copied as they are', as
   assert.equal(await page.textContent('#doc-name'), 'contract.pdf');
   assert.equal(await page.textContent('#doc-pages'), '6 עמודים');
   assert.equal(await page.isVisible('.page[data-page="6"] .page-moves'), true, 'pages can be reordered');
+
+  // Saved as it is, with nothing added: the combined file
+  const plain = await exportViaDownload();
+  assert.equal(plain.name, 'contract-מאוחד.pdf');
+  assert.equal((await PDFDocument.load(plain.bytes)).getPageCount(), 6);
+  assert.ok(plain.bytes.indexOf(scanData(jpg)) >= 0, 'photo unchanged');
+
   await page.locator('.page[data-page="6"] .page-moves').scrollIntoViewIfNeeded();
   await page.click('.page[data-page="6"] [data-move="up"]');
 
