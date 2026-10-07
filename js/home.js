@@ -1,5 +1,5 @@
 /*
- * EasyPen - home screen: upload a PDF and manage saved signatures.
+ * EasyPen - home screen: upload a PDF (or files to combine) and manage saved signatures.
  */
 (function () {
   'use strict';
@@ -17,7 +17,7 @@
   const installBtn = document.getElementById('install-btn');
   const uploadBtn = document.querySelector('.upload-btn');
   const uploadStatus = document.getElementById('upload-status');
-  const Images = window.EasyPenImages;
+  const Combine = window.EasyPenCombine;
 
   const MSG_PDF_ONLY = t('home.pdfOnly');
 
@@ -37,52 +37,49 @@
     if (error) history.replaceState(null, '', location.pathname);
   }
 
-  function looksLikePdf(file) {
-    return file.type === 'application/pdf' || /\.pdf$/i.test(file.name || '');
-  }
-
-  // One PDF, or up to MAX_IMAGES JPG / PNG images that become one PDF (a page per image)
+  // One PDF opens as it is; several files (PDFs and JPG / PNG images, up to MAX_FILES)
+  // or a single image become one PDF, in the order they were chosen
   async function onFileSelected() {
     const files = Array.from(fileInput.files || []);
     fileInput.value = '';
     showUploadError('');
     if (!files.length) return;
-    const { isImage, MAX_IMAGES } = Images;
-    if (files.every(isImage)) {
-      await openImages(files);
+    if (!files.every((f) => Combine.isPdf(f) || Combine.isImage(f))) {
+      showUploadError(MSG_PDF_ONLY);
       return;
     }
-    if (files.length === 1 && looksLikePdf(files[0])) {
+    if (files.length === 1 && Combine.isPdf(files[0])) {
       await openDocument(files[0].name || 'document.pdf', files[0]);
       return;
     }
-    showUploadError(files.every((f) => looksLikePdf(f) || isImage(f))
-      ? t('home.oneDocument', { max: MAX_IMAGES })
-      : MSG_PDF_ONLY);
+    await openCombined(files);
   }
 
-  // images: File objects or { name, blob } (shared to the app, see sw.js)
-  async function openImages(images) {
-    const { MAX_IMAGES } = Images;
-    if (images.length > MAX_IMAGES) {
-      showUploadError(t('home.tooManyImages', { max: MAX_IMAGES }));
+  // files: File objects or { name, blob } (shared to the app, see sw.js)
+  async function openCombined(files) {
+    const { MAX_FILES } = Combine;
+    if (files.length > MAX_FILES) {
+      showUploadError(t('home.tooManyFiles', { max: MAX_FILES }));
       return;
     }
     uploadBtn.classList.add('is-busy');
-    uploadStatus.textContent = t('home.converting');
+    uploadStatus.textContent = t('home.combining');
     let blob;
     try {
-      blob = new Blob([await Images.imagesToPdf(images)], { type: 'application/pdf' });
+      blob = new Blob([await Combine.combineToPdf(files)], { type: 'application/pdf' });
     } catch (err) {
       console.error(err);
-      showUploadError(err.code === 'NOT_IMAGE' ? t('home.imageError', { name: err.fileName }) : t('home.openError'));
+      const name = err.fileName;
+      showUploadError(err.code === 'LOCKED' ? t('home.lockedPdf', { name })
+        : err.code === 'BAD_FILE' ? t('home.fileError', { name }) : t('home.openError'));
       return;
     } finally {
       uploadBtn.classList.remove('is-busy');
       uploadStatus.textContent = '';
     }
-    // Made of images: the editor offers arrows to change the page order
-    await openDocument(`${(images[0].name || 'photos').replace(/\.(jpe?g|png)$/i, '')}.pdf`, blob, { fromImages: true });
+    // Combined: the editor offers arrows to change the page order
+    const base = (files[0].name || 'document').replace(/\.(pdf|jpe?g|png)$/i, '');
+    await openDocument(`${base}.pdf`, blob, { combined: true });
   }
 
   async function openDocument(name, blob, options) {
@@ -95,21 +92,21 @@
     }
   }
 
-  // Images shared to the app wait in storage until this screen turns them into a PDF
-  async function openSharedImages() {
-    if (new URLSearchParams(location.search).get('source') !== 'share-images') return false;
+  // Files shared to the app together wait in storage until this screen combines them
+  async function openSharedFiles() {
+    if (new URLSearchParams(location.search).get('source') !== 'share-files') return false;
     history.replaceState(null, '', location.pathname);
-    let images = null;
+    let files = null;
     try {
-      images = await Storage.takeSharedImages();
+      files = await Storage.takeSharedFiles();
     } catch (err) {
       console.error(err);
     }
-    if (!images || !images.length) {
+    if (!files || !files.length) {
       showUploadError(t('home.shareError'));
       return true;
     }
-    await openImages(images);
+    await openCombined(files);
     return true;
   }
 
@@ -216,6 +213,6 @@
   handleQueryErrors();
   renderSignatures();
   // Each document is a one-off local session: leaving the editor discards it
-  // (cleared first, so it can't remove a document made from shared images)
-  Storage.clearCurrentDocument().catch(() => {}).then(openSharedImages);
+  // (cleared first, so it can't remove a document made from shared files)
+  Storage.clearCurrentDocument().catch(() => {}).then(openSharedFiles);
 })();

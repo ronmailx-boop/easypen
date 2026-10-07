@@ -1,6 +1,6 @@
 # Terms of Use
 
-**Last updated:** 5 October 2026
+**Last updated:** 7 October 2026
 
 ## 1. General
 
@@ -10,7 +10,7 @@ Using the App means you accept these Terms and the [Privacy Policy](privacy-poli
 
 ## 2. The Service
 
-The App lets you open PDF files or JPG and PNG images (combined into one PDF file, a page per image), add a handwritten signature, text and drawings to them, and share or download the resulting file.
+The App lets you open PDF files or JPG and PNG images (several files are combined into one PDF file, a page per image), add a handwritten signature, text and drawings to them, and share or download the resulting file.
 
 - Processing happens on your device only. Files are not sent to the Operator.
 - At this stage, only PDF files and JPG and PNG images are supported.
