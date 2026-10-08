@@ -121,10 +121,11 @@
 
   /*
    * files: PDF / JPG / PNG File objects (or { name, blob }), in order. Resolves with the PDF bytes.
+   * parts (optional array): gets { name, pages } for each file, in order - which pages came from which file.
    * Errors (with .fileName): code 'BAD_FILE' for a file that isn't a readable PDF, JPG or PNG,
    * 'LOCKED' for an encrypted PDF (its pages can't be copied).
    */
-  async function combineToPdf(files) {
+  async function combineToPdf(files, parts = []) {
     const PDFLib = await loadPdfLib();
     const pdf = await PDFLib.PDFDocument.create();
     for (const file of files) {
@@ -142,9 +143,11 @@
         if (src.isEncrypted) throw fileError('LOCKED', file);
         if (!pages.length) throw fileError('BAD_FILE', file);
         pages.forEach((p) => pdf.addPage(p));
+        parts.push({ name: file.name || '', pages: pages.length });
       } else if (kind) {
         try {
           await addImage(pdf, PDFLib, bytes, kind);
+          parts.push({ name: file.name || '', pages: 1 });
         } catch (e) {
           throw fileError('BAD_FILE', file, e);
         }

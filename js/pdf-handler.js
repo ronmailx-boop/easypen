@@ -180,7 +180,8 @@
       const page = pages[pageNum - 1];
       if (page) await drawOverlaysOnPage(pdfDoc, page, list);
     }
-    if (order && order.some((num, i) => num !== i + 1)) {
+    // A new order, or files removed (their pages are left out of the order)
+    if (order && (order.length !== pages.length || order.some((num, i) => num !== i + 1))) {
       // Same page objects in a new order: content, images and overlays are untouched
       for (let i = pages.length - 1; i >= 0; i--) pdfDoc.removePage(i);
       order.forEach((num) => pdfDoc.addPage(pages[num - 1]));

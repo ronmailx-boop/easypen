@@ -84,6 +84,7 @@
     doc: null,            // PdfDocument
     fileName: 'document.pdf',
     combined: false,       // combined from several files / images: pages can be reordered
+    parts: null,          // [{ name, pages }]: the files it was combined from, in page-number order
     pages: [],            // { num, el, canvas, layer, widthPt, heightPt, rendered, renderedWidth, rendering }
     items: [],            // overlay items
     selected: null,
@@ -125,6 +126,7 @@
 
     state.fileName = record.name || 'document.pdf';
     state.combined = !!record.combined;
+    state.parts = Array.isArray(record.parts) ? record.parts : null;
     el.docName.textContent = state.fileName;
 
     try {
@@ -141,7 +143,6 @@
       return;
     }
 
-    showPageCount();
     await buildPages();
     el.status.hidden = true;
     el.addPages.hidden = false;
@@ -196,6 +197,12 @@
         if (!p.el.querySelector('.page-moves')) p.el.appendChild(buildPageMoves(p.el));
       });
     }
+    // ...and a button to remove the file the page came from
+    if (state.parts && state.parts.length > 1) {
+      state.pages.forEach((p) => {
+        if (!p.el.querySelector('.page-remove')) p.el.appendChild(buildRemoveButton(p));
+      });
+    }
     updatePageMoves();
 
     if (!io) {
@@ -223,8 +230,10 @@
     added.forEach((p) => { io.observe(p.el); ro.observe(p.el); });
   }
 
+  // Pages shown (files removed don't count)
   function showPageCount() {
-    el.docPages.textContent = state.doc.numPages === 1 ? t('viewer.onePage') : t('viewer.pages', { n: state.doc.numPages });
+    const n = el.pages.querySelectorAll('.page').length;
+    el.docPages.textContent = n === 1 ? t('viewer.onePage') : t('viewer.pages', { n });
   }
 
   /* ---------------- adding files and photos to the document ---------- */
@@ -249,17 +258,19 @@
     const firstNew = state.doc.numPages + 1;
     try {
       const current = { name: state.fileName, blob: new Blob([state.doc.bytes]) };
-      const bytes = await Combine.combineToPdf([current, ...files]);
+      const parts = [];
+      const bytes = await Combine.combineToPdf([current, ...files], parts);
       const doc = await window.PdfHandler.load(bytes);
       // Pages still drawing from the old document finish first
       await Promise.all(state.pages.map((p) => p.rendering).filter(Boolean));
       // The previous document is kept: "בטל" can bring it back
       state.doc = doc;
       state.combined = true;
+      // The document so far keeps its files; each added file is a new one
+      state.parts = (state.parts || [{ name: state.fileName, pages: firstNew - 1 }]).concat(parts.slice(1));
       await buildPages(firstNew);
-      showPageCount();
       markDirty();
-      Storage.setCurrentDocument(state.fileName, new Blob([bytes], { type: 'application/pdf' }), { combined: true })
+      Storage.setCurrentDocument(state.fileName, new Blob([bytes], { type: 'application/pdf' }), { combined: true, parts: state.parts })
         .catch((err) => console.error(err));
     } catch (err) {
       console.error(err);
@@ -336,6 +347,57 @@
       up.disabled = i === 0;
       down.disabled = i === order.length - 1;
     });
+    // The last file left can't be removed ("בטל" / back start over instead)
+    const files = new Set(order.map(partOf));
+    order.forEach((page) => {
+      const btn = page.el.querySelector('.page-remove');
+      if (btn) btn.hidden = files.size < 2;
+    });
+    showPageCount();
+  }
+
+  /* ---------------- removing a file from a combined document -------- */
+
+  // Index of the file (in state.parts) a page came from
+  function partOf(page) {
+    if (!state.parts) return 0;
+    let end = 0;
+    for (let i = 0; i < state.parts.length; i++) {
+      end += state.parts[i].pages;
+      if (page.num <= end) return i;
+    }
+    return state.parts.length - 1;
+  }
+
+  function buildRemoveButton(page) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'page-remove';
+    const part = state.parts[partOf(page)];
+    btn.setAttribute('aria-label', t('viewer.removeFile', { name: part.name }));
+    btn.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M18.3 7.1 16.9 5.7 12 10.6 7.1 5.7 5.7 7.1l4.9 4.9-4.9 4.9 1.4 1.4 4.9-4.9 4.9 4.9 1.4-1.4-4.9-4.9z"/></svg>';
+    btn.addEventListener('pointerdown', (e) => e.stopPropagation());
+    btn.addEventListener('click', () => removeFile(partOf(page)));
+    return btn;
+  }
+
+  // Takes the file's pages out of the document, with what was added on them ("בטל" brings them back)
+  function removeFile(index) {
+    const part = state.parts[index];
+    const pages = pagesInOrder().filter((p) => partOf(p) === index);
+    const message = pages.length === 1
+      ? t('viewer.removeFileConfirm', { name: part.name })
+      : t('viewer.removeFileConfirmPages', { name: part.name, n: pages.length });
+    if (!confirm(message)) return;
+    setTextMode(false);
+    select(null);
+    state.items.filter((item) => pages.includes(item.page)).forEach(removeItem);
+    state.strokes.filter((s) => pages.includes(s.page)).forEach((s) => s.el.remove());
+    state.strokes = state.strokes.filter((s) => !pages.includes(s.page));
+    pages.forEach((p) => p.el.remove());
+    updatePageMoves();
+    markDirty();
+    toast(t('viewer.fileRemoved', { name: part.name }), 'success');
   }
 
   function movePage(page, dir) {
@@ -500,7 +562,8 @@
       strokes: state.strokes.slice(),
       order: pagesInOrder(),
       doc: state.doc,           // adding files makes a new document; undo brings the old one back
-      combined: state.combined
+      combined: state.combined,
+      parts: state.parts
     };
   }
 
@@ -556,10 +619,12 @@
     state.pages.length = keep;
     state.doc = snap.doc;
     state.combined = snap.combined;
+    state.parts = snap.parts;
     if (!state.combined) state.pages.forEach((p) => p.el.querySelector('.page-moves')?.remove());
+    if (!state.parts || state.parts.length < 2) state.pages.forEach((p) => p.el.querySelector('.page-remove')?.remove());
     showPageCount();
     Promise.all(pending).catch(() => {}).then(() => newer.destroy()).catch((err) => console.error(err));
-    Storage.setCurrentDocument(state.fileName, new Blob([state.doc.bytes], { type: 'application/pdf' }), { combined: state.combined })
+    Storage.setCurrentDocument(state.fileName, new Blob([state.doc.bytes], { type: 'application/pdf' }), { combined: state.combined, parts: state.parts })
       .catch((err) => console.error(err));
   }
 
@@ -1680,7 +1745,7 @@
     select(null);
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     const order = pagesInOrder().map((p) => p.num);
-    const reordered = order.some((num, i) => num !== i + 1);
+    const reordered = order.length !== state.doc.numPages || order.some((num, i) => num !== i + 1);
     const added = state.items.length > 0 || state.strokes.length > 0;
     // A combined document can be saved as it is (the combining is the change)
     if (!added && !reordered && !state.combined) {

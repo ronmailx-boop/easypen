@@ -421,6 +421,62 @@ test('add files: more PDFs and photos are added at the end of an open document, 
   assert.equal(await page.textContent('#doc-pages'), '7 עמודים');
 });
 
+test('remove file: ✕ on a page removes its whole file after a warning, undo brings it back', async () => {
+  await page.goto(server.baseUrl);
+  const jpg = await makeJpeg(600, 800, '#2980b9');
+  await page.setInputFiles('#file-input', [
+    pdfFile('contract.pdf'),
+    { name: 'id.jpg', mimeType: 'image/jpeg', buffer: jpg },
+    pdfFile('appendix.pdf')
+  ]);
+  await page.waitForURL(/viewer\.html/);
+  await page.waitForSelector('.page.is-rendered');
+  assert.equal(await page.textContent('#doc-pages'), '9 עמודים');
+  assert.equal(await page.locator('.page-remove:visible').count(), 9, 'every page has ✕');
+  const order = () => page.evaluate(() => Array.from(document.querySelectorAll('.page'), (p) => p.dataset.page).join(','));
+
+  // A signature on the appendix goes with it
+  await scrollToPage(7);
+  await drawNewSignatureAndPlace();
+  await page.click('#item-toolbar [data-action="done"]');
+  await expectCount('.ov-sig', 1);
+
+  // Declined: nothing happens
+  let asked = '';
+  page.once('dialog', (d) => { asked = d.message(); d.dismiss(); });
+  await page.click('.page[data-page="6"] .page-remove');
+  assert.equal(asked, 'להסיר את הקובץ "appendix.pdf" (4 עמודים) מהמסמך?');
+  assert.equal(await order(), '1,2,3,4,5,6,7,8,9');
+
+  // Accepted: the 4 pages of appendix.pdf (and the signature on them) go
+  page.once('dialog', (d) => d.accept());
+  await page.click('.page[data-page="7"] .page-remove');
+  assert.equal(await order(), '1,2,3,4,5');
+  assert.equal(await page.textContent('#doc-pages'), '5 עמודים');
+  await expectCount('.ov-sig', 0);
+
+  // The photo: one page
+  page.once('dialog', (d) => { asked = d.message(); d.accept(); });
+  await page.click('.page[data-page="5"] .page-remove');
+  assert.equal(asked, 'להסיר את הקובץ "id.jpg" מהמסמך?');
+  assert.equal(await order(), '1,2,3,4');
+  assert.equal(await page.locator('.page-remove:visible').count(), 0, 'the last file left has no ✕');
+
+  // Undo brings the photo back; saved without the appendix
+  await page.click('#undo-btn');
+  assert.equal(await order(), '1,2,3,4,5');
+  assert.equal(await page.locator('.page-remove:visible').count(), 5);
+  const { bytes } = await exportViaDownload();
+  const { PDFDocument } = require(path.resolve(__dirname, '../vendor/pdf-lib/pdf-lib.min.js'));
+  const out = await PDFDocument.load(bytes);
+  assert.equal(out.getPageCount(), 5);
+
+  // Undo again: the appendix and its signature are back
+  await page.click('#undo-btn');
+  assert.equal(await order(), '1,2,3,4,5,6,7,8,9');
+  await expectCount('.ov-sig', 1);
+});
+
 test('combine: too many, broken or encrypted files are refused with a message', async () => {
   await page.goto(server.baseUrl);
   const jpeg = await makeJpeg(100, 100, '#000');
