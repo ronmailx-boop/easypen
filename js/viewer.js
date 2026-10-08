@@ -146,7 +146,7 @@
     el.status.hidden = true;
     el.addPages.hidden = false;
     commit();
-    [el.addSig, el.addText, el.drawBtn, el.saveShare].forEach((b) => { b.disabled = false; });
+    [el.addSig, el.addText, el.drawBtn, el.saveShare, el.undoBtn].forEach((b) => { b.disabled = false; });
   }
 
   /* ------------------------------------------------------------------ */
@@ -253,9 +253,8 @@
       const doc = await window.PdfHandler.load(bytes);
       // Pages still drawing from the old document finish first
       await Promise.all(state.pages.map((p) => p.rendering).filter(Boolean));
-      const old = state.doc;
+      // The previous document is kept: "בטל" can bring it back
       state.doc = doc;
-      Promise.resolve().then(() => old.destroy()).catch((err) => console.error(err));
       state.combined = true;
       await buildPages(firstNew);
       showPageCount();
@@ -499,13 +498,15 @@
         fontIndex: item.fontIndex, text: item.type === 'text' ? item.content.textContent : null
       })),
       strokes: state.strokes.slice(),
-      order: pagesInOrder()
+      order: pagesInOrder(),
+      doc: state.doc,           // adding files makes a new document; undo brings the old one back
+      combined: state.combined
     };
   }
 
   function sameSnapshot(a, b) {
     const sameList = (x, y, eq) => x.length === y.length && x.every((v, i) => eq(v, y[i]));
-    return sameList(a.strokes, b.strokes, (x, y) => x === y)
+    return a.doc === b.doc && sameList(a.strokes, b.strokes, (x, y) => x === y)
       && sameList(a.order, b.order, (x, y) => x === y)
       && sameList(a.items, b.items, (x, y) => x.item === y.item && x.page === y.page && x.fx === y.fx
         && x.fy === y.fy && x.fw === y.fw && x.fh === y.fh && x.fontIndex === y.fontIndex && x.text === y.text);
@@ -538,11 +539,32 @@
   }
 
   function updateUndo() {
-    el.undoBtn.disabled = !canUndo();
     el.drawUndo.disabled = !canUndo();
   }
 
+  // Undoing "add files": the pages added go away and the document before them comes back
+  function restoreDocument(snap) {
+    const newer = state.doc;
+    const keep = snap.doc.numPages;
+    const removed = state.pages.slice(keep);
+    removed.forEach((page) => {
+      io.unobserve(page.el);
+      ro.unobserve(page.el);
+      page.el.remove();
+    });
+    const pending = state.pages.map((p) => p.rendering).filter(Boolean);
+    state.pages.length = keep;
+    state.doc = snap.doc;
+    state.combined = snap.combined;
+    if (!state.combined) state.pages.forEach((p) => p.el.querySelector('.page-moves')?.remove());
+    showPageCount();
+    Promise.all(pending).catch(() => {}).then(() => newer.destroy()).catch((err) => console.error(err));
+    Storage.setCurrentDocument(state.fileName, new Blob([state.doc.bytes], { type: 'application/pdf' }), { combined: state.combined })
+      .catch((err) => console.error(err));
+  }
+
   function restore(snap) {
+    if (snap.doc !== state.doc) restoreDocument(snap);
     state.items.forEach((item) => item.el.remove());
     state.items = snap.items.map((s) => {
       const { item } = s;
@@ -563,6 +585,17 @@
     const order = snap.order.concat(pagesInOrder().filter((p) => !snap.order.includes(p)));
     order.forEach((page) => el.pages.insertBefore(page.el, el.addPages));
     updatePageMoves();
+  }
+
+  // "בטל" with nothing left to undo: close the file and start again from the home screen
+  function onUndoButton() {
+    if (canUndo()) {
+      undo();
+      return;
+    }
+    if (!confirm(t('viewer.startOver'))) return;
+    state.dirty = false;
+    location.href = 'index.html';
   }
 
   function undo() {
@@ -1716,7 +1749,7 @@
   el.addText.addEventListener('click', () => setTextMode(!state.textMode));
   el.modeCancel.addEventListener('click', () => setTextMode(false));
   el.saveShare.addEventListener('click', onSaveShare);
-  el.undoBtn.addEventListener('click', undo);
+  el.undoBtn.addEventListener('click', onUndoButton);
 
   el.toolbar.addEventListener('pointerdown', (e) => {
     // Keep the text box focused (and the keyboard open) while using the toolbar
