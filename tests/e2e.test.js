@@ -573,7 +573,6 @@ test('undo: each change (signature, move, delete, text, drawing, page order) can
   await page.setInputFiles('#file-input', [pdfFile('a.pdf'), pdfFile('b.pdf')]);
   await page.waitForURL(/viewer\.html/);
   await page.waitForSelector('.page.is-rendered');
-  assert.equal(await page.isDisabled('#undo-btn'), true, 'nothing to undo yet');
   const order = () => page.evaluate(() => Array.from(document.querySelectorAll('.page'), (p) => p.dataset.page).join(','));
 
   // Page order
@@ -625,7 +624,6 @@ test('undo: each change (signature, move, delete, text, drawing, page order) can
   await expectCount('.ov-sig', 0);
   await page.click('#undo-btn');
   assert.equal(await order(), '1,2,3,4,5,6,7,8');
-  assert.equal(await page.isDisabled('#undo-btn'), true);
 
   // Ctrl+Z works too (outside a text box being typed in)
   await page.click('#add-text');
@@ -643,7 +641,35 @@ test('undo: each change (signature, move, delete, text, drawing, page order) can
   assert.equal(await page.isDisabled('#undo-btn'), false, 'enabled while typing');
   await page.tap('#undo-btn');
   await expectCount('.ov-text', 0);
-  assert.equal(await page.isDisabled('#undo-btn'), true);
+
+  // Files added by mistake: undo takes their pages away, the signature on page 1 stays
+  await scrollToPage(1);
+  await page.click('#add-sig');   // the signature drawn earlier was saved: pick it
+  await page.click('#sig-picker[open] .sig-choice');
+  await expectCount('.ov-sig', 1);
+  await page.setInputFiles('#add-pages-input', pdfFile('extra.pdf'));
+  await expectCount('.page', 12);
+  assert.equal(await page.textContent('#doc-pages'), '12 עמודים');
+  await page.tap('#undo-btn');
+  await expectCount('.page', 8);
+  assert.equal(await page.textContent('#doc-pages'), '8 עמודים');
+  await expectCount('.ov-sig', 1);
+  const { bytes } = await exportViaDownload();
+  const { PDFDocument } = require(path.resolve(__dirname, '../vendor/pdf-lib/pdf-lib.min.js'));
+  assert.equal((await PDFDocument.load(bytes)).getPageCount(), 8, 'exported without the added pages');
+  await page.tap('#undo-btn');
+  await expectCount('.ov-sig', 0);
+
+  // Nothing left to undo: "בטל" offers to close the file and start over
+  let asked = '';
+  page.once('dialog', (d) => { asked = d.message(); d.dismiss(); });
+  await page.tap('#undo-btn');
+  assert.equal(asked, 'אין עוד מה לבטל. לסגור את הקובץ ולהתחיל מחדש?');
+  assert.ok(page.url().includes('viewer.html'), 'stays when declined');
+  page.once('dialog', (d) => d.accept());
+  await page.tap('#undo-btn');
+  await page.waitForURL((u) => !u.pathname.endsWith('viewer.html'));
+  await page.waitForSelector('#file-input', { state: 'attached' });
 });
 
 test('editor: dragging a signature onto another page moves it there', async () => {
