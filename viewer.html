@@ -27,7 +27,16 @@
     <button type="button" id="draw-done" class="btn btn-ghost btn-sm draw-done" data-i18n="viewer.done">סיום</button>
   </header>
 
-  <main id="pages" class="pages"></main>
+  <main id="pages" class="pages">
+    <div id="add-pages" class="add-pages" hidden>
+      <button type="button" id="add-pages-btn" class="add-pages-btn">
+        <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path fill="currentColor" d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>
+        <span data-i18n="viewer.addFiles">הוספת קבצים או תמונות</span>
+      </button>
+      <span class="muted small" data-i18n="viewer.addFilesHint">קבצי PDF או תמונות — הדפים יתווספו בסוף המסמך</span>
+      <input type="file" id="add-pages-input" accept="application/pdf,.pdf,image/jpeg,.jpg,.jpeg,image/png,.png" multiple hidden>
+    </div>
+  </main>
 
   <div id="status" class="status-screen">
     <div class="spinner" aria-hidden="true"></div>
@@ -186,6 +195,7 @@
   <script src="js/ui.js"></script>
   <script src="js/signature-pad.js"></script>
   <script src="js/pdf-handler.js"></script>
+  <script src="js/combine-pdf.js"></script>
   <script src="js/share.js"></script>
   <script src="js/viewer.js"></script>
 </body>

@@ -361,6 +361,66 @@ test('combine: PDFs and photos become one PDF, PDF pages copied as they are', as
   assert.deepEqual(pages.slice(0, 5).map(hasFont), [true, true, true, true, true]);
 });
 
+test('add files: more PDFs and photos are added at the end of an open document, signatures stay', async () => {
+  await openInEditor('contract.pdf');
+  assert.equal(await page.isVisible('#add-pages-btn'), true);
+  assert.equal(await page.locator('.page-moves').count(), 0, 'a single PDF has no page arrows');
+  await drawNewSignatureAndPlace();
+  const before = await overlayBoxes();
+
+  // Something that isn't a PDF or a photo, then a broken PDF: refused, the document is unchanged
+  await page.setInputFiles('#add-pages-input', { name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('x') });
+  await page.waitForSelector('#toast.show');
+  assert.equal(await page.textContent('#toast'), 'כרגע נתמכים קבצי PDF ותמונות JPG או PNG בלבד');
+  await page.setInputFiles('#add-pages-input', { name: 'broken.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.7 broken') });
+  await page.waitForFunction(() => document.getElementById('toast').textContent.includes('broken.pdf'));
+  assert.equal(await page.textContent('#toast'), 'לא ניתן לקרוא את הקובץ broken.pdf. ייתכן שהוא פגום.');
+  await expectCount('.page', 4);
+  pageErrors.length = 0;   // the failed file is logged on purpose
+
+  const jpg = await makeJpeg(600, 800, '#c0392b');
+  const { PDFDocument } = require(path.resolve(__dirname, '../vendor/pdf-lib/pdf-lib.min.js'));
+  const extra = await PDFDocument.create();
+  extra.addPage([842, 595]);
+  await page.setInputFiles('#add-pages-input', [
+    { name: 'id.jpg', mimeType: 'image/jpeg', buffer: jpg },
+    { name: 'appendix.pdf', mimeType: 'application/pdf', buffer: Buffer.from(await extra.save()) }
+  ]);
+  await expectCount('.page', 6);
+  await page.waitForFunction(() => document.getElementById('toast').textContent.includes('נוספו'));
+  assert.equal(await page.textContent('#toast'), 'נוספו 2 עמודים בסוף המסמך');
+  assert.equal(await page.textContent('#doc-pages'), '6 עמודים');
+  assert.equal(await page.locator('.page-moves').count(), 6, 'now every page can be moved');
+  assert.deepEqual(await overlayBoxes(), before, 'the signature stayed where it was');
+  // The add button stays after the last page
+  assert.equal(await page.evaluate(() => document.getElementById('pages').lastElementChild.id), 'add-pages');
+
+  // Once more, then the photo goes first
+  await page.setInputFiles('#add-pages-input', { name: 'back.jpg', mimeType: 'image/jpeg', buffer: jpg });
+  await expectCount('.page', 7);
+  await page.waitForFunction(() => document.getElementById('toast').textContent === 'נוסף עמוד אחד בסוף המסמך');
+  await page.locator('.page[data-page="5"] .page-moves').scrollIntoViewIfNeeded();
+  for (let i = 0; i < 4; i++) await page.click('.page[data-page="5"] [data-move="up"]');
+
+  const { name, bytes } = await exportViaDownload();
+  assert.equal(name, 'contract-חתום.pdf');
+  const pages = (await PDFDocument.load(bytes)).getPages();
+  assert.deepEqual(pages.map((p) => Math.round(p.getWidth())), [632, 595, 595, 595, 595, 842, 632]);
+  assert.ok(bytes.indexOf(scanData(jpg)) >= 0, 'photo image data unchanged');
+
+  // Kept for a reload of the editor
+  const stored = await page.evaluate(async () => {
+    const r = await window.EasyPenStorage.getCurrentDocument();
+    return { combined: r.combined, name: r.name, size: r.blob.size };
+  });
+  assert.equal(stored.combined, true);
+  assert.equal(stored.name, 'contract.pdf');
+  page.once('dialog', (d) => d.accept());
+  await page.reload();
+  await page.waitForSelector('.page.is-rendered');
+  assert.equal(await page.textContent('#doc-pages'), '7 עמודים');
+});
+
 test('combine: too many, broken or encrypted files are refused with a message', async () => {
   await page.goto(server.baseUrl);
   const jpeg = await makeJpeg(100, 100, '#000');

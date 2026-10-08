@@ -861,6 +861,38 @@ html:has(> body.viewer),
 .page-move:disabled { background: #c9cfe3; cursor: default; }
 .draw-mode .page-moves { display: none; }
 
+/* "Add files or photos" after the last page */
+.add-pages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .4rem;
+  width: 100%;
+  max-width: 900px;
+  padding: .25rem 0 .5rem;
+  text-align: center;
+}
+.add-pages[hidden] { display: none; }
+.add-pages-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+  width: 100%;
+  min-height: 64px;
+  padding: .8rem 1rem;
+  border: 2px dashed var(--primary);
+  border-radius: 14px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.add-pages-btn:disabled { opacity: .6; }
+.draw-mode .add-pages,
+.sample-mode .add-pages { display: none; }
+
 /* ---------- Free drawing ---------- */
 
 .draw-layer {
