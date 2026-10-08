@@ -80,7 +80,9 @@
     addPagesBtn: document.getElementById('add-pages-btn'),
     addPagesInput: document.getElementById('add-pages-input'),
     backBtn: document.getElementById('back-btn'),
-    undoBtn: document.getElementById('undo-btn')
+    undoBtn: document.getElementById('undo-btn'),
+    redoBtn: document.getElementById('redo-btn'),
+    drawRedo: document.getElementById('draw-redo')
   };
 
   const state = {
@@ -97,6 +99,8 @@
     drawSnapshot: null,   // strokes when drawing mode was entered, restored on cancel
     drawHistoryLen: 0,    // history length when drawing mode was entered
     history: [],          // snapshots after each change, the last one is the current state (see "Undo")
+    future: [],           // steps undone, the next one to redo last ("חזור")
+    drawFutureLen: 0,     // future length when drawing mode was entered
     draw: { tool: 'pen', color: '#1c2033', width: 3 },
     dirty: false,
     nextId: 1
@@ -194,19 +198,7 @@
       wireInk(page);
     }
     el.pages.insertBefore(frag, el.addPages);
-    // A combined document gets arrows on every page (also on the pages it had before)
-    if (state.combined && state.doc.numPages > 1) {
-      state.pages.forEach((p) => {
-        if (!p.el.querySelector('.page-moves')) p.el.appendChild(buildPageMoves(p.el));
-      });
-    }
-    // ...and a button to remove the file the page came from
-    if (state.parts && state.parts.length > 1) {
-      state.pages.forEach((p) => {
-        if (!p.el.querySelector('.page-remove')) p.el.appendChild(buildRemoveButton(p));
-      });
-    }
-    updatePageMoves();
+    addPageControls();
 
     if (!io) {
       io = new IntersectionObserver((entries) => {
@@ -231,6 +223,22 @@
     }
 
     added.forEach((p) => { io.observe(p.el); ro.observe(p.el); });
+  }
+
+  function addPageControls() {
+    // A combined document gets arrows on every page (also on the pages it had before)
+    if (state.combined && state.pages.length > 1) {
+      state.pages.forEach((p) => {
+        if (!p.el.querySelector('.page-moves')) p.el.appendChild(buildPageMoves(p.el));
+      });
+    }
+    // ...and a button to remove the file the page came from
+    if (state.parts && state.parts.length > 1) {
+      state.pages.forEach((p) => {
+        if (!p.el.querySelector('.page-remove')) p.el.appendChild(buildRemoveButton(p));
+      });
+    }
+    updatePageMoves();
   }
 
   // Pages shown (files removed don't count)
@@ -614,6 +622,7 @@
       strokes: state.strokes.slice(),
       order: pagesInOrder(),
       doc: state.doc,           // adding files makes a new document; undo brings the old one back
+      pages: state.pages.slice(),
       combined: state.combined,
       parts: state.parts
     };
@@ -636,6 +645,7 @@
     const last = state.history[state.history.length - 1];
     if (last && sameSnapshot(last, snap)) return;
     state.history.push(snap);
+    dropFuture();
     if (state.history.length > MAX_HISTORY) {
       state.history.shift();
       if (state.drawMode && state.drawHistoryLen > 1) state.drawHistoryLen--;
@@ -653,29 +663,50 @@
     return state.history.length > 1 || isEditingText();
   }
 
+  function canRedo() {
+    // While drawing, only lines undone in this drawing session come back
+    return state.future.length > (state.drawMode ? state.drawFutureLen : 0);
+  }
+
   function updateUndo() {
     el.drawUndo.disabled = !canUndo();
+    el.redoBtn.disabled = el.drawRedo.disabled = !canRedo();
+  }
+
+  // A new change after "בטל": the steps undone can't come back any more
+  function dropFuture() {
+    if (!state.future.length) return;
+    const kept = new Set(state.history.map((s) => s.doc));
+    const docs = new Set(state.future.map((s) => s.doc).filter((d) => !kept.has(d)));
+    const pending = state.future.flatMap((s) => s.pages).map((p) => p.rendering).filter(Boolean);
+    state.future = [];
+    state.drawFutureLen = 0;
+    if (!docs.size) return;
+    // Documents of files added and undone, once their pages finished drawing
+    Promise.all(pending).catch(() => {}).then(() => docs.forEach((d) => d.destroy())).catch((err) => console.error(err));
   }
 
   // Undoing "add files": the pages added go away and the document before them comes back
+  // (redoing it brings the newer document and its pages back)
   function restoreDocument(snap) {
-    const newer = state.doc;
-    const keep = snap.doc.numPages;
-    const removed = state.pages.slice(keep);
-    removed.forEach((page) => {
+    state.pages.slice(snap.pages.length).forEach((page) => {
       io.unobserve(page.el);
       ro.unobserve(page.el);
       page.el.remove();
     });
-    const pending = state.pages.map((p) => p.rendering).filter(Boolean);
-    state.pages.length = keep;
+    const back = snap.pages.slice(state.pages.length);
+    state.pages = snap.pages.slice();
     state.doc = snap.doc;
     state.combined = snap.combined;
     state.parts = snap.parts;
+    back.forEach((page) => {
+      el.pages.insertBefore(page.el, el.addPages);
+      io.observe(page.el);
+      ro.observe(page.el);
+    });
     if (!state.combined) state.pages.forEach((p) => p.el.querySelector('.page-moves')?.remove());
     if (!state.parts || state.parts.length < 2) state.pages.forEach((p) => p.el.querySelector('.page-remove')?.remove());
-    showPageCount();
-    Promise.all(pending).catch(() => {}).then(() => newer.destroy()).catch((err) => console.error(err));
+    addPageControls();
     Storage.setCurrentDocument(state.fileName, new Blob([state.doc.bytes], { type: 'application/pdf' }), { combined: state.combined, parts: state.parts })
       .catch((err) => console.error(err));
   }
@@ -698,9 +729,9 @@
     state.strokes.forEach((s) => s.el.remove());
     snap.strokes.forEach((s) => s.page.ink.appendChild(s.el));
     state.strokes = snap.strokes.slice();
-    // Pages added after this step stay, after the others
-    const order = snap.order.concat(pagesInOrder().filter((p) => !snap.order.includes(p)));
-    order.forEach((page) => el.pages.insertBefore(page.el, el.addPages));
+    // Pages of a removed file leave, or come back
+    pagesInOrder().filter((p) => !snap.order.includes(p)).forEach((p) => p.el.remove());
+    snap.order.forEach((page) => el.pages.insertBefore(page.el, el.addPages));
     updatePageMoves();
   }
 
@@ -715,15 +746,28 @@
     location.href = 'index.html';
   }
 
-  function undo() {
+  function leaveEditing() {
     if (state.selected && state.selected.type === 'text') stopEditing(state.selected);
     select(null);
     setTextMode(false);
+  }
+
+  function undo() {
+    leaveEditing();
     if (!canUndo()) return;
-    state.history.pop();
+    state.future.push(state.history.pop());
     restore(state.history[state.history.length - 1]);
-    // The state as it is now (pages added since then included) is the new last step
-    state.history[state.history.length - 1] = snapshot();
+    state.dirty = true;
+    updateUndo();
+  }
+
+  // "חזור": brings back the last step undone
+  function redo() {
+    leaveEditing();
+    if (!canRedo()) return;
+    const snap = state.future.pop();
+    state.history.push(snap);
+    restore(snap);
     state.dirty = true;
     updateUndo();
   }
@@ -1348,6 +1392,7 @@
       if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
       state.drawSnapshot = state.strokes.slice();
       state.drawHistoryLen = state.history.length;
+      state.drawFutureLen = state.future.length;
       setTrayCollapsed(false, false);
       updateDrawTray();
       toast(t('draw.hint'), 'info', 4000);
@@ -1373,6 +1418,7 @@
     snapshot.forEach((s) => s.page.ink.appendChild(s.el));
     state.strokes = snapshot;
     state.history.length = Math.max(state.drawHistoryLen, 1);
+    state.future.length = Math.min(state.future.length, state.drawFutureLen);
     setDrawMode(false);
   }
 
@@ -1521,6 +1567,7 @@
     el.drawDone.addEventListener('click', () => setDrawMode(false));
     el.drawCancel.addEventListener('click', cancelDrawing);
     el.drawUndo.addEventListener('click', undo);
+    el.drawRedo.addEventListener('click', redo);
     el.drawTrayToggle.addEventListener('click', toggleTray);
     el.drawScroll.addEventListener('click', () => setScrollMode(!document.body.classList.contains('scroll-mode')));
     el.drawTray.addEventListener('click', (e) => {
@@ -1867,6 +1914,7 @@
   el.modeCancel.addEventListener('click', () => setTextMode(false));
   el.saveShare.addEventListener('click', onSaveShare);
   el.undoBtn.addEventListener('click', onUndoButton);
+  el.redoBtn.addEventListener('click', redo);
 
   el.toolbar.addEventListener('pointerdown', (e) => {
     // Keep the text box focused (and the keyboard open) while using the toolbar
@@ -1892,11 +1940,13 @@
   });
 
   document.addEventListener('keydown', (e) => {
-    // Ctrl+Z / ⌘Z, except while typing (the browser undoes the typing)
-    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z'
+    // Ctrl+Z / ⌘Z undo, Ctrl+Y / ⇧⌘Z redo, except while typing (the browser undoes the typing)
+    const key = e.key.toLowerCase();
+    if ((e.ctrlKey || e.metaKey) && (key === 'z' || key === 'y')
       && !isEditingText() && !document.querySelector('dialog[open]')) {
       e.preventDefault();
-      undo();
+      if (key === 'z' && !e.shiftKey) undo();
+      else redo();
       return;
     }
     if (e.key === 'Escape') {

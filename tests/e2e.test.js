@@ -726,6 +726,37 @@ test('undo: each change (signature, move, delete, text, drawing, page order) can
   await page.click('#undo-btn');
   assert.equal(await order(), '1,2,3,4,5,6,7,8');
 
+  // "חזור" brings the steps back one at a time, then has nothing left
+  assert.equal(await page.isDisabled('#undo-btn'), false);
+  await page.click('#redo-btn');
+  assert.equal(await order(), '2,1,3,4,5,6,7,8');
+  await page.click('#redo-btn');
+  await expectCount('.ov-sig', 1);
+  assert.equal(await pos(), placed);
+  await page.click('#redo-btn');
+  assert.notEqual(await pos(), placed, 'move redone');
+  await page.click('#redo-btn');
+  await expectCount('.ov-sig', 0);
+  await page.click('#redo-btn');
+  await expectCount('.ov-text', 1);
+  await page.click('#redo-btn');
+  await expectCount('.draw-layer path', 1);
+  assert.equal(await page.isDisabled('#redo-btn'), true, 'nothing left to redo');
+
+  // A new change after undo: what was undone can't come back
+  await page.click('#undo-btn');
+  await expectCount('.draw-layer path', 0);
+  assert.equal(await page.isDisabled('#redo-btn'), false);
+  await page.click('.page[data-page="3"] [data-move="down"]');
+  assert.equal(await page.isDisabled('#redo-btn'), true, 'redo cleared by a new change');
+  for (let i = 0; i < 6; i++) await page.click('#undo-btn');
+  assert.equal(await order(), '1,2,3,4,5,6,7,8');
+  await expectCount('.ov-text', 0);
+  await page.keyboard.press('Control+y');
+  assert.equal(await order(), '2,1,3,4,5,6,7,8', 'Ctrl+Y redoes');
+  await page.keyboard.press('Control+z');
+  assert.equal(await order(), '1,2,3,4,5,6,7,8');
+
   // Ctrl+Z works too (outside a text box being typed in)
   await page.click('#add-text');
   await page.mouse.click(p.x + 80, p.y + 80);
@@ -755,6 +786,17 @@ test('undo: each change (signature, move, delete, text, drawing, page order) can
   await expectCount('.page', 8);
   assert.equal(await page.textContent('#doc-pages'), '8 עמודים');
   await expectCount('.ov-sig', 1);
+  // ...and "חזור" brings them back, with the ✕ and arrows on the pages
+  await page.tap('#redo-btn');
+  await expectCount('.page', 12);
+  assert.equal(await page.textContent('#doc-pages'), '12 עמודים');
+  await expectCount('.page-remove', 12);
+  await page.waitForSelector('.page[data-page="12"]', { state: 'attached' });
+  await page.locator('.page[data-page="12"]').scrollIntoViewIfNeeded();
+  await page.waitForSelector('.page[data-page="12"].is-rendered');
+  await page.tap('#undo-btn');
+  await expectCount('.page', 8);
+  await expectCount('.page-remove', 8);
   const { bytes } = await exportViaDownload();
   const { PDFDocument } = require(path.resolve(__dirname, '../vendor/pdf-lib/pdf-lib.min.js'));
   assert.equal((await PDFDocument.load(bytes)).getPageCount(), 8, 'exported without the added pages');
@@ -820,6 +862,13 @@ test('editor: free drawing - undo, cancel and export at the drawn position', asy
   await page.click('#draw-undo');
   await expectCount('.draw-layer path', 0);
   assert.equal(await page.isDisabled('#draw-undo'), true);
+  // ...and the redo next to it brings it back
+  await page.click('#draw-redo');
+  await expectCount('.draw-layer path', 1);
+  assert.equal(await page.isDisabled('#draw-redo'), true);
+  await page.click('#draw-undo');
+  await expectCount('.draw-layer path', 0);
+  assert.equal(await page.isDisabled('#draw-redo'), false);
 
   // Cancel discards what was drawn in this session
   await scribble(0.2, 0.2, 0.5, 0.3);

@@ -477,7 +477,9 @@ html:has(> body.viewer),
 /* The back arrow points to the start side */
 [dir="ltr"] #back-btn svg,
 [dir="ltr"] #draw-undo svg,
-[dir="ltr"] #undo-btn svg { transform: scaleX(-1); }
+[dir="ltr"] #undo-btn svg,
+[dir="ltr"] #draw-redo svg,
+[dir="ltr"] #redo-btn svg { transform: scaleX(-1); }
 
 /* Undo: at the end of the header, next to the title */
 .undo-btn {
@@ -485,6 +487,8 @@ html:has(> body.viewer),
   gap: .3rem;
   margin-inline-start: auto;
 }
+/* Redo sits right after undo */
+.redo-btn { margin-inline-start: 0; }
 .sample-mode .undo-btn { visibility: hidden; }
 
 /* Headers stay at the top of the visible screen while pinch-zoomed (see pinBars in viewer.js) */

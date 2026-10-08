@@ -23,6 +23,10 @@
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg>
       <span data-i18n="viewer.undo">בטל</span>
     </button>
+    <button type="button" id="redo-btn" class="btn btn-ghost btn-sm undo-btn redo-btn" disabled>
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 14-5-5 5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>
+      <span data-i18n="viewer.redo">חזור</span>
+    </button>
   </header>
 
   <header id="draw-header" class="app-header draw-header" hidden>
@@ -124,6 +128,9 @@
         <span id="draw-tool-name" class="draw-tool-name" aria-live="polite"></span>
         <button type="button" id="draw-undo" class="draw-undo" aria-label="בטל קו אחרון" data-i18n-aria="draw.undo" disabled>
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg>
+        </button>
+        <button type="button" id="draw-redo" class="draw-undo" aria-label="החזר קו" data-i18n-aria="draw.redo" disabled>
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 14-5-5 5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>
         </button>
       </div>
       <div class="color-row" role="group" aria-label="צבע" data-i18n-aria="draw.color">
