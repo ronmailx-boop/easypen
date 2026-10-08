@@ -72,6 +72,9 @@
     readyDialog: document.getElementById('ready-dialog'),
     nameDialog: document.getElementById('name-dialog'),
     nameInput: document.getElementById('file-name-input'),
+    moveDialog: document.getElementById('move-dialog'),
+    moveTitle: document.getElementById('move-title'),
+    moveGrid: document.querySelector('#move-dialog .move-grid'),
     busy: document.getElementById('busy'),
     addPages: document.getElementById('add-pages'),
     addPagesBtn: document.getElementById('add-pages-btn'),
@@ -308,9 +311,13 @@
   function buildPageMoves(pageEl) {
     const box = document.createElement('div');
     box.className = 'page-moves';
-    const num = document.createElement('span');
+    // The number opens "move to page ...": straight to any place, not one step at a time
+    const num = document.createElement('button');
+    num.type = 'button';
     num.className = 'page-num';
-    num.setAttribute('aria-hidden', 'true');
+    num.innerHTML = '<span class="page-num-text"></span><span class="page-num-move"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M3 8l4-4 4 4M17 20V4M13 16l4 4 4-4"/></svg></span>';
+    num.querySelector('.page-num-move').append(t('order.move'));
+    num.addEventListener('click', () => openMoveDialog(pageFromEl(pageEl)));
     box.appendChild(num);
     ['up', 'down'].forEach((dir) => {
       const btn = document.createElement('button');
@@ -339,7 +346,8 @@
       page.el.setAttribute('aria-label', t('viewer.page', { n }));
       const box = page.el.querySelector('.page-moves');
       if (!box) return;
-      box.querySelector('.page-num').textContent = `${n}/${order.length}`;
+      box.querySelector('.page-num-text').textContent = `${n}/${order.length}`;
+      box.querySelector('.page-num').setAttribute('aria-label', t('order.moveTo', { n, total: order.length }));
       const up = box.querySelector('[data-move="up"]');
       const down = box.querySelector('[data-move="down"]');
       up.setAttribute('aria-label', t('order.up', { n }));
@@ -415,6 +423,50 @@
     // Keep the focus on the moved page (the other arrow once it reaches an end)
     const btn = page.el.querySelector(`[data-move="${dir}"]`);
     (btn.disabled ? page.el.querySelector(`[data-move="${dir === 'up' ? 'down' : 'up'}"]`) : btn).focus({ preventScroll: true });
+  }
+
+  // Moves the page to place `to` (1-based) and shows it there
+  function movePageTo(page, to) {
+    const order = pagesInOrder();
+    const from = order.indexOf(page);
+    if (from === -1 || to - 1 === from) return;
+    const rest = order.filter((p) => p !== page);
+    el.pages.insertBefore(page.el, rest[to - 1] ? rest[to - 1].el : el.addPages);
+    updatePageMoves();
+    markDirty();
+    page.el.scrollIntoView({ block: 'start' });
+    page.el.querySelector('.page-num').focus({ preventScroll: true });
+    toast(t('order.moved', { n: to }), 'success');
+  }
+
+  function openMoveDialog(page) {
+    const order = pagesInOrder();
+    const current = order.indexOf(page) + 1;
+    el.moveTitle.textContent = t('order.moveTitle', { n: current });
+    el.moveGrid.replaceChildren();
+    order.forEach((_, i) => {
+      const n = i + 1;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'move-to';
+      btn.textContent = String(n);
+      if (n === current) {
+        btn.disabled = true;
+        btn.setAttribute('aria-current', 'true');
+      }
+      btn.addEventListener('click', () => {
+        el.moveDialog.close();
+        movePageTo(page, n);
+      });
+      el.moveGrid.appendChild(btn);
+    });
+    el.moveDialog.showModal();
+  }
+
+  function wireMoveDialog() {
+    el.moveDialog.querySelector('[data-action="close"]').addEventListener('click', () => el.moveDialog.close());
+    // A tap outside the sheet closes it
+    el.moveDialog.addEventListener('click', (e) => { if (e.target === el.moveDialog) el.moveDialog.close(); });
   }
 
   function pageFromEl(node) {
@@ -1870,6 +1922,7 @@
 
   wireReadyDialog();
   wireNameDialog();
+  wireMoveDialog();
   wireAddPages();
   wireDrawTray();
   init();
