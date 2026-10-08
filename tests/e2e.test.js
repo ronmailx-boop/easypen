@@ -635,6 +635,15 @@ test('undo: each change (signature, move, delete, text, drawing, page order) can
   await expectCount('.ov-text', 1);
   await page.keyboard.press('Control+z');
   await expectCount('.ov-text', 0);
+
+  // On a phone "בטל" is tapped while still typing (keyboard open): the button works then too
+  await page.tap('#add-text');
+  await page.touchscreen.tap(p.x + 80, p.y + 80);
+  await page.keyboard.type('xyz');
+  assert.equal(await page.isDisabled('#undo-btn'), false, 'enabled while typing');
+  await page.tap('#undo-btn');
+  await expectCount('.ov-text', 0);
+  assert.equal(await page.isDisabled('#undo-btn'), true);
 });
 
 test('editor: dragging a signature onto another page moves it there', async () => {

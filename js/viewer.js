@@ -515,7 +515,7 @@
   function commit() {
     if (!state.doc) return;
     // Typing is one step: it is recorded when the text box is left
-    if (state.selected && state.selected.el.classList.contains('is-editing')) return;
+    if (isEditingText()) return;
     const snap = snapshot();
     const last = state.history[state.history.length - 1];
     if (last && sameSnapshot(last, snap)) return;
@@ -527,8 +527,14 @@
     updateUndo();
   }
 
+  function isEditingText() {
+    return !!(state.selected && state.selected.el.classList.contains('is-editing'));
+  }
+
   function canUndo() {
-    return state.history.length > (state.drawMode ? Math.max(state.drawHistoryLen, 1) : 1);
+    if (state.drawMode) return state.history.length > Math.max(state.drawHistoryLen, 1);
+    // Text being typed is a step too - recorded when the box is left (tapping "בטל" leaves it)
+    return state.history.length > 1 || isEditingText();
   }
 
   function updateUndo() {
@@ -679,6 +685,7 @@
     }
     if (content.contentEditable !== 'plaintext-only') content.contentEditable = 'true';
     item.el.classList.add('is-editing');
+    updateUndo();
     content.focus({ preventScroll: true });
     // Caret at the end
     const range = document.createRange();
@@ -702,6 +709,7 @@
     item.el.classList.remove('is-editing');
     if (!item.content.textContent.trim()) removeItem(item);
     commit();
+    updateUndo();
   }
 
   function removeItem(item) {
@@ -1736,7 +1744,7 @@
   document.addEventListener('keydown', (e) => {
     // Ctrl+Z / ⌘Z, except while typing (the browser undoes the typing)
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z'
-      && !(state.selected && state.selected.el.classList.contains('is-editing')) && !document.querySelector('dialog[open]')) {
+      && !isEditingText() && !document.querySelector('dialog[open]')) {
       e.preventDefault();
       undo();
       return;
