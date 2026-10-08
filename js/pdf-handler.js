@@ -76,8 +76,10 @@
       return task.promise;
     }
 
+    // Frees the worker's copy of the document (pdf.js: through its loading task)
     destroy() {
-      this.pdf.destroy();
+      this._pages.clear();
+      return this.pdf.loadingTask.destroy();
     }
   }
 

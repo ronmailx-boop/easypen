@@ -73,6 +73,9 @@
     nameDialog: document.getElementById('name-dialog'),
     nameInput: document.getElementById('file-name-input'),
     busy: document.getElementById('busy'),
+    addPages: document.getElementById('add-pages'),
+    addPagesBtn: document.getElementById('add-pages-btn'),
+    addPagesInput: document.getElementById('add-pages-input'),
     backBtn: document.getElementById('back-btn')
   };
 
@@ -135,9 +138,10 @@
       return;
     }
 
-    el.docPages.textContent = state.doc.numPages === 1 ? t('viewer.onePage') : t('viewer.pages', { n: state.doc.numPages });
+    showPageCount();
     await buildPages();
     el.status.hidden = true;
+    el.addPages.hidden = false;
     [el.addSig, el.addText, el.drawBtn, el.saveShare].forEach((b) => { b.disabled = false; });
   }
 
@@ -148,9 +152,11 @@
   let io = null;
   let ro = null;
 
-  async function buildPages() {
+  // Builds the page boxes from page `from` to the last page, before the "add files" tile
+  async function buildPages(from = 1) {
     const frag = document.createDocumentFragment();
-    for (let n = 1; n <= state.doc.numPages; n++) {
+    const added = [];
+    for (let n = from; n <= state.doc.numPages; n++) {
       const size = await state.doc.getPageSize(n);
       const pageEl = document.createElement('div');
       pageEl.className = 'page';
@@ -168,7 +174,6 @@
       const layer = document.createElement('div');
       layer.className = 'overlay-layer';
       pageEl.append(canvas, ink, layer);
-      if (state.combined && state.doc.numPages > 1) pageEl.appendChild(buildPageMoves(pageEl));
       frag.appendChild(pageEl);
       const page = {
         num: n, el: pageEl, canvas, ink, layer,
@@ -176,33 +181,106 @@
         visible: false, rendered: false, renderedWidth: 0, rendering: null
       };
       state.pages.push(page);
+      added.push(page);
       layer.addEventListener('pointerdown', (e) => onLayerPointerDown(e, page));
       wireInk(page);
     }
-    el.pages.appendChild(frag);
+    el.pages.insertBefore(frag, el.addPages);
+    // A combined document gets arrows on every page (also on the pages it had before)
+    if (state.combined && state.doc.numPages > 1) {
+      state.pages.forEach((p) => {
+        if (!p.el.querySelector('.page-moves')) p.el.appendChild(buildPageMoves(p.el));
+      });
+    }
     updatePageMoves();
 
-    io = new IntersectionObserver((entries) => {
-      for (const entry of entries) {
-        const page = pageFromEl(entry.target);
-        page.visible = entry.isIntersecting;
-        if (page.visible) renderPage(page);
-        else releasePage(page);
-      }
-    }, { root: null, rootMargin: '150% 0px' });
+    if (!io) {
+      io = new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+          const page = pageFromEl(entry.target);
+          page.visible = entry.isIntersecting;
+          if (page.visible) renderPage(page);
+          else releasePage(page);
+        }
+      }, { root: null, rootMargin: '150% 0px' });
 
-    ro = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const page = pageFromEl(entry.target);
-        const width = entry.contentRect.width;
-        // CSS pixels per PDF point, used by text overlays' font-size
-        page.el.style.setProperty('--pt', String(width / page.widthPt));
-        // Mid-pinch the page is only stretched; it is rendered again when the fingers lift
-        if (page.visible && !pinch.active) renderPage(page);
-      }
+      ro = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const page = pageFromEl(entry.target);
+          const width = entry.contentRect.width;
+          // CSS pixels per PDF point, used by text overlays' font-size
+          page.el.style.setProperty('--pt', String(width / page.widthPt));
+          // Mid-pinch the page is only stretched; it is rendered again when the fingers lift
+          if (page.visible && !pinch.active) renderPage(page);
+        }
+      });
+    }
+
+    added.forEach((p) => { io.observe(p.el); ro.observe(p.el); });
+  }
+
+  function showPageCount() {
+    el.docPages.textContent = state.doc.numPages === 1 ? t('viewer.onePage') : t('viewer.pages', { n: state.doc.numPages });
+  }
+
+  /* ---------------- adding files and photos to the document ---------- */
+
+  // The document so far plus the chosen files become one PDF: the pages already
+  // here keep their numbers, so signatures, text and drawings stay where they are
+  async function onAddFiles(files) {
+    const Combine = window.EasyPenCombine;
+    if (!files.length) return;
+    if (files.some((f) => !Combine.isPdf(f) && !Combine.isImage(f))) {
+      toast(t('home.pdfOnly'), 'error', 5000);
+      return;
+    }
+    if (files.length > Combine.MAX_FILES) {
+      toast(t('home.tooManyFiles', { max: Combine.MAX_FILES }), 'error', 5000);
+      return;
+    }
+    setTextMode(false);
+    select(null);
+    el.busy.hidden = false;
+    el.addPagesBtn.disabled = true;
+    const firstNew = state.doc.numPages + 1;
+    try {
+      const current = { name: state.fileName, blob: new Blob([state.doc.bytes]) };
+      const bytes = await Combine.combineToPdf([current, ...files]);
+      const doc = await window.PdfHandler.load(bytes);
+      // Pages still drawing from the old document finish first
+      await Promise.all(state.pages.map((p) => p.rendering).filter(Boolean));
+      const old = state.doc;
+      state.doc = doc;
+      Promise.resolve().then(() => old.destroy()).catch((err) => console.error(err));
+      state.combined = true;
+      await buildPages(firstNew);
+      showPageCount();
+      markDirty();
+      Storage.setCurrentDocument(state.fileName, new Blob([bytes], { type: 'application/pdf' }), { combined: true })
+        .catch((err) => console.error(err));
+    } catch (err) {
+      console.error(err);
+      const name = err.fileName;
+      toast(err.code === 'LOCKED' && name === state.fileName ? t('viewer.lockedDoc')
+        : err.code === 'LOCKED' ? t('home.lockedPdf', { name })
+          : err.code === 'BAD_FILE' ? t('home.fileError', { name }) : t('viewer.addFilesError'), 'error', 6000);
+      return;
+    } finally {
+      el.busy.hidden = true;
+      el.addPagesBtn.disabled = false;
+    }
+    const added = state.doc.numPages - firstNew + 1;
+    toast(added === 1 ? t('viewer.addedOnePage') : t('viewer.addedPages', { n: added }), 'success');
+    state.pages[firstNew - 1].el.scrollIntoView({ block: 'start' });
+  }
+
+  function wireAddPages() {
+    el.addPagesBtn.addEventListener('click', () => el.addPagesInput.click());
+    el.addPagesInput.addEventListener('change', () => {
+      const files = Array.from(el.addPagesInput.files || []);
+      el.addPagesInput.value = '';
+      onAddFiles(files);
     });
-
-    state.pages.forEach((p) => { io.observe(p.el); ro.observe(p.el); });
   }
 
   /* ---------------- page order (documents made of images) ---------- */
@@ -1594,6 +1672,7 @@
 
   wireReadyDialog();
   wireNameDialog();
+  wireAddPages();
   wireDrawTray();
   init();
 })();
