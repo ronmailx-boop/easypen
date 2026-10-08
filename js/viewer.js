@@ -76,7 +76,8 @@
     addPages: document.getElementById('add-pages'),
     addPagesBtn: document.getElementById('add-pages-btn'),
     addPagesInput: document.getElementById('add-pages-input'),
-    backBtn: document.getElementById('back-btn')
+    backBtn: document.getElementById('back-btn'),
+    undoBtn: document.getElementById('undo-btn')
   };
 
   const state = {
@@ -90,6 +91,8 @@
     drawMode: false,
     strokes: [],          // { page, color, widthPt, opacity, cap, points: [[x, y] in PDF points], el }
     drawSnapshot: null,   // strokes when drawing mode was entered, restored on cancel
+    drawHistoryLen: 0,    // history length when drawing mode was entered
+    history: [],          // snapshots after each change, the last one is the current state (see "Undo")
     draw: { tool: 'pen', color: '#1c2033', width: 3 },
     dirty: false,
     nextId: 1
@@ -142,6 +145,7 @@
     await buildPages();
     el.status.hidden = true;
     el.addPages.hidden = false;
+    commit();
     [el.addSig, el.addText, el.drawBtn, el.saveShare].forEach((b) => { b.disabled = false; });
   }
 
@@ -481,6 +485,91 @@
 
   function markDirty() {
     state.dirty = true;
+    commit();
+  }
+
+  /* ---------------- undo (signatures, text, drawings, page order) --- */
+
+  const MAX_HISTORY = 100;
+
+  function snapshot() {
+    return {
+      items: state.items.map((item) => ({
+        item, page: item.page, fx: item.fx, fy: item.fy, fw: item.fw, fh: item.fh,
+        fontIndex: item.fontIndex, text: item.type === 'text' ? item.content.textContent : null
+      })),
+      strokes: state.strokes.slice(),
+      order: pagesInOrder()
+    };
+  }
+
+  function sameSnapshot(a, b) {
+    const sameList = (x, y, eq) => x.length === y.length && x.every((v, i) => eq(v, y[i]));
+    return sameList(a.strokes, b.strokes, (x, y) => x === y)
+      && sameList(a.order, b.order, (x, y) => x === y)
+      && sameList(a.items, b.items, (x, y) => x.item === y.item && x.page === y.page && x.fx === y.fx
+        && x.fy === y.fy && x.fw === y.fw && x.fh === y.fh && x.fontIndex === y.fontIndex && x.text === y.text);
+  }
+
+  // Records the current state as a step that can be undone (only when something changed)
+  function commit() {
+    if (!state.doc) return;
+    // Typing is one step: it is recorded when the text box is left
+    if (state.selected && state.selected.el.classList.contains('is-editing')) return;
+    const snap = snapshot();
+    const last = state.history[state.history.length - 1];
+    if (last && sameSnapshot(last, snap)) return;
+    state.history.push(snap);
+    if (state.history.length > MAX_HISTORY) {
+      state.history.shift();
+      if (state.drawMode && state.drawHistoryLen > 1) state.drawHistoryLen--;
+    }
+    updateUndo();
+  }
+
+  function canUndo() {
+    return state.history.length > (state.drawMode ? Math.max(state.drawHistoryLen, 1) : 1);
+  }
+
+  function updateUndo() {
+    el.undoBtn.disabled = !canUndo();
+    el.drawUndo.disabled = !canUndo();
+  }
+
+  function restore(snap) {
+    state.items.forEach((item) => item.el.remove());
+    state.items = snap.items.map((s) => {
+      const { item } = s;
+      Object.assign(item, { page: s.page, fx: s.fx, fy: s.fy, fw: s.fw, fh: s.fh, fontIndex: s.fontIndex });
+      if (item.type === 'text') {
+        item.content.textContent = s.text;
+        item.content.dir = detectDir(s.text);
+        applyFont(item);
+      }
+      s.page.layer.appendChild(item.el);
+      applyPosition(item);
+      return item;
+    });
+    state.strokes.forEach((s) => s.el.remove());
+    snap.strokes.forEach((s) => s.page.ink.appendChild(s.el));
+    state.strokes = snap.strokes.slice();
+    // Pages added after this step stay, after the others
+    const order = snap.order.concat(pagesInOrder().filter((p) => !snap.order.includes(p)));
+    order.forEach((page) => el.pages.insertBefore(page.el, el.addPages));
+    updatePageMoves();
+  }
+
+  function undo() {
+    if (state.selected && state.selected.type === 'text') stopEditing(state.selected);
+    select(null);
+    setTextMode(false);
+    if (!canUndo()) return;
+    state.history.pop();
+    restore(state.history[state.history.length - 1]);
+    // The state as it is now (pages added since then included) is the new last step
+    state.history[state.history.length - 1] = snapshot();
+    state.dirty = true;
+    updateUndo();
   }
 
   async function addSignatureItem(blob) {
@@ -612,6 +701,7 @@
     item.content.contentEditable = 'false';
     item.el.classList.remove('is-editing');
     if (!item.content.textContent.trim()) removeItem(item);
+    commit();
   }
 
   function removeItem(item) {
@@ -619,7 +709,6 @@
     if (i === -1) return;
     state.items.splice(i, 1);
     item.el.remove();
-    if (item.blobUrl) URL.revokeObjectURL(item.blobUrl);
     if (state.selected === item) select(null);
   }
 
@@ -670,8 +759,10 @@
     const item = state.selected;
     if (!item || item.type !== 'signature') return;
     resizeSignatureBy(item, Number(el.sigSize.value) / 100 / item.fw);
-    markDirty();
+    state.dirty = true;
   });
+  // One undo step per slide
+  el.sigSize.addEventListener('change', markDirty);
 
   /* ---------------- keyboard (alternative to drag / resize) --------- */
 
@@ -1089,7 +1180,6 @@
     el.drawTray.querySelectorAll('[data-color]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.color === color)));
     el.drawWidth.value = String(width);
     el.drawToolName.textContent = `${DRAW_TOOLS[tool].label} · ${width}`;
-    el.drawUndo.disabled = !state.strokes.length;
   }
 
   function setDrawMode(on) {
@@ -1099,6 +1189,7 @@
       select(null);
       if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
       state.drawSnapshot = state.strokes.slice();
+      state.drawHistoryLen = state.history.length;
       setTrayCollapsed(false, false);
       updateDrawTray();
       toast(t('draw.hint'), 'info', 4000);
@@ -1110,6 +1201,7 @@
       setScrollMode(false);
     }
     state.drawMode = on;
+    updateUndo();
     document.body.classList.toggle('draw-mode', on);
     el.drawHeader.hidden = !on;
     el.drawTray.hidden = !on;
@@ -1122,6 +1214,7 @@
     state.strokes.forEach((s) => s.el.remove());
     snapshot.forEach((s) => s.page.ink.appendChild(s.el));
     state.strokes = snapshot;
+    state.history.length = Math.max(state.drawHistoryLen, 1);
     setDrawMode(false);
   }
 
@@ -1194,20 +1287,11 @@
     delete stroke.pointerId;
     state.strokes.push(stroke);
     markDirty();
-    updateDrawTray();
   }
 
   function cancelStroke() {
     if (ink.stroke) ink.stroke.el.remove();
     ink.stroke = null;
-  }
-
-  function undoStroke() {
-    const stroke = state.strokes.pop();
-    if (!stroke) return;
-    stroke.el.remove();
-    markDirty();
-    updateDrawTray();
   }
 
   function wireInk(page) {
@@ -1278,7 +1362,7 @@
     el.drawBtn.addEventListener('click', () => setDrawMode(true));
     el.drawDone.addEventListener('click', () => setDrawMode(false));
     el.drawCancel.addEventListener('click', cancelDrawing);
-    el.drawUndo.addEventListener('click', undoStroke);
+    el.drawUndo.addEventListener('click', undo);
     el.drawTrayToggle.addEventListener('click', toggleTray);
     el.drawScroll.addEventListener('click', () => setScrollMode(!document.body.classList.contains('scroll-mode')));
     el.drawTray.addEventListener('click', (e) => {
@@ -1624,6 +1708,7 @@
   el.addText.addEventListener('click', () => setTextMode(!state.textMode));
   el.modeCancel.addEventListener('click', () => setTextMode(false));
   el.saveShare.addEventListener('click', onSaveShare);
+  el.undoBtn.addEventListener('click', undo);
 
   el.toolbar.addEventListener('pointerdown', (e) => {
     // Keep the text box focused (and the keyboard open) while using the toolbar
@@ -1649,6 +1734,13 @@
   });
 
   document.addEventListener('keydown', (e) => {
+    // Ctrl+Z / ⌘Z, except while typing (the browser undoes the typing)
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z'
+      && !(state.selected && state.selected.el.classList.contains('is-editing')) && !document.querySelector('dialog[open]')) {
+      e.preventDefault();
+      undo();
+      return;
+    }
     if (e.key === 'Escape') {
       if (state.drawMode) setDrawMode(false);
       else if (state.textMode) setTextMode(false);

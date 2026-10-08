@@ -568,6 +568,75 @@ test('editor: empty text box is discarded and deleting items works', async () =>
   assert.equal(await page.textContent('#toast'), 'עדיין לא הוספתם חתימה, טקסט או ציור למסמך');
 });
 
+test('undo: each change (signature, move, delete, text, drawing, page order) can be undone step by step', async () => {
+  await page.goto(server.baseUrl);
+  await page.setInputFiles('#file-input', [pdfFile('a.pdf'), pdfFile('b.pdf')]);
+  await page.waitForURL(/viewer\.html/);
+  await page.waitForSelector('.page.is-rendered');
+  assert.equal(await page.isDisabled('#undo-btn'), true, 'nothing to undo yet');
+  const order = () => page.evaluate(() => Array.from(document.querySelectorAll('.page'), (p) => p.dataset.page).join(','));
+
+  // Page order
+  await page.click('.page[data-page="1"] [data-move="down"]');
+  assert.equal(await order(), '2,1,3,4,5,6,7,8');
+
+  // Signature, then moved, then deleted
+  await scrollToPage(2);
+  await drawNewSignatureAndPlace();
+  const sig = page.locator('.ov-sig');
+  const pos = () => sig.evaluate((el) => el.style.left + ' ' + el.style.top);
+  const placed = await pos();
+  await dragBy(sig, 40, 30);
+  assert.notEqual(await pos(), placed);
+  await page.click('#item-toolbar [data-action="delete"]');
+  await expectCount('.ov-sig', 0);
+
+  // Text (typing is one step)
+  await page.click('#add-text');
+  const p = await page.locator('.page[data-page="1"]').boundingBox();
+  await page.mouse.click(p.x + 80, p.y + 80);
+  await page.keyboard.type('שלום');
+  await page.click('#item-toolbar [data-action="done"]');
+  await expectCount('.ov-text', 1);
+
+  // A line drawn
+  await page.click('#draw-btn');
+  await page.waitForSelector('#draw-tray:not([hidden])');
+  await scrollToPage(1);
+  const d = await page.locator('.page[data-page="1"]').boundingBox();
+  await page.mouse.move(d.x + d.width * 0.2, d.y + d.height * 0.4);
+  await page.mouse.down();
+  await page.mouse.move(d.x + d.width * 0.6, d.y + d.height * 0.45, { steps: 8 });
+  await page.mouse.up();
+  await page.click('#draw-done');
+  await expectCount('.draw-layer path', 1);
+
+  // Undo, one step at a time, back to the start
+  await page.click('#undo-btn');
+  await expectCount('.draw-layer path', 0);
+  await page.click('#undo-btn');
+  await expectCount('.ov-text', 0);
+  await page.click('#undo-btn');
+  await expectCount('.ov-sig', 1);
+  assert.notEqual(await pos(), placed, 'comes back where it was before deleting');
+  await page.click('#undo-btn');
+  assert.equal(await pos(), placed, 'move undone');
+  await page.click('#undo-btn');
+  await expectCount('.ov-sig', 0);
+  await page.click('#undo-btn');
+  assert.equal(await order(), '1,2,3,4,5,6,7,8');
+  assert.equal(await page.isDisabled('#undo-btn'), true);
+
+  // Ctrl+Z works too (outside a text box being typed in)
+  await page.click('#add-text');
+  await page.mouse.click(p.x + 80, p.y + 80);
+  await page.keyboard.type('abc');
+  await page.click('#item-toolbar [data-action="done"]');
+  await expectCount('.ov-text', 1);
+  await page.keyboard.press('Control+z');
+  await expectCount('.ov-text', 0);
+});
+
 test('editor: dragging a signature onto another page moves it there', async () => {
   await openInEditor();
   await drawNewSignatureAndPlace();

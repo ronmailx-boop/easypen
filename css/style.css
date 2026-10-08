@@ -476,7 +476,16 @@ html:has(> body.viewer),
 
 /* The back arrow points to the start side */
 [dir="ltr"] #back-btn svg,
-[dir="ltr"] #draw-undo svg { transform: scaleX(-1); }
+[dir="ltr"] #draw-undo svg,
+[dir="ltr"] #undo-btn svg { transform: scaleX(-1); }
+
+/* Undo: at the end of the header, next to the title */
+.undo-btn {
+  flex-shrink: 0;
+  gap: .3rem;
+  margin-inline-start: auto;
+}
+.sample-mode .undo-btn { visibility: hidden; }
 
 /* Headers stay at the top of the visible screen while pinch-zoomed (see pinBars in viewer.js) */
 .viewer .app-header {
