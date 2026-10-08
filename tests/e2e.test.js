@@ -244,7 +244,7 @@ test('photos: 4 JPGs become a 4-page PDF, signed and exported with the original 
   assert.equal(await page.textContent('#doc-pages'), '4 עמודים');
 
   // Page order: arrows on each page (full size), disabled at the ends; move page 4 one place up
-  const shown = () => page.$$eval('.page', (els) => els.map((e) => [e.dataset.page, e.querySelector('.page-num').textContent]));
+  const shown = () => page.$$eval('.page', (els) => els.map((e) => [e.dataset.page, e.querySelector('.page-num-text').textContent]));
   assert.deepEqual(await shown(), [['1', '1/4'], ['2', '2/4'], ['3', '3/4'], ['4', '4/4']]);
   assert.equal(await page.isDisabled('.page[data-page="1"] [data-move="up"]'), true);
   assert.equal(await page.isDisabled('.page[data-page="4"] [data-move="down"]'), true);
@@ -475,6 +475,51 @@ test('remove file: ✕ on a page removes its whole file after a warning, undo br
   await page.click('#undo-btn');
   assert.equal(await order(), '1,2,3,4,5,6,7,8,9');
   await expectCount('.ov-sig', 1);
+});
+
+test('move to: the page number opens a grid of places, the page goes straight there', async () => {
+  await page.goto(server.baseUrl);
+  const files = [];
+  for (const c of ['#c0392b', '#27ae60', '#2980b9', '#8e44ad', '#f39c12']) {
+    files.push({ name: `${c.slice(1)}.jpg`, mimeType: 'image/jpeg', buffer: await makeJpeg(300, 400, c) });
+  }
+  await page.setInputFiles('#file-input', files);
+  await page.waitForURL(/viewer\.html/);
+  await page.waitForSelector('.page.is-rendered');
+  const order = () => page.evaluate(() => Array.from(document.querySelectorAll('.page'), (p) => p.dataset.page).join(','));
+  assert.equal(await page.textContent('.page[data-page="1"] .page-num-text'), '1/5');
+  assert.equal(await page.getAttribute('.page[data-page="1"] .page-num', 'aria-label'), 'עמוד 1 מתוך 5 - העברה למקום אחר');
+
+  await page.tap('.page[data-page="1"] .page-num');
+  await page.waitForSelector('#move-dialog[open]');
+  assert.equal(await page.textContent('#move-title'), 'העברת עמוד 1');
+  assert.equal(await page.locator('#move-dialog .move-to').count(), 5);
+  assert.equal(await page.isDisabled('#move-dialog .move-to[aria-current]'), true, 'its own place is marked');
+  await page.tap('#move-dialog .move-to >> text="5"');
+  assert.equal(await page.isVisible('#move-dialog'), false);
+  assert.equal(await order(), '2,3,4,5,1');
+  assert.equal(await page.textContent('.page[data-page="1"] .page-num-text'), '5/5');
+  assert.equal(await page.textContent('#toast'), 'העמוד הועבר למקום 5');
+
+  // Back to the middle, then to the start
+  await page.tap('.page[data-page="1"] .page-num');
+  await page.tap('#move-dialog .move-to >> text="3"');
+  assert.equal(await order(), '2,3,1,4,5');
+  await page.tap('.page[data-page="4"] .page-num');
+  await page.tap('#move-dialog .move-to >> text="1"');
+  assert.equal(await order(), '4,2,3,1,5');
+
+  // Closing without choosing changes nothing; undo goes back a move at a time
+  await page.tap('.page[data-page="5"] .page-num');
+  await page.tap('#move-dialog [data-action="close"]');
+  assert.equal(await order(), '4,2,3,1,5');
+  await page.click('#undo-btn');
+  assert.equal(await order(), '2,3,1,4,5');
+
+  // Exported in the order on screen
+  const { bytes } = await exportViaDownload();
+  const { PDFDocument } = require(path.resolve(__dirname, '../vendor/pdf-lib/pdf-lib.min.js'));
+  assert.equal((await PDFDocument.load(bytes)).getPageCount(), 5);
 });
 
 test('combine: too many, broken or encrypted files are refused with a message', async () => {

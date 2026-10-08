@@ -845,12 +845,56 @@ html:has(> body.viewer),
 }
 
 .page-num {
-  min-width: 2.6em;
-  padding: 0 4px;
-  font-size: .85rem;
-  font-weight: 800;
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.6em;
+  min-height: 44px;
+  padding: 0 8px;
+  border: 1.5px solid var(--primary);
+  border-radius: 22px;
+  background: var(--primary-soft);
   color: var(--primary-dark);
+  font: inherit;
+  line-height: 1.1;
+  cursor: pointer;
+}
+.page-num-text { font-size: .9rem; font-weight: 800; }
+.page-num-move {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: .7rem;
+  font-weight: 700;
+}
+
+/* "Move page to ...": a grid of places */
+.move-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+  gap: .5rem;
+  max-height: 50vh;
+  overflow-y: auto;
+  padding: 2px;
+}
+.move-to {
+  min-height: 48px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--primary-dark);
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.move-to:active { background: var(--primary-soft); }
+.move-to[aria-current] {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+  cursor: default;
 }
 
 .page-move {
