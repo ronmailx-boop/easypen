@@ -868,7 +868,30 @@ html:has(> body.viewer),
 }
 
 .page-move:disabled { background: #c9cfe3; cursor: default; }
-.draw-mode .page-moves { display: none; }
+.draw-mode .page-moves,
+.draw-mode .page-remove { display: none; }
+
+/* ✕ on the page: removes the file it came from (documents combined from several files) */
+.page-remove {
+  position: absolute;
+  top: 12px;
+  inset-inline-end: 8px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--danger);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(20, 25, 70, .25);
+  cursor: pointer;
+}
+.page-remove[hidden] { display: none; }
+.sample-mode .page-remove { pointer-events: none; }
 
 /* "Add files or photos" after the last page */
 .add-pages {

@@ -95,9 +95,11 @@
 
     // The single, local, one-off document session.
     // options.combined: combined from several files / images on the home screen (its pages can be reordered)
+    // options.parts: [{ name, pages }] - the files it was combined from, in page order
     async setCurrentDocument(name, blob, options = {}) {
+      const parts = Array.isArray(options.parts) ? options.parts : null;
       return withStore('session', 'readwrite', (s) =>
-        s.put({ name, blob, combined: !!options.combined, createdAt: Date.now() }, 'current'));
+        s.put({ name, blob, combined: !!options.combined, parts, createdAt: Date.now() }, 'current'));
     },
 
     async getCurrentDocument() {

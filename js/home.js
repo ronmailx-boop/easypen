@@ -65,8 +65,9 @@
     uploadBtn.classList.add('is-busy');
     uploadStatus.textContent = t('home.combining');
     let blob;
+    const parts = [];
     try {
-      blob = new Blob([await Combine.combineToPdf(files)], { type: 'application/pdf' });
+      blob = new Blob([await Combine.combineToPdf(files, parts)], { type: 'application/pdf' });
     } catch (err) {
       console.error(err);
       const name = err.fileName;
@@ -77,9 +78,9 @@
       uploadBtn.classList.remove('is-busy');
       uploadStatus.textContent = '';
     }
-    // Combined: the editor offers arrows to change the page order
+    // Combined: the editor offers arrows to change the page order, and removing a file
     const base = (files[0].name || 'document').replace(/\.(pdf|jpe?g|png)$/i, '');
-    await openDocument(`${base}.pdf`, blob, { combined: true });
+    await openDocument(`${base}.pdf`, blob, { combined: true, parts });
   }
 
   async function openDocument(name, blob, options) {
