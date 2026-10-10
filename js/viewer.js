@@ -40,6 +40,10 @@
     status: document.getElementById('status'),
     statusText: document.getElementById('status-text'),
     statusHome: document.getElementById('status-home'),
+    statusPassword: document.getElementById('status-password'),
+    passwordDialog: document.getElementById('password-dialog'),
+    passwordInput: document.getElementById('password-input'),
+    passwordError: document.getElementById('password-error'),
     docName: document.getElementById('doc-name'),
     docPages: document.getElementById('doc-pages'),
     addSig: document.getElementById('add-sig'),
@@ -110,11 +114,70 @@
   /* Loading                                                            */
   /* ------------------------------------------------------------------ */
 
-  function showStatus(text, { error = false } = {}) {
+  function showStatus(text, { error = false, password = false } = {}) {
     el.status.hidden = false;
     el.status.classList.toggle('is-error', error);
     el.statusText.textContent = text;
     el.statusHome.hidden = !error;
+    el.statusPassword.hidden = !password;
+    el.statusHome.classList.toggle('btn-primary', !password);
+    el.statusHome.classList.toggle('btn-secondary', password);
+  }
+
+  /*
+   * Asks for the password of a protected PDF until it opens.
+   * Resolves with the document, or null when the dialog is closed without it.
+   * The password is only passed to pdf.js - never stored.
+   */
+  function askPassword(bytes) {
+    const d = el.passwordDialog;
+    const form = d.querySelector('form');
+    const submit = form.querySelector('[type="submit"]');
+    el.passwordInput.value = '';
+    el.passwordError.textContent = '';
+    return new Promise((resolve) => {
+      let doc = null;
+      const onSubmit = async (e) => {
+        e.preventDefault();
+        const password = el.passwordInput.value;
+        if (!password || submit.disabled) return;
+        submit.disabled = true;
+        el.passwordError.textContent = '';
+        try {
+          doc = await window.PdfHandler.load(bytes, { password });
+          d.close();
+        } catch (err) {
+          el.passwordError.textContent = err.code === 'PASSWORD' ? t('password.wrong') : t('viewer.openError');
+          el.passwordInput.select();
+        } finally {
+          submit.disabled = false;
+        }
+      };
+      const onClose = () => {
+        form.removeEventListener('submit', onSubmit);
+        d.removeEventListener('close', onClose);
+        el.passwordInput.value = '';
+        resolve(doc);
+      };
+      form.addEventListener('submit', onSubmit);
+      d.addEventListener('close', onClose);
+      d.showModal();
+      el.passwordInput.focus();
+    });
+  }
+
+  // A protected PDF: the password dialog, and again from the button if it was closed
+  async function openLocked(bytes) {
+    el.status.hidden = true;
+    const doc = await askPassword(bytes);
+    if (doc) return doc;
+    showStatus(t('viewer.password'), { error: true, password: true });
+    return new Promise((resolve) => {
+      el.statusPassword.onclick = async () => {
+        const again = await openLocked(bytes);
+        if (again) resolve(again);
+      };
+    });
   }
 
   async function init() {
@@ -138,13 +201,16 @@
 
     try {
       const bytes = new Uint8Array(await record.blob.arrayBuffer());
-      state.doc = await window.PdfHandler.load(bytes);
+      try {
+        state.doc = await window.PdfHandler.load(bytes);
+      } catch (err) {
+        if (err.code !== 'PASSWORD') throw err;
+        state.doc = await openLocked(bytes);
+        el.status.hidden = false;
+      }
     } catch (err) {
       console.error(err);
-      const messages = {
-        NOT_PDF: t('home.pdfOnly'),
-        PASSWORD: t('viewer.password')
-      };
+      const messages = { NOT_PDF: t('home.pdfOnly') };
       const offline = !navigator.onLine ? ' ' + t('viewer.notOffline') : '';
       showStatus(messages[err.code] || (t('viewer.openError') + offline), { error: true });
       return;
@@ -1834,6 +1900,9 @@
   function wireNameDialog() {
     el.nameDialog.querySelectorAll('[data-action="close"]').forEach((b) => {
       b.addEventListener('click', () => el.nameDialog.close());
+    });
+    el.passwordDialog.querySelectorAll('[data-action="close"]').forEach((b) => {
+      b.addEventListener('click', () => el.passwordDialog.close());
     });
   }
 

@@ -353,6 +353,9 @@ img { max-width: 100%; }
   outline: none;
 }
 .name-ext { padding-inline-end: .8rem; color: var(--muted); }
+.field-error { margin: .4rem 0 0; min-height: 1.2em; color: var(--danger); font-size: .9rem; font-weight: 700; }
+.field-error:empty { min-height: 0; }
+#password-dialog .modal-hint:last-of-type { margin-top: .6rem; }
 
 /* Signature drawing */
 .sig-canvas-wrap {
