@@ -49,6 +49,7 @@
   <div id="status" class="status-screen">
     <div class="spinner" aria-hidden="true"></div>
     <p id="status-text" data-i18n="viewer.loading">טוען מסמך…</p>
+    <button type="button" id="status-password" class="btn btn-primary" hidden data-i18n="password.enter">הזנת סיסמה</button>
     <a id="status-home" href="index.html" class="btn btn-primary" hidden data-i18n="viewer.home">חזרה למסך הבית</a>
   </div>
 
@@ -176,6 +177,25 @@
       <div class="modal-actions">
         <button type="button" class="btn btn-secondary" data-action="close" data-i18n="name.cancel">ביטול</button>
         <button type="submit" class="btn btn-primary" data-i18n="name.ok">המשך</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="password-dialog" class="modal sheet" aria-labelledby="password-title">
+    <form class="modal-card" method="dialog">
+      <header class="modal-header">
+        <h2 id="password-title" data-i18n="password.title">המסמך מוגן בסיסמה</h2>
+        <button type="button" class="icon-btn" data-action="close" aria-label="סגור" data-i18n-aria="pad.close">✕</button>
+      </header>
+      <label for="password-input" class="modal-hint" data-i18n="password.hint">הזינו את הסיסמה כדי לפתוח את המסמך</label>
+      <div class="name-field">
+        <input id="password-input" type="password" dir="ltr" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" aria-describedby="password-error">
+      </div>
+      <p id="password-error" class="field-error" role="alert"></p>
+      <p class="modal-hint" data-i18n="password.note">הסיסמה לא נשמרת. המסמך החתום יישמר בלי סיסמה.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-action="close" data-i18n="name.cancel">ביטול</button>
+        <button type="submit" class="btn btn-primary" data-i18n="password.open">פתיחה</button>
       </div>
     </form>
   </dialog>

@@ -83,7 +83,8 @@
     }
   }
 
-  async function load(bytes) {
+  // options.password: for a password protected PDF (kept only in memory)
+  async function load(bytes, { password } = {}) {
     if (!isPdfBytes(bytes)) {
       const err = new Error('Not a PDF');
       err.code = 'NOT_PDF';
@@ -98,14 +99,19 @@
       standardFontDataUrl: new URL('vendor/pdfjs/standard_fonts/', base).href,
       wasmUrl: new URL('vendor/pdfjs/wasm/', base).href,
       isEvalSupported: false,
-      enableXfa: false
+      enableXfa: false,
+      password
     });
     try {
       const pdf = await task.promise;
-      return new PdfDocument(bytes, pdf);
+      const doc = new PdfDocument(bytes, pdf);
+      doc.locked = !!password;
+      return doc;
     } catch (e) {
       const err = new Error(e && e.message ? e.message : 'PDF load failed');
       err.code = e && e.name === 'PasswordException' ? 'PASSWORD' : 'INVALID';
+      // pdf.js PasswordResponses: 1 = a password is needed, 2 = the password given is wrong
+      err.wrongPassword = err.code === 'PASSWORD' && e.code === 2;
       throw err;
     }
   }
@@ -162,12 +168,14 @@
   /*
    * Embeds overlays into the original PDF and returns the new bytes.
    * Overlays are flattened: drawn directly into the page content stream.
-   * Encrypted PDFs cannot be safely modified by pdf-lib, so they are
-   * re-built from rendered page images instead (see rasterizeExport).
+   * Encrypted PDFs (also ones opened with a password) cannot be modified by
+   * pdf-lib, so they are re-built from rendered page images instead (see rasterizeExport).
+   * The result has no password.
    */
   // order: original page numbers in the order the pages should come out (optional)
   async function exportPdf(doc, overlays, order) {
     const { PDFDocument } = global.PDFLib;
+    if (doc.locked) return rasterizeExport(doc, overlays, order);
     let pdfDoc;
     try {
       pdfDoc = await PDFDocument.load(doc.bytes, { updateMetadata: false });

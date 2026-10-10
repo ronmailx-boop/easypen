@@ -815,6 +815,45 @@ test('undo: each change (signature, move, delete, text, drawing, page order) can
   await page.waitForSelector('#file-input', { state: 'attached' });
 });
 
+test('password: a protected PDF opens after its password, and is saved signed without one', async () => {
+  const fs = require('fs');
+  const { PDFDocument } = require(path.resolve(__dirname, '../vendor/pdf-lib/pdf-lib.min.js'));
+  await page.goto(server.baseUrl);
+  await page.setInputFiles('#file-input', {
+    name: 'locked.pdf', mimeType: 'application/pdf', buffer: fs.readFileSync(path.join(__dirname, 'fixtures/locked.pdf'))
+  });
+  await page.waitForURL(/viewer\.html/);
+  await page.waitForSelector('#password-dialog[open]');
+  assert.equal(await page.evaluate(() => document.activeElement.id), 'password-input');
+
+  // A wrong password: a message, the dialog stays
+  await page.fill('#password-input', '0000');
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => document.getElementById('password-error').textContent !== '');
+  assert.equal(await page.textContent('#password-error'), 'הסיסמה שגויה. נסו שוב.');
+  assert.ok(await page.isVisible('#password-dialog[open]'));
+
+  // Closed without it: a message, and a button to enter it again
+  await page.click('#password-dialog [data-action="close"]:not(.icon-btn)');
+  await page.waitForSelector('#status-password:not([hidden])');
+  assert.equal(await page.textContent('#status-text'), 'המסמך מוגן בסיסמה. כדי לפתוח אותו צריך להזין את הסיסמה.');
+  await page.click('#status-password');
+  await page.waitForSelector('#password-dialog[open]');
+  assert.equal(await page.inputValue('#password-input'), '', 'the password is not kept');
+  await page.fill('#password-input', '1234');
+  await page.click('#password-dialog [type="submit"]');
+  await page.waitForSelector('.page.is-rendered');
+  await expectCount('.page', 4);
+  assert.equal(await page.isVisible('#status'), false);
+
+  // Signed and saved: the result opens without a password and keeps the 4 pages
+  await drawNewSignatureAndPlace();
+  const { bytes } = await exportViaDownload();
+  const out = await PDFDocument.load(bytes);
+  assert.equal(out.isEncrypted, false);
+  assert.equal(out.getPageCount(), 4);
+});
+
 test('editor: dragging a signature onto another page moves it there', async () => {
   await openInEditor();
   await drawNewSignatureAndPlace();
