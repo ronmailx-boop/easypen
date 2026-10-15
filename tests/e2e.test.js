@@ -927,37 +927,65 @@ test('sharing: "שתפו את EasyPen" on the home screen shares the app, or cop
   await page.waitForFunction(() => document.getElementById('toast').textContent === 'הקישור הועתק. אפשר להדביק אותו בכל הודעה');
 });
 
-test('guides: every guide opens, has its title and canonical address, and all its links work', async () => {
+test('guides: every guide (Hebrew and English) opens, has its title, canonical and other-language addresses, and all its links work', async () => {
   const fs = require('fs');
-  const slugs = fs.readdirSync(path.join(__dirname, '../guides'), { withFileTypes: true })
-    .filter((d) => d.isDirectory()).map((d) => d.name);
-  assert.ok(slugs.length >= 4);
   const sitemap = fs.readFileSync(path.join(__dirname, '../sitemap.xml'), 'utf8');
+  const SITE = 'https://easypen.vplusstudio.app/';
+  const slugsIn = (dir) => fs.readdirSync(path.join(__dirname, '..', dir), { withFileTypes: true })
+    .filter((d) => d.isDirectory()).map((d) => d.name).sort();
+  const sets = { he: 'guides/', en: 'en/guides/' };
+  assert.deepEqual(slugsIn('guides'), slugsIn('en/guides'), 'every guide has both languages');
+  const slugs = slugsIn('guides');
+  assert.ok(slugs.length >= 4);
+
   // The home screen links to the guides
   await page.goto(server.baseUrl);
-  await page.click('.site-footer a[href="guides/"]');
+  await page.click('#guides-link');
   await page.waitForSelector('.guide-list');
   assert.equal(await page.locator('.guide-list a').count(), slugs.length);
 
-  for (const dir of ['', ...slugs.map((s) => s + '/')]) {
-    await page.goto(server.baseUrl + 'guides/' + dir);
-    const info = await page.evaluate(() => ({
-      h1: document.querySelector('h1')?.textContent,
-      canonical: document.querySelector('link[rel=canonical]').href,
-      ld: JSON.parse(document.querySelector('script[type="application/ld+json"]').textContent),
-      links: Array.from(document.querySelectorAll('a[href]'), (a) => a.href)
-    }));
-    assert.ok(info.h1, `title on guides/${dir}`);
-    assert.equal(info.canonical, 'https://easypen.vplusstudio.app/guides/' + dir);
-    assert.ok(sitemap.includes(info.canonical), `in sitemap: ${info.canonical}`);
-    assert.ok(info.ld['@graph'].length >= 2);
-    for (const href of new Set(info.links.filter((h) => h.startsWith(server.baseUrl)))) {
-      const res = await page.request.get(href);
-      assert.equal(res.status(), 200, `${href} from guides/${dir}`);
+  for (const [lang, base] of Object.entries(sets)) {
+    const other = lang === 'he' ? 'en' : 'he';
+    for (const dir of ['', ...slugs.map((s) => s + '/')]) {
+      await page.goto(server.baseUrl + base + dir);
+      const info = await page.evaluate(() => ({
+        lang: document.documentElement.lang,
+        dir: document.documentElement.dir,
+        h1: document.querySelector('h1')?.textContent,
+        canonical: document.querySelector('link[rel=canonical]').href,
+        alt: Object.fromEntries(Array.from(document.querySelectorAll('link[rel=alternate][hreflang]'), (l) => [l.hreflang, l.href])),
+        ld: JSON.parse(document.querySelector('script[type="application/ld+json"]').textContent),
+        links: Array.from(document.querySelectorAll('a[href]'), (a) => a.href)
+      }));
+      const where = `${base}${dir}`;
+      assert.equal(info.lang, lang, where);
+      assert.equal(info.dir, lang === 'he' ? 'rtl' : 'ltr', where);
+      assert.ok(info.h1, `title on ${where}`);
+      assert.equal(info.canonical, SITE + base + dir);
+      assert.ok(sitemap.includes(info.canonical), `in sitemap: ${info.canonical}`);
+      assert.deepEqual(info.alt, { [lang]: SITE + base + dir, [other]: SITE + sets[other] + dir, 'x-default': SITE + sets.he + dir });
+      assert.ok(info.ld['@graph'].length >= 2);
+      for (const href of new Set(info.links.filter((h) => h.startsWith(server.baseUrl)))) {
+        const res = await page.request.get(href);
+        assert.equal(res.status(), 200, `${href} from ${where}`);
+      }
+      // The language switch goes to the same page in the other language
+      assert.equal(await page.locator('.lang-switch').evaluate((a) => a.href), server.baseUrl + sets[other] + dir);
+      // The button to the app goes to the home screen
+      assert.equal(await page.locator('.guide-cta a').evaluate((a) => a.href), server.baseUrl);
     }
-    // The button to the app goes to the home screen
-    assert.equal(await page.locator('.guide-cta a').getAttribute('href'), dir ? '../../' : '../');
   }
+});
+
+test('english: the home screen links to the English guides', async () => {
+  await useEnglish();
+  await page.goto(server.baseUrl);
+  assert.equal(await page.textContent('#guides-link'), 'Guides');
+  await page.click('#guides-link');
+  await page.waitForSelector('.guide-list');
+  assert.equal(await page.evaluate(() => document.documentElement.lang), 'en');
+  // Only the switch to the Hebrew guides is in Hebrew
+  assert.deepEqual(await hebrewOnScreen(), ['עברית']);
 });
 
 test('editor: dragging a signature onto another page moves it there', async () => {

@@ -1,4 +1,4 @@
-# Builds the guide pages under guides/ (static HTML for search engines).
+# Builds the guide pages under guides/ (Hebrew) and en/guides/ (English): static HTML for search engines.
 # Edit the GUIDES list, then run: python3 scripts/build-guides.py
 # New guides also go into sitemap.xml (the e2e test checks it).
 import json, os
@@ -116,19 +116,152 @@ GUIDES = [
 '''),
 ]
 
+EN_GUIDES = [
+  dict(slug='sign-pdf-on-phone',
+    title='How to sign a PDF on your phone – free, no sign-up',
+    short='Sign a PDF on your phone',
+    desc='A quick guide: sign a PDF on your phone in under a minute, free, with no app to install and no account. The file never leaves your device.',
+    body='''
+<p class="lead">Got a PDF you need to sign, and no printer or scanner nearby? You can sign it right on your phone in under a minute. Here is how to do it with EasyPen – free, with no sign-up.</p>
+
+<h2>What you need</h2>
+<ul>
+  <li>A phone (Android or iPhone) with a browser, such as Chrome or Safari.</li>
+  <li>The PDF saved on your phone, or open in WhatsApp or your email.</li>
+</ul>
+
+<h2>Step by step</h2>
+<ol class="guide-steps">
+  <li><strong>Open EasyPen</strong> at <a href="../../../">easypen.vplusstudio.app</a>. No account and nothing to install. The app is in English when your phone is set to English.</li>
+  <li><strong>Tap "Upload document"</strong> and choose the PDF. You can also pick a photo of a document (JPG or PNG), or several files to combine into one document.</li>
+  <li><strong>Tap "Signature"</strong> at the bottom of the screen and draw your signature with your finger inside the frame. Tick "Save for reuse" and next time your signature is one tap away.</li>
+  <li><strong>Place the signature:</strong> drag it into position, and resize it by pulling its corner or with the size slider.</li>
+  <li><strong>Need to fill in details?</strong> "Text" adds your name, a date or an ID number anywhere on the page. "Draw" lets you tick a box or write freehand.</li>
+  <li><strong>Tap "Save &amp; Share"</strong>, choose a file name, and send it straight to WhatsApp, email or any other app.</li>
+</ol>
+
+<h2>Is my document uploaded anywhere?</h2>
+<p>No. Everything happens inside the browser on your phone: the document and your signature are never sent to any server. That is also why no account is needed.</p>
+
+<h2>Tips</h2>
+<ul>
+  <li>Several pages? Scroll to the page you need to sign before tapping "Signature" – it is added to the page on screen.</li>
+  <li>Made a mistake? "Undo" at the top goes back a step, and "Redo" brings it back.</li>
+  <li>You can install EasyPen on your home screen like an app, and it works offline too.</li>
+</ul>
+'''),
+  dict(slug='sign-document-from-whatsapp',
+    title='How to sign a document you got on WhatsApp and send it back',
+    short='Sign a document from WhatsApp',
+    desc='Got a contract or a form on WhatsApp? Sign it on your phone and send it back to the same chat in about a minute, for free.',
+    body='''
+<p class="lead">Many documents arrive on WhatsApp these days: a contract, a quote, a registration form. Instead of printing, signing and scanning, sign it on your phone and send the signed copy back to the same chat.</p>
+
+<h2>Step by step</h2>
+<ol class="guide-steps">
+  <li><strong>Save the file:</strong> open the document in WhatsApp. On Android it is usually saved to Downloads or Documents automatically. On iPhone, tap the share button and choose "Save to Files".</li>
+  <li><strong>Open <a href="../../../">EasyPen</a></strong> and tap "Upload document". Choose the file you saved.</li>
+  <li><strong>Sign:</strong> tap "Signature", draw it with your finger and place it in the right spot.</li>
+  <li><strong>Send it back:</strong> tap "Save &amp; Share", choose WhatsApp and the same chat. The signed document is sent as a PDF.</li>
+</ol>
+
+<h2>Android shortcut: share straight from WhatsApp</h2>
+<p>If you install EasyPen as an app (in Chrome: "Install app" on the EasyPen home screen, or the ⋮ menu → "Add to Home screen"), it appears in your phone's share menu. Then in WhatsApp you can long-press the document, tap "Share", pick EasyPen, and the document opens ready to sign – no searching through your files.</p>
+<p>On iPhone this option isn't available at the moment, so save the file and open it from EasyPen as in the steps above.</p>
+
+<h2>Got a photo of a document instead of a PDF?</h2>
+<p>That works too: EasyPen accepts JPG and PNG photos, including several at once, which are combined into one PDF in order. After signing you send a tidy PDF.</p>
+
+<h2>Privacy</h2>
+<p>The document is never uploaded: opening, signing and creating the signed file all happen on your phone.</p>
+'''),
+  dict(slug='sign-rental-contract',
+    title='How to sign a lease or rental agreement on your phone',
+    short='Sign a rental agreement on your phone',
+    desc='Sign a lease on your phone: a signature on every page, your name, ID number and date filled in, and sent to the landlord or tenant. Free, no sign-up.',
+    body='''
+<p class="lead">A lease is usually several pages long, and you may need to sign every page and fill in personal details. Here is how to do it on your phone with EasyPen – no printer, no scanner.</p>
+
+<h2>Step by step</h2>
+<ol class="guide-steps">
+  <li><strong>Open the lease in <a href="../../../">EasyPen</a>:</strong> tap "Upload document" and choose the PDF.</li>
+  <li><strong>Save your signature for reuse:</strong> the first time you tap "Signature", tick "Save for reuse". Every signature after that is a single tap.</li>
+  <li><strong>Sign every page:</strong> scroll to a page, tap "Signature" and pick your saved signature. It is added to the page on screen – drag it into place.</li>
+  <li><strong>Fill in your details:</strong> tap "Text", then the spot where you need to write: full name, ID or passport number, address and date. You can make the text larger or smaller.</li>
+  <li><strong>Mark clauses:</strong> to tick a box or circle a clause, "Draw" lets you write freehand.</li>
+  <li><strong>Send it:</strong> "Save &amp; Share", then send it to the landlord, tenant or agent on WhatsApp or by email.</li>
+</ol>
+
+<h2>Need to attach other documents?</h2>
+<p>You can add files and photos to the lease – a copy of your ID or an annex, for example – and send everything as one PDF. Scroll to the end of the document and tap "Add files or photos"; you can also change the page order.</p>
+
+<h2>Is a signature like this valid?</h2>
+<p>A signature you add to a document on your phone is an electronic signature. In many countries it is commonly accepted for agreements between private parties who agree to sign this way. However, some organisations and documents require a certified (qualified) electronic signature or a signature on paper, and the rules differ from country to country. If in doubt, check with the other party or a lawyer before signing. This guide is not legal advice.</p>
+
+<h2>Privacy</h2>
+<p>A lease contains personal details. With EasyPen the document is never uploaded: everything happens on your phone, and the signed file goes only to the people you choose.</p>
+'''),
+  dict(slug='sign-school-form',
+    title='How to sign a school permission slip or form on your phone',
+    short='Sign a school form on your phone',
+    desc='Permission slip for a trip, health form or registration form from school or kindergarten? Fill it in and sign it on your phone and send it back – no printing.',
+    body='''
+<p class="lead">A permission slip for a trip, a health form, a club registration form: they arrive from school in the parents' group chat or by email, and often have to go back the same day. No need to print – fill them in and sign them on your phone.</p>
+
+<h2>Step by step</h2>
+<ol class="guide-steps">
+  <li><strong>Save the form</strong> from WhatsApp or your email to your phone. A photo of a paper form works too.</li>
+  <li><strong>Open <a href="../../../">EasyPen</a></strong>, tap "Upload document" and choose the form.</li>
+  <li><strong>Fill in the details:</strong> tap "Text", then the field: your child's name, class, phone number and date.</li>
+  <li><strong>Tick the answers:</strong> "Draw" lets you tick the "I agree" or "I don't agree" boxes.</li>
+  <li><strong>Sign:</strong> tap "Signature", draw it with your finger and place it where the parent signs.</li>
+  <li><strong>Send it back:</strong> "Save &amp; Share", and send it to the teacher or the school office.</li>
+</ol>
+
+<h2>A tip for parents</h2>
+<p>Save your signature with "Save for reuse". Next time a form arrives, your signature is ready in one tap. You can save up to three signatures – for both parents, for example.</p>
+
+<h2>Privacy</h2>
+<p>Forms like these contain details about children, so it matters: with EasyPen the form is never uploaded. Everything happens on your phone, and the file goes only to the people you choose.</p>
+'''),
+]
+
+T = {
+  'he': dict(dir='rtl', locale='he_IL', guides='מדריכים', more='מדריכים נוספים', crumbs_label='מיקום באתר',
+             cta='לחתימה על מסמך', cta_note='בחינם, בלי הרשמה. הקבצים לא עוזבים את המכשיר.',
+             privacy='מדיניות פרטיות', terms='תנאי שימוש', footer_label='מידע משפטי',
+             other='English', other_lang='en', sep='‹',
+             index_title='מדריכים: חתימה על מסמכים מהטלפון',
+             index_desc='מדריכים קצרים לחתימה על PDF, חוזים וטפסים מהטלפון עם EasyPen: בחינם, בלי הרשמה, והקבצים לא עוזבים את המכשיר.',
+             index_lead='איך חותמים על מסמך מהטלפון, ממלאים טופס ושולחים אותו בחזרה, בלי מדפסת ובלי סורק.'),
+  'en': dict(dir='ltr', locale='en_US', guides='Guides', more='More guides', crumbs_label='Breadcrumb',
+             cta='Sign a document', cta_note='Free, no sign-up. Your files never leave your device.',
+             privacy='Privacy Policy', terms='Terms of Use', footer_label='Legal',
+             other='עברית', other_lang='he', sep='›',
+             index_title='Guides: signing documents on your phone',
+             index_desc='Short guides to signing PDFs, contracts and forms on your phone with EasyPen: free, no sign-up, and your files never leave your device.',
+             index_lead='How to sign a document on your phone, fill in a form and send it back – without a printer or a scanner.'),
+}
+SETS = {'he': GUIDES, 'en': EN_GUIDES}
+PREFIX = {'he': 'guides/', 'en': 'en/guides/'}
+
 HEAD = '''<!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="{lang}" dir="{dir}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>{title}</title>
   <meta name="description" content="{desc}">
   <link rel="canonical" href="{url}">
+  <!-- The same page in the other language (search engines show each reader theirs) -->
+  <link rel="alternate" hreflang="{lang}" href="{url}">
+  <link rel="alternate" hreflang="{other_lang}" href="{other_url}">
+  <link rel="alternate" hreflang="x-default" href="{he_url}">
   <script src="{up}js/analytics.js" defer></script>
   <meta name="theme-color" content="#2f4fc4">
-  <meta property="og:type" content="article">
+  <meta property="og:type" content="{og_type}">
   <meta property="og:site_name" content="EasyPen">
-  <meta property="og:locale" content="he_IL">
+  <meta property="og:locale" content="{locale}">
   <meta property="og:url" content="{url}">
   <meta property="og:title" content="{title}">
   <meta property="og:description" content="{desc}">
@@ -147,31 +280,32 @@ HEAD = '''<!DOCTYPE html>
       <img src="{up}icons/icon.svg" alt="" width="28" height="28">
       <span>EasyPen</span>
     </a>
+    <a class="btn btn-ghost btn-sm lang-switch" href="{other_rel}" hreflang="{other_lang}" lang="{other_lang}">{other}</a>
   </header>
 
   <main class="legal-content guide-content">
-    <nav class="breadcrumbs" aria-label="מיקום באתר">
+    <nav class="breadcrumbs" aria-label="{crumbs_label}">
 {crumbs}
     </nav>
 '''
 
 CTA = '''
     <div class="guide-cta">
-      <a class="btn btn-primary btn-xl" href="{up}">לחתימה על מסמך</a>
-      <p class="muted small">בחינם, בלי הרשמה. הקבצים לא עוזבים את המכשיר.</p>
+      <a class="btn btn-primary btn-xl" href="{up}">{cta}</a>
+      <p class="muted small">{cta_note}</p>
     </div>
 '''
 
 FOOT = '''  </main>
 
   <footer class="site-footer">
-    <nav class="footer-links" aria-label="מידע משפטי">
+    <nav class="footer-links" aria-label="{footer_label}">
       <div class="footer-row">
-        <a href="{up}guides/">מדריכים</a>
+        <a href="{up}{prefix}">{guides}</a>
         <span class="footer-dot" aria-hidden="true">·</span>
-        <a href="{up}legal.html?doc=privacy">מדיניות פרטיות</a>
+        <a href="{up}legal.html?doc=privacy">{privacy}</a>
         <span class="footer-dot" aria-hidden="true">·</span>
-        <a href="{up}legal.html?doc=terms">תנאי שימוש</a>
+        <a href="{up}legal.html?doc=terms">{terms}</a>
       </div>
     </nav>
     <p class="footer-copy" dir="ltr">© 2026 vplus studio</p>
@@ -180,15 +314,12 @@ FOOT = '''  </main>
 </html>
 '''
 
-def crumbs(items, up):
+def crumbs(items, sep):
     out = []
     for i, (name, href) in enumerate(items):
-        if href is None:
-            out.append(f'      <span aria-current="page">{name}</span>')
-        else:
-            out.append(f'      <a href="{href}">{name}</a>')
+        out.append(f'      <span aria-current="page">{name}</span>' if href is None else f'      <a href="{href}">{name}</a>')
         if i < len(items) - 1:
-            out.append('      <span class="crumb-sep" aria-hidden="true">‹</span>')
+            out.append(f'      <span class="crumb-sep" aria-hidden="true">{sep}</span>')
     return '\n'.join(out)
 
 def ld(objs):
@@ -198,50 +329,63 @@ def breadcrumb_ld(items):
     return {"@type": "BreadcrumbList", "itemListElement": [
         {"@type": "ListItem", "position": i + 1, "name": n, "item": u} for i, (n, u) in enumerate(items)]}
 
-def related(current, up):
-    lis = [f'      <li><a href="{up}guides/{g["slug"]}/">{g["short"]}</a></li>' for g in GUIDES if g['slug'] != current]
-    return '    <section class="guide-related">\n      <h2>מדריכים נוספים</h2>\n      <ul>\n' + '\n'.join(lis) + '\n      </ul>\n    </section>\n'
-
-# guide pages
-for g in GUIDES:
-    up = '../../'
-    url = f'{SITE}guides/{g["slug"]}/'
-    items_ld = [('EasyPen', SITE), ('מדריכים', SITE + 'guides/'), (g['short'], url)]
-    data = {"@context": "https://schema.org", "@graph": [
-        {"@type": "Article", "headline": g['title'], "description": g['desc'], "inLanguage": "he",
-         "datePublished": DATE, "dateModified": DATE, "mainEntityOfPage": url,
-         "image": SITE + "icons/og-image.png",
-         "author": {"@type": "Organization", "name": "vplus studio"},
-         "publisher": {"@type": "Organization", "name": "vplus studio"}},
-        breadcrumb_ld(items_ld)]}
-    html = HEAD.format(title=g['title'] + ' | EasyPen', desc=g['desc'], url=url, up=up, ld=ld(data),
-                       crumbs=crumbs([('EasyPen', up), ('מדריכים', up + 'guides/'), (g['short'], None)], up))
-    html += f'    <article>\n      <h1>{g["title"]}</h1>\n' + g['body'].strip('\n').replace('../../', up) + '\n    </article>\n'
-    html += CTA.format(up=up) + related(g['slug'], up) + FOOT.format(up=up)
-    d = os.path.join(ROOT, 'guides', g['slug']); os.makedirs(d, exist_ok=True)
+def write(rel_dir, html):
+    d = os.path.join(ROOT, rel_dir); os.makedirs(d, exist_ok=True)
     open(os.path.join(d, 'index.html'), 'w').write(html)
 
-# index page
-up = '../'
-url = SITE + 'guides/'
-title = 'מדריכים: חתימה על מסמכים מהטלפון'
-desc = 'מדריכים קצרים לחתימה על PDF, חוזים וטפסים מהטלפון עם EasyPen: בחינם, בלי הרשמה, והקבצים לא עוזבים את המכשיר.'
-data = {"@context": "https://schema.org", "@graph": [
-    {"@type": "CollectionPage", "name": title, "description": desc, "inLanguage": "he", "url": url},
-    breadcrumb_ld([('EasyPen', SITE), ('מדריכים', url)])]}
-cards = '\n'.join(f'''      <li>
+for lang, guides in SETS.items():
+    t = T[lang]
+    other = t['other_lang']
+    prefix = PREFIX[lang]
+    base_up = '../' * prefix.count('/')          # from guides/ (or en/guides/) to the site root
+    for g in guides:
+        up = base_up + '../'
+        url = SITE + prefix + g['slug'] + '/'
+        rel_to_root_other = up + PREFIX[other] + g['slug'] + '/'
+        items_ld = [('EasyPen', SITE), (t['guides'], SITE + prefix), (g['short'], url)]
+        data = {"@context": "https://schema.org", "@graph": [
+            {"@type": "Article", "headline": g['title'], "description": g['desc'], "inLanguage": lang,
+             "datePublished": DATE, "dateModified": DATE, "mainEntityOfPage": url,
+             "image": SITE + "icons/og-image.png",
+             "author": {"@type": "Organization", "name": "vplus studio"},
+             "publisher": {"@type": "Organization", "name": "vplus studio"}},
+            breadcrumb_ld(items_ld)]}
+        html = HEAD.format(lang=lang, dir=t['dir'], title=g['title'] + ' | EasyPen', desc=g['desc'], url=url,
+                           other_lang=other, other_url=SITE + PREFIX[other] + g['slug'] + '/',
+                           he_url=SITE + PREFIX['he'] + g['slug'] + '/', up=up, og_type='article',
+                           locale=t['locale'], ld=ld(data), other=t['other'], other_rel=rel_to_root_other,
+                           crumbs_label=t['crumbs_label'],
+                           crumbs=crumbs([('EasyPen', up), (t['guides'], up + prefix), (g['short'], None)], t['sep']))
+        body = g['body'].strip('\n').replace('href="../../../"', f'href="{up}"').replace('href="../../"', f'href="{up}"')
+        html += f'    <article>\n      <h1>{g["title"]}</h1>\n' + body + '\n    </article>\n'
+        html += CTA.format(up=up, **t)
+        lis = [f'      <li><a href="{up}{prefix}{o["slug"]}/">{o["short"]}</a></li>' for o in guides if o['slug'] != g['slug']]
+        html += f'    <section class="guide-related">\n      <h2>{t["more"]}</h2>\n      <ul>\n' + '\n'.join(lis) + '\n      </ul>\n    </section>\n'
+        html += FOOT.format(up=up, prefix=prefix, **t)
+        write(prefix + g['slug'], html)
+
+    # index
+    up = base_up
+    url = SITE + prefix
+    data = {"@context": "https://schema.org", "@graph": [
+        {"@type": "CollectionPage", "name": t['index_title'], "description": t['index_desc'], "inLanguage": lang, "url": url},
+        breadcrumb_ld([('EasyPen', SITE), (t['guides'], url)])]}
+    cards = '\n'.join(f'''      <li>
         <a href="{g["slug"]}/">
           <strong>{g["short"]}</strong>
           <span class="muted">{g["desc"]}</span>
         </a>
-      </li>''' for g in GUIDES)
-html = HEAD.format(title=title + ' | EasyPen', desc=desc, url=url, up=up, ld=ld(data),
-                   crumbs=crumbs([('EasyPen', up), ('מדריכים', None)], up))
-html += f'''    <h1>{title}</h1>
-    <p class="lead">איך חותמים על מסמך מהטלפון, ממלאים טופס ושולחים אותו בחזרה, בלי מדפסת ובלי סורק.</p>
+      </li>''' for g in guides)
+    html = HEAD.format(lang=lang, dir=t['dir'], title=t['index_title'] + ' | EasyPen', desc=t['index_desc'], url=url,
+                       other_lang=other, other_url=SITE + PREFIX[other], he_url=SITE + PREFIX['he'], up=up,
+                       og_type='website', locale=t['locale'], ld=ld(data), other=t['other'],
+                       other_rel=up + PREFIX[other], crumbs_label=t['crumbs_label'],
+                       crumbs=crumbs([('EasyPen', up), (t['guides'], None)], t['sep']))
+    html += f'''    <h1>{t["index_title"]}</h1>
+    <p class="lead">{t["index_lead"]}</p>
     <ul class="guide-list">
 {cards}
     </ul>
-''' + CTA.format(up=up) + FOOT.format(up=up)
-open(os.path.join(ROOT, 'guides', 'index.html'), 'w').write(html)
+''' + CTA.format(up=up, **t) + FOOT.format(up=up, prefix=prefix, **t)
+    write(prefix, html)
 print('ok')
