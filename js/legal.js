@@ -1,7 +1,7 @@
 /*
  * EasyPen - legal documents page.
- * Renders docs/legal/*.md (the single source of truth) as HTML; on an English device
- * the English versions in docs/legal/en/.
+ * Renders docs/legal/*.md (the single source of truth) as HTML; on any other device
+ * the English versions in docs/legal/en/ (there are no Russian ones yet).
  * A tiny Markdown subset: headings, paragraphs, lists, tables, bold, code,
  * links, rules. All text is HTML-escaped before any formatting is applied.
  */
@@ -18,7 +18,7 @@
   const FILE_TO_KEY = Object.fromEntries(Object.entries(DOCS).map(([k, f]) => [f, k]));
 
   const { t, lang } = window.EasyPenI18n;
-  const DIR = lang === 'en' ? 'docs/legal/en/' : 'docs/legal/';
+  const DIR = lang === 'he' ? 'docs/legal/' : 'docs/legal/en/';
 
   const content = document.getElementById('legal-content');
   const nav = document.getElementById('legal-nav');
@@ -119,6 +119,15 @@
       const res = await fetch(DIR + file);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       content.innerHTML = renderMarkdown(await res.text());
+      if (lang === 'ru') {
+        // The documents are in English; say so in Russian and mark their language
+        content.lang = 'en';
+        const note = document.createElement('p');
+        note.className = 'muted';
+        note.lang = 'ru';
+        note.textContent = t('legal.enOnly');
+        content.prepend(note);
+      }
       const h1 = content.querySelector('h1');
       if (h1) document.title = `${h1.textContent} - EasyPen`;
     } catch (err) {

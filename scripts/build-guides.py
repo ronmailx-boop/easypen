@@ -1,5 +1,5 @@
-# Builds the guide pages under guides/ (Hebrew) and en/guides/ (English): static HTML for search engines.
-# Edit the GUIDES list, then run: python3 scripts/build-guides.py
+# Builds the guide pages under guides/ (Hebrew), en/guides/ (English) and ru/guides/ (Russian):
+# static HTML for search engines. Edit the GUIDES lists, then run: python3 scripts/build-guides.py
 # New guides also go into sitemap.xml (the e2e test checks it).
 import json, os
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -226,24 +226,141 @@ EN_GUIDES = [
 '''),
 ]
 
+RU_GUIDES = [
+  dict(slug='sign-pdf-on-phone',
+    title='Как подписать PDF на телефоне – бесплатно и без регистрации',
+    short='Как подписать PDF на телефоне',
+    desc='Короткая инструкция: подпишите PDF на телефоне меньше чем за минуту, бесплатно, без установки приложения и без регистрации. Файл не покидает устройство.',
+    body='''
+<p class="lead">Нужно подписать PDF, а принтера и сканера под рукой нет? Подпишите его прямо на телефоне меньше чем за минуту. Вот как это сделать с EasyPen – бесплатно и без регистрации.</p>
+
+<h2>Что понадобится</h2>
+<ul>
+  <li>Телефон (Android или iPhone) с браузером, например Chrome или Safari.</li>
+  <li>PDF-файл, сохранённый на телефоне или открытый в WhatsApp, Telegram или почте.</li>
+</ul>
+
+<h2>Пошагово</h2>
+<ol class="guide-steps">
+  <li><strong>Откройте EasyPen</strong> по адресу <a href="../../../">easypen.vplusstudio.app</a>. Регистрироваться и что-то устанавливать не нужно. Если язык телефона русский, приложение откроется на русском.</li>
+  <li><strong>Нажмите «Загрузить документ»</strong> и выберите PDF. Можно выбрать и фото документа (JPG или PNG) или несколько файлов – они объединятся в один документ.</li>
+  <li><strong>Нажмите «Подпись»</strong> внизу экрана и нарисуйте подпись пальцем внутри рамки. Отметьте «Сохранить для повторного использования» – в следующий раз подпись будет готова одним нажатием.</li>
+  <li><strong>Расположите подпись:</strong> перетащите её на нужное место и измените размер, потянув за угол или с помощью ползунка.</li>
+  <li><strong>Нужно заполнить данные?</strong> «Текст» добавляет имя, дату или номер документа в любое место страницы. «Рисунок» позволяет поставить галочку или написать от руки.</li>
+  <li><strong>Нажмите «Сохранить»</strong>, выберите имя файла и отправьте его в WhatsApp, Telegram, по почте или в любое другое приложение.</li>
+</ol>
+
+<h2>Мой документ загружается в интернет?</h2>
+<p>Нет. Всё происходит в браузере на вашем телефоне: документ и подпись не отправляются ни на какой сервер. Поэтому и учётная запись не нужна.</p>
+
+<h2>Советы</h2>
+<ul>
+  <li>Несколько страниц? Прокрутите до нужной страницы, прежде чем нажать «Подпись», – подпись добавится на страницу, которая на экране.</li>
+  <li>Ошиблись? «Отменить» вверху экрана возвращает на шаг назад, а «Вернуть» – обратно.</li>
+  <li>EasyPen можно установить на главный экран как приложение, и он будет работать даже без интернета.</li>
+</ul>
+'''),
+  dict(slug='sign-document-from-whatsapp',
+    title='Как подписать документ из WhatsApp и отправить его обратно',
+    short='Подпись документа из WhatsApp',
+    desc='Получили договор или заявление в WhatsApp? Подпишите его на телефоне и отправьте обратно в тот же чат примерно за минуту, бесплатно.',
+    body='''
+<p class="lead">Сегодня многие документы приходят в мессенджерах: договор, коммерческое предложение, заявление. Вместо того чтобы печатать, подписывать и сканировать, подпишите документ на телефоне и отправьте подписанную копию обратно в тот же чат. Так же это работает и с Telegram.</p>
+
+<h2>Пошагово</h2>
+<ol class="guide-steps">
+  <li><strong>Сохраните файл:</strong> откройте документ в WhatsApp. На Android он обычно сам сохраняется в «Загрузки» или «Документы». На iPhone нажмите кнопку «Поделиться» и выберите «Сохранить в Файлы».</li>
+  <li><strong>Откройте <a href="../../../">EasyPen</a></strong> и нажмите «Загрузить документ». Выберите сохранённый файл.</li>
+  <li><strong>Подпишите:</strong> нажмите «Подпись», нарисуйте её пальцем и поставьте в нужное место.</li>
+  <li><strong>Отправьте обратно:</strong> нажмите «Сохранить», выберите WhatsApp и тот же чат. Подписанный документ уйдёт в формате PDF.</li>
+</ol>
+
+<h2>Быстрый способ на Android: поделиться прямо из WhatsApp</h2>
+<p>Если установить EasyPen как приложение (в Chrome: «Установить приложение» на главном экране EasyPen или меню ⋮ → «Добавить на главный экран»), он появится в меню «Поделиться» телефона. Тогда в WhatsApp можно долго нажать на документ, выбрать «Поделиться», затем EasyPen – и документ сразу откроется для подписи, без поиска в файлах.</p>
+<p>На iPhone такой возможности пока нет, поэтому сохраните файл и откройте его в EasyPen, как описано выше.</p>
+
+<h2>Прислали фото документа, а не PDF?</h2>
+<p>Это тоже работает: EasyPen принимает фото JPG и PNG, в том числе несколько сразу, и объединяет их по порядку в один PDF. После подписи вы отправляете аккуратный PDF-файл.</p>
+
+<h2>Конфиденциальность</h2>
+<p>Документ никуда не загружается: открытие, подпись и создание подписанного файла происходят на вашем телефоне.</p>
+'''),
+  dict(slug='sign-rental-contract',
+    title='Как подписать договор аренды на телефоне',
+    short='Подпись договора аренды на телефоне',
+    desc='Подпишите договор аренды на телефоне: подпись на каждой странице, ФИО, паспортные данные и дата – и отправка арендодателю или арендатору. Бесплатно и без регистрации.',
+    body='''
+<p class="lead">Договор аренды обычно занимает несколько страниц, и иногда нужно подписать каждую страницу и заполнить личные данные. Вот как сделать это на телефоне с EasyPen – без принтера и без сканера.</p>
+
+<h2>Пошагово</h2>
+<ol class="guide-steps">
+  <li><strong>Откройте договор в <a href="../../../">EasyPen</a>:</strong> нажмите «Загрузить документ» и выберите PDF.</li>
+  <li><strong>Сохраните подпись:</strong> когда в первый раз нажмёте «Подпись», отметьте «Сохранить для повторного использования». Дальше каждая подпись – одно нажатие.</li>
+  <li><strong>Подпишите каждую страницу:</strong> прокрутите до страницы, нажмите «Подпись» и выберите сохранённую подпись. Она добавится на страницу на экране – перетащите её на место.</li>
+  <li><strong>Заполните данные:</strong> нажмите «Текст», затем место, где нужно написать: ФИО, паспортные данные, адрес и дату. Размер текста можно увеличить или уменьшить.</li>
+  <li><strong>Отметьте пункты:</strong> чтобы поставить галочку или обвести пункт, «Рисунок» позволяет писать от руки.</li>
+  <li><strong>Отправьте:</strong> нажмите «Сохранить» и отправьте договор арендодателю, арендатору или риелтору в мессенджере или по почте.</li>
+</ol>
+
+<h2>Нужно приложить другие документы?</h2>
+<p>К договору можно добавить файлы и фото – например, копию паспорта или приложение – и отправить всё одним PDF. Прокрутите до конца документа и нажмите «Добавить файлы или фото»; порядок страниц тоже можно изменить.</p>
+
+<h2>Действительна ли такая подпись?</h2>
+<p>Подпись, добавленная в документ на телефоне, – это простая электронная подпись. Во многих странах её принимают в договорах между частными лицами, которые согласились подписывать так. Однако некоторые организации и документы требуют квалифицированной электронной подписи или подписи на бумаге, и правила различаются от страны к стране. Если сомневаетесь, уточните заранее у другой стороны или у юриста. Эта инструкция не является юридической консультацией.</p>
+
+<h2>Конфиденциальность</h2>
+<p>В договоре аренды есть личные данные. В EasyPen документ никуда не загружается: всё происходит на вашем телефоне, а подписанный файл получают только те, кого вы выберете.</p>
+'''),
+  dict(slug='sign-school-form',
+    title='Как подписать согласие для школы или детского сада на телефоне',
+    short='Подпись документов для школы и садика',
+    desc='Согласие на экскурсию, медицинская анкета или заявление из школы или детского сада? Заполните и подпишите на телефоне и отправьте обратно – без печати.',
+    body='''
+<p class="lead">Согласие на экскурсию, медицинская анкета, заявление в кружок: такие документы приходят из школы или детского сада в родительский чат или на почту, и часто их нужно вернуть в тот же день. Печатать не нужно – заполните и подпишите их на телефоне.</p>
+
+<h2>Пошагово</h2>
+<ol class="guide-steps">
+  <li><strong>Сохраните документ</strong> из мессенджера или почты на телефон. Фото бумажного бланка тоже подойдёт.</li>
+  <li><strong>Откройте <a href="../../../">EasyPen</a></strong>, нажмите «Загрузить документ» и выберите файл.</li>
+  <li><strong>Заполните данные:</strong> нажмите «Текст», затем поле: имя ребёнка, класс или группу, номер телефона и дату.</li>
+  <li><strong>Отметьте ответы:</strong> «Рисунок» позволяет поставить галочку в поле «Согласен» или «Не согласен».</li>
+  <li><strong>Подпишите:</strong> нажмите «Подпись», нарисуйте её пальцем и поставьте там, где расписывается родитель.</li>
+  <li><strong>Отправьте обратно:</strong> нажмите «Сохранить» и отправьте документ учителю, воспитателю или в канцелярию.</li>
+</ol>
+
+<h2>Совет для родителей</h2>
+<p>Сохраните подпись с помощью «Сохранить для повторного использования». Когда придёт следующий документ, подпись будет готова одним нажатием. Можно сохранить до трёх подписей – например, для обоих родителей.</p>
+
+<h2>Конфиденциальность</h2>
+<p>В таких документах есть данные о детях, поэтому это важно: в EasyPen документ никуда не загружается. Всё происходит на вашем телефоне, а файл получают только те, кого вы выберете.</p>
+'''),
+]
+
 T = {
   'he': dict(dir='rtl', locale='he_IL', guides='מדריכים', more='מדריכים נוספים', crumbs_label='מיקום באתר',
              cta='לחתימה על מסמך', cta_note='בחינם, בלי הרשמה. הקבצים לא עוזבים את המכשיר.',
              privacy='מדיניות פרטיות', terms='תנאי שימוש', footer_label='מידע משפטי',
-             other='English', other_lang='en', sep='‹',
+             name='עברית', sep='‹',
              index_title='מדריכים: חתימה על מסמכים מהטלפון',
              index_desc='מדריכים קצרים לחתימה על PDF, חוזים וטפסים מהטלפון עם EasyPen: בחינם, בלי הרשמה, והקבצים לא עוזבים את המכשיר.',
              index_lead='איך חותמים על מסמך מהטלפון, ממלאים טופס ושולחים אותו בחזרה, בלי מדפסת ובלי סורק.'),
   'en': dict(dir='ltr', locale='en_US', guides='Guides', more='More guides', crumbs_label='Breadcrumb',
              cta='Sign a document', cta_note='Free, no sign-up. Your files never leave your device.',
              privacy='Privacy Policy', terms='Terms of Use', footer_label='Legal',
-             other='עברית', other_lang='he', sep='›',
+             name='English', sep='›',
              index_title='Guides: signing documents on your phone',
              index_desc='Short guides to signing PDFs, contracts and forms on your phone with EasyPen: free, no sign-up, and your files never leave your device.',
              index_lead='How to sign a document on your phone, fill in a form and send it back – without a printer or a scanner.'),
+  'ru': dict(dir='ltr', locale='ru_RU', guides='Инструкции', more='Другие инструкции', crumbs_label='Навигация',
+             cta='Подписать документ', cta_note='Бесплатно, без регистрации. Файлы не покидают устройство.',
+             privacy='Конфиденциальность', terms='Условия использования', footer_label='Правовая информация',
+             name='Русский', sep='›',
+             index_title='Инструкции: как подписывать документы на телефоне',
+             index_desc='Короткие инструкции по подписи PDF, договоров и заявлений на телефоне с EasyPen: бесплатно, без регистрации, файлы не покидают устройство.',
+             index_lead='Как подписать документ на телефоне, заполнить бланк и отправить его обратно – без принтера и без сканера.'),
 }
-SETS = {'he': GUIDES, 'en': EN_GUIDES}
-PREFIX = {'he': 'guides/', 'en': 'en/guides/'}
+SETS = {'he': GUIDES, 'en': EN_GUIDES, 'ru': RU_GUIDES}
+PREFIX = {'he': 'guides/', 'en': 'en/guides/', 'ru': 'ru/guides/'}
 
 HEAD = '''<!DOCTYPE html>
 <html lang="{lang}" dir="{dir}">
@@ -253,10 +370,8 @@ HEAD = '''<!DOCTYPE html>
   <title>{title}</title>
   <meta name="description" content="{desc}">
   <link rel="canonical" href="{url}">
-  <!-- The same page in the other language (search engines show each reader theirs) -->
-  <link rel="alternate" hreflang="{lang}" href="{url}">
-  <link rel="alternate" hreflang="{other_lang}" href="{other_url}">
-  <link rel="alternate" hreflang="x-default" href="{he_url}">
+  <!-- The same page in every language (search engines show each reader theirs) -->
+{alternates}
   <script src="{up}js/analytics.js" defer></script>
   <meta name="theme-color" content="#2f4fc4">
   <meta property="og:type" content="{og_type}">
@@ -280,7 +395,9 @@ HEAD = '''<!DOCTYPE html>
       <img src="{up}icons/icon.svg" alt="" width="28" height="28">
       <span>EasyPen</span>
     </a>
-    <a class="btn btn-ghost btn-sm lang-switch" href="{other_rel}" hreflang="{other_lang}" lang="{other_lang}">{other}</a>
+    <div class="lang-switch">
+{switch}
+    </div>
   </header>
 
   <main class="legal-content guide-content">
@@ -329,19 +446,27 @@ def breadcrumb_ld(items):
     return {"@type": "BreadcrumbList", "itemListElement": [
         {"@type": "ListItem", "position": i + 1, "name": n, "item": u} for i, (n, u) in enumerate(items)]}
 
+def alternates(path):
+    # path: the page's address under each language's guides/ ('' for the index)
+    links = [f'  <link rel="alternate" hreflang="{l}" href="{SITE}{PREFIX[l]}{path}">' for l in PREFIX]
+    links.append(f'  <link rel="alternate" hreflang="x-default" href="{SITE}{PREFIX["he"]}{path}">')
+    return '\n'.join(links)
+
+def switch(lang, up, path):
+    return '\n'.join(f'      <a class="btn btn-ghost btn-sm" href="{up}{PREFIX[l]}{path}" hreflang="{l}" lang="{l}">{T[l]["name"]}</a>'
+                     for l in PREFIX if l != lang)
+
 def write(rel_dir, html):
     d = os.path.join(ROOT, rel_dir); os.makedirs(d, exist_ok=True)
     open(os.path.join(d, 'index.html'), 'w').write(html)
 
 for lang, guides in SETS.items():
     t = T[lang]
-    other = t['other_lang']
     prefix = PREFIX[lang]
-    base_up = '../' * prefix.count('/')          # from guides/ (or en/guides/) to the site root
+    base_up = '../' * prefix.count('/')          # from guides/ (or en/guides/, ru/guides/) to the site root
     for g in guides:
         up = base_up + '../'
         url = SITE + prefix + g['slug'] + '/'
-        rel_to_root_other = up + PREFIX[other] + g['slug'] + '/'
         items_ld = [('EasyPen', SITE), (t['guides'], SITE + prefix), (g['short'], url)]
         data = {"@context": "https://schema.org", "@graph": [
             {"@type": "Article", "headline": g['title'], "description": g['desc'], "inLanguage": lang,
@@ -351,9 +476,8 @@ for lang, guides in SETS.items():
              "publisher": {"@type": "Organization", "name": "vplus studio"}},
             breadcrumb_ld(items_ld)]}
         html = HEAD.format(lang=lang, dir=t['dir'], title=g['title'] + ' | EasyPen', desc=g['desc'], url=url,
-                           other_lang=other, other_url=SITE + PREFIX[other] + g['slug'] + '/',
-                           he_url=SITE + PREFIX['he'] + g['slug'] + '/', up=up, og_type='article',
-                           locale=t['locale'], ld=ld(data), other=t['other'], other_rel=rel_to_root_other,
+                           alternates=alternates(g['slug'] + '/'), switch=switch(lang, up, g['slug'] + '/'),
+                           up=up, og_type='article', locale=t['locale'], ld=ld(data),
                            crumbs_label=t['crumbs_label'],
                            crumbs=crumbs([('EasyPen', up), (t['guides'], up + prefix), (g['short'], None)], t['sep']))
         body = g['body'].strip('\n').replace('href="../../../"', f'href="{up}"').replace('href="../../"', f'href="{up}"')
@@ -377,9 +501,8 @@ for lang, guides in SETS.items():
         </a>
       </li>''' for g in guides)
     html = HEAD.format(lang=lang, dir=t['dir'], title=t['index_title'] + ' | EasyPen', desc=t['index_desc'], url=url,
-                       other_lang=other, other_url=SITE + PREFIX[other], he_url=SITE + PREFIX['he'], up=up,
-                       og_type='website', locale=t['locale'], ld=ld(data), other=t['other'],
-                       other_rel=up + PREFIX[other], crumbs_label=t['crumbs_label'],
+                       alternates=alternates(''), switch=switch(lang, up, ''), up=up,
+                       og_type='website', locale=t['locale'], ld=ld(data), crumbs_label=t['crumbs_label'],
                        crumbs=crumbs([('EasyPen', up), (t['guides'], None)], t['sep']))
     html += f'''    <h1>{t["index_title"]}</h1>
     <p class="lead">{t["index_lead"]}</p>

@@ -223,6 +223,6 @@
     if (result === 'copied') toast(t('share.copied'), 'success');
     else if (result === 'failed') toast(t('share.failed'), 'error', 6000);
   });
-  // The guides in the reader's language (English pages for an English phone)
-  if (window.EasyPenI18n.lang === 'en') document.getElementById('guides-link').href = 'en/guides/';
+  // The guides in the reader's language (English or Russian pages on such a phone)
+  if (window.EasyPenI18n.lang !== 'he') document.getElementById('guides-link').href = `${window.EasyPenI18n.lang}/guides/`;
 })();
