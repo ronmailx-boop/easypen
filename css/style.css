@@ -1340,6 +1340,7 @@ html:has(> body.viewer),
 /* ---------- Guides (static pages for search, under guides/) ---------- */
 
 .brand-link { color: inherit; text-decoration: none; }
+.lang-switch { display: flex; gap: .25rem; }
 .guide-content .lead { font-size: 1.08rem; color: var(--text); }
 .breadcrumbs {
   display: flex;

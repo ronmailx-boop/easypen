@@ -51,6 +51,11 @@ async function useEnglish() {
   await newSession('en-US');
 }
 
+async function useRussian() {
+  await context.close();
+  await newSession('ru-RU');
+}
+
 const hebrewOnScreen = () => page.evaluate(() => (document.title + document.body.innerText).match(/[\u0590-\u05FF]+/g));
 
 afterEach(async () => {
@@ -927,14 +932,15 @@ test('sharing: "שתפו את EasyPen" on the home screen shares the app, or cop
   await page.waitForFunction(() => document.getElementById('toast').textContent === 'הקישור הועתק. אפשר להדביק אותו בכל הודעה');
 });
 
-test('guides: every guide (Hebrew and English) opens, has its title, canonical and other-language addresses, and all its links work', async () => {
+test('guides: every guide (Hebrew, English and Russian) opens, has its title, canonical and other-language addresses, and all its links work', async () => {
   const fs = require('fs');
   const sitemap = fs.readFileSync(path.join(__dirname, '../sitemap.xml'), 'utf8');
   const SITE = 'https://easypen.vplusstudio.app/';
   const slugsIn = (dir) => fs.readdirSync(path.join(__dirname, '..', dir), { withFileTypes: true })
     .filter((d) => d.isDirectory()).map((d) => d.name).sort();
-  const sets = { he: 'guides/', en: 'en/guides/' };
-  assert.deepEqual(slugsIn('guides'), slugsIn('en/guides'), 'every guide has both languages');
+  const sets = { he: 'guides/', en: 'en/guides/', ru: 'ru/guides/' };
+  assert.deepEqual(slugsIn('guides'), slugsIn('en/guides'), 'every guide is in English');
+  assert.deepEqual(slugsIn('guides'), slugsIn('ru/guides'), 'every guide is in Russian');
   const slugs = slugsIn('guides');
   assert.ok(slugs.length >= 4);
 
@@ -945,7 +951,6 @@ test('guides: every guide (Hebrew and English) opens, has its title, canonical a
   assert.equal(await page.locator('.guide-list a').count(), slugs.length);
 
   for (const [lang, base] of Object.entries(sets)) {
-    const other = lang === 'he' ? 'en' : 'he';
     for (const dir of ['', ...slugs.map((s) => s + '/')]) {
       await page.goto(server.baseUrl + base + dir);
       const info = await page.evaluate(() => ({
@@ -963,14 +968,15 @@ test('guides: every guide (Hebrew and English) opens, has its title, canonical a
       assert.ok(info.h1, `title on ${where}`);
       assert.equal(info.canonical, SITE + base + dir);
       assert.ok(sitemap.includes(info.canonical), `in sitemap: ${info.canonical}`);
-      assert.deepEqual(info.alt, { [lang]: SITE + base + dir, [other]: SITE + sets[other] + dir, 'x-default': SITE + sets.he + dir });
+      assert.deepEqual(info.alt, { he: SITE + sets.he + dir, en: SITE + sets.en + dir, ru: SITE + sets.ru + dir, 'x-default': SITE + sets.he + dir });
       assert.ok(info.ld['@graph'].length >= 2);
       for (const href of new Set(info.links.filter((h) => h.startsWith(server.baseUrl)))) {
         const res = await page.request.get(href);
         assert.equal(res.status(), 200, `${href} from ${where}`);
       }
-      // The language switch goes to the same page in the other language
-      assert.equal(await page.locator('.lang-switch').evaluate((a) => a.href), server.baseUrl + sets[other] + dir);
+      // The language switch goes to the same page in the other languages
+      assert.deepEqual(await page.$$eval('.lang-switch a', (as) => as.map((a) => a.href)),
+        Object.keys(sets).filter((l) => l !== lang).map((l) => server.baseUrl + sets[l] + dir));
       // The button to the app goes to the home screen
       assert.equal(await page.locator('.guide-cta a').evaluate((a) => a.href), server.baseUrl);
     }
@@ -986,6 +992,42 @@ test('english: the home screen links to the English guides', async () => {
   assert.equal(await page.evaluate(() => document.documentElement.lang), 'en');
   // Only the switch to the Hebrew guides is in Hebrew
   assert.deepEqual(await hebrewOnScreen(), ['עברית']);
+});
+
+test('russian: a Russian device gets the app in Russian, with Russian guides and English legal pages', async () => {
+  await useRussian();
+  await page.goto(server.baseUrl);
+  await page.waitForSelector('#sig-empty', { state: 'visible' });
+  assert.deepEqual(await page.evaluate(() => [document.documentElement.lang, document.documentElement.dir]), ['ru', 'ltr']);
+  assert.equal(await page.title(), 'EasyPen - электронная подпись');
+  assert.equal(await page.textContent('h1'), 'Подписать документ');
+  assert.equal(await hebrewOnScreen(), null, 'no Hebrew on the home screen');
+
+  // The editor: Russian labels, and they fit their buttons
+  await openInEditor();
+  assert.equal(await page.textContent('#doc-pages'), 'Страниц: 4');
+  assert.equal(await hebrewOnScreen(), null, 'no Hebrew in the editor');
+  const labels = await page.$$eval('.bottom-bar .bar-btn', (bs) => bs.map((b) => [b.textContent.trim(), b.scrollWidth <= b.clientWidth]));
+  assert.deepEqual(labels, [['Подпись', true], ['Текст', true], ['Рисунок', true], ['Сохранить', true]]);
+  await page.click('#draw-btn');
+  assert.equal(await hebrewOnScreen(), null, 'no Hebrew in drawing mode');
+  await page.click('#draw-done');
+
+  // The guides link goes to the Russian guides
+  await page.goto(server.baseUrl);
+  assert.equal(await page.textContent('#guides-link'), 'Инструкции');
+  await page.click('#guides-link');
+  await page.waitForSelector('.guide-list');
+  assert.equal(await page.evaluate(() => document.documentElement.lang), 'ru');
+  assert.deepEqual(await hebrewOnScreen(), ['עברית'], 'only the switch to Hebrew');
+
+  // Legal pages: the English documents, with a Russian note saying so
+  await page.goto(`${server.baseUrl}legal.html?doc=privacy`);
+  await page.waitForSelector('#legal-content h1');
+  assert.equal(await page.textContent('#legal-content h1'), 'Privacy Policy');
+  assert.equal(await page.textContent('#legal-content > p:first-child'), 'Правовые документы пока доступны только на английском языке.');
+  assert.equal(await page.getAttribute('#legal-content', 'lang'), 'en');
+  assert.equal(await hebrewOnScreen(), null, 'no Hebrew on the legal page');
 });
 
 test('editor: dragging a signature onto another page moves it there', async () => {
@@ -1236,10 +1278,12 @@ test('english: an English device gets the home screen in English, left to right'
     const { STRINGS, pick } = window.EasyPenI18n;
     return {
       missing: Object.keys(STRINGS.he).filter((k) => !(k in STRINGS.en)).concat(Object.keys(STRINGS.en).filter((k) => !(k in STRINGS.he))),
-      picks: ['he', 'he-IL', 'iw-IL', 'en-US', 'fr', 'ar', ''].map(pick)
+      missingRu: Object.keys(STRINGS.en).filter((k) => !(k in STRINGS.ru)),
+      picks: ['he', 'he-IL', 'iw-IL', 'en-US', 'fr', 'ar', '', 'ru', 'ru-RU'].map(pick)
     };
   });
   assert.deepEqual(i18n.missing, []);
+  assert.deepEqual(i18n.missingRu, []);
 
   // The Hebrew written in the HTML is the same as in i18n.js (a text changed in one place only)
   for (const url of ['index.html', 'viewer.html', 'legal.html', 'share-target/']) {
@@ -1256,7 +1300,7 @@ test('english: an English device gets the home screen in English, left to right'
     }, url);
     assert.deepEqual(stale, [], `${url}: Hebrew in the HTML matches i18n.js`);
   }
-  assert.deepEqual(i18n.picks, ['he', 'he', 'he', 'en', 'en', 'en', 'en']);
+  assert.deepEqual(i18n.picks, ['he', 'he', 'he', 'en', 'en', 'en', 'en', 'ru', 'ru']);
 
   const en = await browser.newContext({ ...MOBILE, locale: 'en-US' });
   try {
