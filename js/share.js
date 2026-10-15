@@ -56,8 +56,10 @@
     }
   }
 
-  // The app's address on its own domain, also when opened from another address
-  const APP_URL = 'https://easypen.vplusstudio.app/';
+  // The app's address on its own domain, also when opened from another address. In English
+  // or Russian, the page whose link preview is in that language (en/, ru/)
+  const lang = global.EasyPenI18n ? global.EasyPenI18n.lang : 'he';
+  const APP_URL = 'https://easypen.vplusstudio.app/' + (lang === 'he' ? '' : `${lang}/`);
 
   /*
    * Shares the app itself ("tell a friend"). Without a share sheet the link is copied.

@@ -1058,6 +1058,33 @@ test('language link: ?lang=ru shows Russian on a Hebrew device, kept across page
   assert.equal(await page.evaluate(() => document.documentElement.lang), 'he');
 });
 
+test('share link: in Russian and English it points to ru/ or en/, whose preview is in that language and which opens the app in it', async () => {
+  for (const [lang, title, h1] of [['ru', 'EasyPen - электронная подпись', 'Подписать документ'], ['en', 'EasyPen - Digital Signature', 'Sign a document']]) {
+    // The page as a link preview reads it (no scripts): title and description in the language
+    const html = await (await page.request.get(`${server.baseUrl}${lang}/`)).text();
+    assert.ok(html.includes(`<meta property="og:title" content="${title}">`), `${lang}: preview title`);
+    assert.ok(html.includes(`<meta property="og:url" content="https://easypen.vplusstudio.app/${lang}/">`));
+    assert.doesNotMatch(html, /[\u0590-\u05FF]/, `${lang}: no Hebrew in the preview page`);
+
+    // Opening it lands on the home screen in that language
+    await page.goto(`${server.baseUrl}${lang}/`);
+    await page.waitForURL(`${server.baseUrl}?lang=${lang}`);
+    await page.waitForSelector('#sig-empty', { state: 'visible' });
+    assert.equal(await page.textContent('h1'), h1);
+
+    // "Share EasyPen" copies that address (no share sheet here)
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, 'share', { value: undefined, configurable: true });
+      Object.defineProperty(navigator, 'clipboard', { value: { writeText: async (t) => { window.__copied = t; } }, configurable: true });
+    });
+    await page.click('#share-app-btn');
+    await page.waitForFunction(() => window.__copied);
+    assert.match(await page.evaluate(() => window.__copied), new RegExp(`https://easypen\\.vplusstudio\\.app/${lang}/$`));
+    assert.ok((await page.evaluate(() => window.EasyPenI18n.t('share.promo'))).endsWith(`https://easypen.vplusstudio.app/${lang}/`));
+  }
+  await page.goto(server.baseUrl + '?lang=auto');
+});
+
 test('editor: dragging a signature onto another page moves it there', async () => {
   await openInEditor();
   await drawNewSignatureAndPlace();
