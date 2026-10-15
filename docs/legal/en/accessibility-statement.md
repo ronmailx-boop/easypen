@@ -1,6 +1,6 @@
 # Accessibility Statement
 
-**Last updated:** 3 October 2026
+**Last updated:** 15 October 2026
 
 ## 1. Our commitment
 
@@ -16,7 +16,7 @@ The App was developed in line with Israeli Standard SI 5568 and the WCAG 2.1 gui
 
 ### Layout and display
 
-- The interface is in Hebrew (right to left) or English (left to right), according to the device language, and is designed for mobile phones.
+- The interface is in Hebrew (right to left), English or Russian (left to right), according to the device language, and is designed for mobile phones.
 - You can enlarge the display through the browser settings. In the document editor, a pinch zooms the pages inside the App (up to 4×) while the toolbars stay in place.
 - Colour contrast meets level AA in text and buttons.
 - Buttons and touch targets are at least 44 pixels in size.
