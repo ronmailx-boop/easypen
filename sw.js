@@ -29,6 +29,7 @@ const SHELL = [
   'js/share.js',
   'js/viewer.js',
   'js/legal.js',
+  'js/analytics.js',
   'docs/legal/privacy-policy.md',
   'docs/legal/terms-of-service.md',
   'docs/legal/cookie-policy.md',

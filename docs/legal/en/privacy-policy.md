@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last updated:** 3 October 2026
+**Last updated:** 15 October 2026
 
 ## 1. General
 
@@ -11,7 +11,7 @@ It describes what information is processed when you use the App, where it is sto
 ## 2. In short
 
 - Your documents **never leave your device**. Opening the file, adding a signature or text and creating the signed file all happen in the browser.
-- There is no sign-up, no user account, no advertising and no tracking or analytics tools.
+- There is no sign-up, no user account and no advertising. Visits to the website are counted with an anonymous measurement tool, without cookies and without tracking users (section 6).
 - Saved signatures are stored on your device only, and you can delete them at any time.
 
 ## 3. Local processing only
@@ -20,7 +20,7 @@ Everything the App does happens in the browser on your device. Documents, signat
 
 When you share a PDF file to the App from another app (for example WhatsApp or Gmail), the file is passed to the App directly on your device and does not go through any server.
 
-All the software the App needs, including the libraries for processing PDF files, is loaded from the App's own website and not from outside services.
+All the software the App needs, including the libraries for processing PDF files, is loaded from the App's own website and not from outside services. The only exception is the visit measurement component described in section 6, which has nothing to do with processing documents and is not needed for the App to work.
 
 ## 4. Information stored on your device
 
@@ -40,7 +40,9 @@ The Operator does not collect, receive or store:
 
 - the content of documents, signatures or text;
 - identifying details such as name, email address or phone number;
-- usage data, analytics, location or advertising identifiers.
+- precise location, advertising identifiers or a usage profile of any particular user.
+
+The Operator receives only aggregated, anonymous statistics about visits to the website, as described in section 6.
 
 The App does not use cookies. More details are in the [Cookie Policy](cookie-policy.md).
 
@@ -49,6 +51,15 @@ The App does not use cookies. More details are in the [Cookie Policy](cookie-pol
 The App's files are hosted on Cloudflare, a service of Cloudflare, Inc., based in the United States. Like any web server, the hosting provider may log technical data about each request, such as IP address, browser type and time of access, for operation and security purposes.
 
 The Operator does not receive this data and does not use it. Its handling is subject to [Cloudflare's Privacy Policy](https://www.cloudflare.com/privacypolicy/).
+
+**Visit measurement.** To know how many people use the App and how they find it, the website uses Cloudflare Web Analytics. Each time a page loads, Cloudflare receives the page address, the site the visitor came from (for example a search engine), the browser and device type, and page load timing. The Operator sees this data only as totals, for example the number of visits by country, device or source.
+
+- The tool **does not use cookies** and does not store anything in the browser.
+- It does not build a profile of a user and does not track users across websites.
+- **The content of documents, file names and signatures are not sent.** They never leave the device in any case.
+- Measurement works only with a network connection. Using the App offline is not measured.
+
+The legal basis is the Operator's legitimate interest in improving the service and knowing how users find it (Article 6(1)(f) GDPR, where it applies). You can block the measurement with an ad blocker or tracking blocker in your browser, and the App keeps working as usual.
 
 ## 7. Sharing the signed file
 

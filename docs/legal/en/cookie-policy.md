@@ -1,12 +1,12 @@
 # Cookie Policy
 
-**Last updated:** 3 October 2026
+**Last updated:** 15 October 2026
 
 ## 1. Does the App use cookies?
 
 **No.** The EasyPen app does not create cookies and does not use them for tracking, advertising, analytics or any other purpose.
 
-The App does not load components from outside services (such as advertising networks, social networks, fonts or libraries from other websites). So third parties do not create cookies through it either.
+The App does not load components from advertising networks, social networks, fonts or libraries from other websites. The only outside component is the visit measurement tool Cloudflare Web Analytics, which does not create cookies and does not store anything in the browser (details in the [Privacy Policy](privacy-policy.md), section 6). So third parties do not create cookies through it either.
 
 ## 2. Local storage in the browser
 
