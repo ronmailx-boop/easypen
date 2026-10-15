@@ -854,6 +854,79 @@ test('password: a protected PDF opens after its password, and is saved signed wi
   assert.equal(out.getPageCount(), 4);
 });
 
+// A share sheet that records what was shared (headless Chromium has none)
+async function fakeShareSheet() {
+  await page.addInitScript(() => {
+    window.__shared = [];
+    navigator.canShare = () => true;
+    navigator.share = async (data) => {
+      window.__shared.push({ ...data, files: (data.files || []).map((f) => f.name) });
+    };
+  });
+}
+
+test('sharing: the signed file goes with a link to EasyPen (can be turned off), and a one-time invite to share the app', async () => {
+  await fakeShareSheet();
+  await openInEditor('contract.pdf');
+  await drawNewSignatureAndPlace();
+  const shared = () => page.evaluate(() => window.__shared);
+
+  // On by default: the message has the link
+  await page.click('#save-share');
+  await page.waitForSelector('#name-dialog[open]');
+  assert.equal(await page.isChecked('#promo-check'), true);
+  await page.click('#name-dialog [type="submit"]');
+  await page.waitForFunction(() => window.__shared.length === 1);
+  const [first] = await shared();
+  assert.equal(first.files.length, 1);
+  assert.match(first.files[0], /^contract.*\.pdf$/);
+  assert.equal(first.text, 'נחתם בקלות עם EasyPen - חתימה על PDF מהנייד, בחינם: https://easypen.vplusstudio.app');
+
+  // After the first save: the invite, once
+  await page.waitForSelector('#invite-dialog[open]');
+  await page.click('#invite-dialog [data-action="share"]');
+  await page.waitForFunction(() => window.__shared.length === 2);
+  const app = (await shared())[1];
+  assert.equal(app.title, 'EasyPen');
+  assert.equal(app.url, 'https://easypen.vplusstudio.app/');
+  assert.match(app.text, /^EasyPen - /);
+
+  // Turned off: no link, and the choice is remembered; no second invite
+  await page.click('#save-share');
+  await page.waitForSelector('#name-dialog[open]');
+  await page.uncheck('#promo-check');
+  await page.click('#name-dialog [type="submit"]');
+  await page.waitForFunction(() => window.__shared.length === 3);
+  assert.equal((await shared())[2].text, undefined);
+  await page.click('#save-share');
+  await page.waitForSelector('#name-dialog[open]');
+  assert.equal(await page.isChecked('#promo-check'), false, 'remembered');
+  await page.click('#name-dialog [data-action="close"]:not(.icon-btn)');
+  await page.waitForTimeout(1800);
+  assert.equal(await page.isVisible('#invite-dialog[open]'), false, 'invited only once');
+});
+
+test('sharing: "שתפו את EasyPen" on the home screen shares the app, or copies its link', async () => {
+  await fakeShareSheet();
+  await page.goto(server.baseUrl);
+  await page.click('#share-app-btn');
+  await page.waitForFunction(() => window.__shared.length === 1);
+  const [app] = await page.evaluate(() => window.__shared);
+  assert.equal(app.url, 'https://easypen.vplusstudio.app/');
+
+  // No share sheet: the link is copied
+  await page.evaluate(() => {
+    delete navigator.share;
+    navigator.share = undefined;
+    window.__copied = '';
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: async (s) => { window.__copied = s; } }, configurable: true });
+  });
+  await page.click('#share-app-btn');
+  await page.waitForFunction(() => window.__copied);
+  assert.match(await page.evaluate(() => window.__copied), /https:\/\/easypen\.vplusstudio\.app\/$/);
+  await page.waitForFunction(() => document.getElementById('toast').textContent === 'הקישור הועתק. אפשר להדביק אותו בכל הודעה');
+});
+
 test('editor: dragging a signature onto another page moves it there', async () => {
   await openInEditor();
   await drawNewSignatureAndPlace();

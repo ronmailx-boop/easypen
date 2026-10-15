@@ -15,6 +15,7 @@
   const sigCount = document.getElementById('sig-count');
   const addSigBtn = document.getElementById('add-sig-btn');
   const installBtn = document.getElementById('install-btn');
+  const shareAppBtn = document.getElementById('share-app-btn');
   const uploadBtn = document.querySelector('.upload-btn');
   const uploadStatus = document.getElementById('upload-status');
   const Combine = window.EasyPenCombine;
@@ -216,4 +217,10 @@
   // Each document is a one-off local session: leaving the editor discards it
   // (cleared first, so it can't remove a document made from shared files)
   Storage.clearCurrentDocument().catch(() => {}).then(openSharedFiles);
+  // "Tell a friend": the share sheet with the app's link (or the link copied)
+  shareAppBtn.addEventListener('click', async () => {
+    const result = await window.EasyPenShare.shareApp(t('share.appText'));
+    if (result === 'copied') toast(t('share.copied'), 'success');
+    else if (result === 'failed') toast(t('share.failed'), 'error', 6000);
+  });
 })();

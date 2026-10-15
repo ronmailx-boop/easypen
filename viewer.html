@@ -177,6 +177,10 @@
         <input id="file-name-input" type="text" dir="auto" maxlength="100" autocomplete="off" spellcheck="false" enterkeyhint="done">
         <span class="name-ext" dir="ltr">.pdf</span>
       </div>
+      <label class="check-row">
+        <input type="checkbox" id="promo-check" checked>
+        <span data-i18n="name.promo">להוסיף להודעה קישור ל-EasyPen</span>
+      </label>
       <div class="modal-actions">
         <button type="button" class="btn btn-secondary" data-action="close" data-i18n="name.cancel">ביטול</button>
         <button type="submit" class="btn btn-primary" data-i18n="name.ok">המשך</button>
@@ -201,6 +205,20 @@
         <button type="submit" class="btn btn-primary" data-i18n="password.open">פתיחה</button>
       </div>
     </form>
+  </dialog>
+
+  <dialog id="invite-dialog" class="modal sheet" aria-labelledby="invite-title">
+    <div class="modal-card">
+      <header class="modal-header">
+        <h2 id="invite-title" data-i18n="invite.title">נהניתם מ-EasyPen?</h2>
+        <button type="button" class="icon-btn" data-action="close" aria-label="סגור" data-i18n-aria="pad.close">✕</button>
+      </header>
+      <p class="muted" data-i18n="invite.text">אם EasyPen עזרה לכם, שתפו אותה עם מישהו שגם צריך לחתום על מסמכים.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-action="close" data-i18n="invite.later">לא עכשיו</button>
+        <button type="button" class="btn btn-primary" data-action="share" data-i18n="invite.share">שיתוף</button>
+      </div>
+    </div>
   </dialog>
 
   <dialog id="move-dialog" class="modal sheet" aria-labelledby="move-title">

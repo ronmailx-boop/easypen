@@ -36,13 +36,16 @@
    *   'needs-gesture' - browser refused because the click "expired" (long processing);
    *                     caller should ask the user to tap again.
    */
-  async function shareOrDownload(file, { title = '' } = {}) {
+  // text (optional): goes with the file, e.g. as the caption in WhatsApp
+  async function shareOrDownload(file, { title = '', text = '' } = {}) {
     if (!canShareFile(file)) {
       download(file);
       return 'downloaded';
     }
+    const data = { files: [file], title: title || file.name };
+    if (text) data.text = text;
     try {
-      await navigator.share({ files: [file], title: title || file.name });
+      await navigator.share(data);
       return 'shared';
     } catch (err) {
       if (err && err.name === 'AbortError') return 'cancelled';
@@ -53,5 +56,29 @@
     }
   }
 
-  global.EasyPenShare = { canShareFile, download, shareOrDownload };
+  // The app's address on its own domain, also when opened from another address
+  const APP_URL = 'https://easypen.vplusstudio.app/';
+
+  /*
+   * Shares the app itself ("tell a friend"). Without a share sheet the link is copied.
+   * Resolves with 'shared', 'cancelled', 'copied' or 'failed'.
+   */
+  async function shareApp(text) {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'EasyPen', text, url: APP_URL });
+        return 'shared';
+      } catch (err) {
+        if (err && err.name === 'AbortError') return 'cancelled';
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(`${text}\n${APP_URL}`);
+      return 'copied';
+    } catch (e) {
+      return 'failed';
+    }
+  }
+
+  global.EasyPenShare = { APP_URL, canShareFile, download, shareOrDownload, shareApp };
 })(window);
