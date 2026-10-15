@@ -927,6 +927,39 @@ test('sharing: "שתפו את EasyPen" on the home screen shares the app, or cop
   await page.waitForFunction(() => document.getElementById('toast').textContent === 'הקישור הועתק. אפשר להדביק אותו בכל הודעה');
 });
 
+test('guides: every guide opens, has its title and canonical address, and all its links work', async () => {
+  const fs = require('fs');
+  const slugs = fs.readdirSync(path.join(__dirname, '../guides'), { withFileTypes: true })
+    .filter((d) => d.isDirectory()).map((d) => d.name);
+  assert.ok(slugs.length >= 4);
+  const sitemap = fs.readFileSync(path.join(__dirname, '../sitemap.xml'), 'utf8');
+  // The home screen links to the guides
+  await page.goto(server.baseUrl);
+  await page.click('.site-footer a[href="guides/"]');
+  await page.waitForSelector('.guide-list');
+  assert.equal(await page.locator('.guide-list a').count(), slugs.length);
+
+  for (const dir of ['', ...slugs.map((s) => s + '/')]) {
+    await page.goto(server.baseUrl + 'guides/' + dir);
+    const info = await page.evaluate(() => ({
+      h1: document.querySelector('h1')?.textContent,
+      canonical: document.querySelector('link[rel=canonical]').href,
+      ld: JSON.parse(document.querySelector('script[type="application/ld+json"]').textContent),
+      links: Array.from(document.querySelectorAll('a[href]'), (a) => a.href)
+    }));
+    assert.ok(info.h1, `title on guides/${dir}`);
+    assert.equal(info.canonical, 'https://easypen.vplusstudio.app/guides/' + dir);
+    assert.ok(sitemap.includes(info.canonical), `in sitemap: ${info.canonical}`);
+    assert.ok(info.ld['@graph'].length >= 2);
+    for (const href of new Set(info.links.filter((h) => h.startsWith(server.baseUrl)))) {
+      const res = await page.request.get(href);
+      assert.equal(res.status(), 200, `${href} from guides/${dir}`);
+    }
+    // The button to the app goes to the home screen
+    assert.equal(await page.locator('.guide-cta a').getAttribute('href'), dir ? '../../' : '../');
+  }
+});
+
 test('editor: dragging a signature onto another page moves it there', async () => {
   await openInEditor();
   await drawNewSignatureAndPlace();
@@ -1424,7 +1457,7 @@ test('legal pages: linked from home, every document renders, works offline', asy
   await page.goto(server.baseUrl);
   const links = await page.$$eval('.site-footer a', (as) => as.map((a) => [a.textContent, a.getAttribute('href')]));
   assert.deepEqual(links.map((l) => l[1]), [
-    'legal.html?doc=privacy', 'legal.html?doc=terms', 'legal.html?doc=cookies', 'legal.html?doc=accessibility'
+    'guides/', 'legal.html?doc=privacy', 'legal.html?doc=terms', 'legal.html?doc=cookies', 'legal.html?doc=accessibility'
   ]);
 
   const expected = { privacy: 'מדיניות פרטיות', terms: 'תנאי שימוש', cookies: 'מדיניות עוגיות', accessibility: 'הצהרת נגישות' };
