@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://easypen.vplusstudio.app/sitemap.xml
