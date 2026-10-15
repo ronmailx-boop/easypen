@@ -544,8 +544,23 @@
     return /^ru\b/i.test(language || '') ? 'ru' : 'en';
   }
 
+  // ?lang=he|en|ru shows another language without changing the device's (kept for the tab,
+  // so it stays when moving between pages); ?lang=auto goes back to the device language
+  const LANG_KEY = 'easypen.lang';
+  function chosen() {
+    try {
+      const asked = new URLSearchParams(global.location.search).get('lang');
+      if (asked === 'auto') global.sessionStorage.removeItem(LANG_KEY);
+      else if (Object.hasOwn(STRINGS, asked || '')) global.sessionStorage.setItem(LANG_KEY, asked);
+      const saved = global.sessionStorage.getItem(LANG_KEY);
+      return Object.hasOwn(STRINGS, saved || '') ? saved : null;
+    } catch (e) {
+      return null; // No storage (or the Service Worker): the device language
+    }
+  }
+
   const nav = global.navigator || {};
-  const lang = pick(nav.language || (nav.languages && nav.languages[0]));
+  const lang = chosen() || pick(nav.language || (nav.languages && nav.languages[0]));
   const dir = lang === 'he' ? 'rtl' : 'ltr';
 
   // Text for `key`, with {name} placeholders filled from `vars`
