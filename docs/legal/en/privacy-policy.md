@@ -30,6 +30,7 @@ All the software the App needs, including the libraries for processing PDF files
 | The document open for editing | Showing and editing the document | IndexedDB in the browser | Until you return to the home screen, when it is deleted |
 | App files | Working without a network connection | Browser cache (Cache Storage) | Until a version update or clearing the site data |
 | Preferences (drawing tool, link to EasyPen in the share message, whether the invitation to share was shown) | Remembering your choices | localStorage in the browser | Until clearing the site data |
+| The display language, if chosen with a link (for example `?lang=ru`) | Showing the App in the chosen language | sessionStorage in the browser | Until the tab is closed |
 
 A signature is saved for reuse only if you choose the "Save for reuse" option.
 

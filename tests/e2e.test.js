@@ -1038,6 +1038,26 @@ test('russian: a Russian device gets the app in Russian, with Russian guides and
   assert.equal(await page.getAttribute('#legal-content a[href*="privacy"]', 'href'), 'legal.html?doc=privacy');
 });
 
+test('language link: ?lang=ru shows Russian on a Hebrew device, kept across pages, ?lang=auto goes back', async () => {
+  await page.goto(server.baseUrl + '?lang=ru');
+  await page.waitForSelector('#sig-empty', { state: 'visible' });
+  assert.deepEqual(await page.evaluate(() => [document.documentElement.lang, document.documentElement.dir]), ['ru', 'ltr']);
+  assert.equal(await page.textContent('h1'), 'Подписать документ');
+  assert.equal(await hebrewOnScreen(), null);
+  // Still Russian on the next page, without the parameter
+  await page.goto(server.baseUrl + 'legal.html?doc=terms');
+  await page.waitForSelector('#legal-content h1');
+  assert.equal(await page.textContent('#legal-content h1'), 'Условия использования');
+  // An unknown value changes nothing; auto goes back to the device language
+  await page.goto(server.baseUrl + '?lang=toString');
+  assert.equal(await page.evaluate(() => document.documentElement.lang), 'ru');
+  await page.goto(server.baseUrl + '?lang=auto');
+  assert.deepEqual(await page.evaluate(() => [document.documentElement.lang, document.documentElement.dir]), ['he', 'rtl']);
+  assert.equal(await page.textContent('h1'), 'חתימה על מסמך');
+  await page.goto(server.baseUrl);
+  assert.equal(await page.evaluate(() => document.documentElement.lang), 'he');
+});
+
 test('editor: dragging a signature onto another page moves it there', async () => {
   await openInEditor();
   await drawNewSignatureAndPlace();
