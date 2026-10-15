@@ -994,7 +994,7 @@ test('english: the home screen links to the English guides', async () => {
   assert.deepEqual(await hebrewOnScreen(), ['עברית']);
 });
 
-test('russian: a Russian device gets the app in Russian, with Russian guides and English legal pages', async () => {
+test('russian: a Russian device gets the app in Russian, with Russian guides and legal pages', async () => {
   await useRussian();
   await page.goto(server.baseUrl);
   await page.waitForSelector('#sig-empty', { state: 'visible' });
@@ -1021,13 +1021,21 @@ test('russian: a Russian device gets the app in Russian, with Russian guides and
   assert.equal(await page.evaluate(() => document.documentElement.lang), 'ru');
   assert.deepEqual(await hebrewOnScreen(), ['עברית'], 'only the switch to Hebrew');
 
-  // Legal pages: the English documents, with a Russian note saying so
-  await page.goto(`${server.baseUrl}legal.html?doc=privacy`);
-  await page.waitForSelector('#legal-content h1');
-  assert.equal(await page.textContent('#legal-content h1'), 'Privacy Policy');
-  assert.equal(await page.textContent('#legal-content > p:first-child'), 'Правовые документы пока доступны только на английском языке.');
-  assert.equal(await page.getAttribute('#legal-content', 'lang'), 'en');
-  assert.equal(await hebrewOnScreen(), null, 'no Hebrew on the legal page');
+  // Legal pages in Russian, fully rendered, links between them staying on this page
+  const expected = { privacy: 'Политика конфиденциальности', terms: 'Условия использования', cookies: 'Политика использования файлов cookie', accessibility: 'Заявление о доступности' };
+  for (const [doc, title] of Object.entries(expected)) {
+    await page.goto(`${server.baseUrl}legal.html?doc=${doc}`);
+    await page.waitForSelector('#legal-content h1');
+    assert.equal(await page.textContent('#legal-content h1'), title);
+    assert.equal(await page.title(), `${title} - EasyPen`);
+    assert.equal(await hebrewOnScreen(), null, `${doc}: no Hebrew`);
+    const raw = await page.$$eval('#legal-content p, #legal-content li, #legal-content td', (els) =>
+      els.map((e) => e.textContent).filter((t) => /(^#|\*\*|\|---|\]\()/.test(t)));
+    assert.deepEqual(raw, [], `${doc}: no unrendered Markdown`);
+  }
+  await page.goto(`${server.baseUrl}legal.html?doc=cookies`);
+  await page.waitForSelector('#legal-content table');
+  assert.equal(await page.getAttribute('#legal-content a[href*="privacy"]', 'href'), 'legal.html?doc=privacy');
 });
 
 test('editor: dragging a signature onto another page moves it there', async () => {
