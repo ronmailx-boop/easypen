@@ -1,0 +1,5 @@
+# Cloudflare static assets headers.
+# The workers.dev address is a copy of the site: keep it out of search results,
+# so Google shows only easypen.vplusstudio.app.
+https://easypen.ronmailx.workers.dev/*
+  X-Robots-Tag: noindex
