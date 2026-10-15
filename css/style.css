@@ -353,6 +353,22 @@ img { max-width: 100%; }
   outline: none;
 }
 .name-ext { padding-inline-end: .8rem; color: var(--muted); }
+/* "Add a link to EasyPen" under the file name */
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  min-height: 44px;
+  margin-top: .4rem;
+  font-size: .95rem;
+  cursor: pointer;
+}
+.check-row input { width: 20px; height: 20px; margin: 0; accent-color: var(--primary); flex-shrink: 0; }
+
+/* Home: "tell a friend" */
+.share-app { text-align: center; }
+.share-app p { margin: 0 0 .3rem; }
+.share-app-btn { gap: .45rem; }
 .field-error { margin: .4rem 0 0; min-height: 1.2em; color: var(--danger); font-size: .9rem; font-weight: 700; }
 .field-error:empty { min-height: 0; }
 #password-dialog .modal-hint:last-of-type { margin-top: .6rem; }

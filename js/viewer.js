@@ -74,6 +74,8 @@
     fontSizeLabel: document.querySelector('#item-toolbar .font-size'),
     sigPicker: document.getElementById('sig-picker'),
     readyDialog: document.getElementById('ready-dialog'),
+    inviteDialog: document.getElementById('invite-dialog'),
+    promoCheck: document.getElementById('promo-check'),
     nameDialog: document.getElementById('name-dialog'),
     nameInput: document.getElementById('file-name-input'),
     moveDialog: document.getElementById('move-dialog'),
@@ -1876,12 +1878,14 @@
   function askFileName(suggested) {
     const d = el.nameDialog;
     el.nameInput.value = suggested;
+    el.promoCheck.checked = loadPref(PROMO_KEY) !== '0';
     return new Promise((resolve) => {
       let result = null;
       const form = d.querySelector('form');
       const onSubmit = (e) => {
         e.preventDefault();
         result = cleanBaseName(el.nameInput.value) || suggested;
+        savePref(PROMO_KEY, el.promoCheck.checked ? '1' : '0');
         d.close();
       };
       const onClose = () => {
@@ -1944,14 +1948,44 @@
     await deliver(lastFile);
   }
 
+  // Small per-device choices (the share link, the one-time invite); storage may be blocked
+  const PROMO_KEY = 'easypen.sharePromo';
+  const INVITED_KEY = 'easypen.invited';
+  function loadPref(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      return null;
+    }
+  }
+  function savePref(key, value) {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Once per device, after the first document saved: invite to share the app
+  function maybeInvite() {
+    if (loadPref(INVITED_KEY) || !savePref(INVITED_KEY, '1')) return;
+    setTimeout(() => {
+      if (!document.querySelector('dialog[open]')) el.inviteDialog.showModal();
+    }, 1500);
+  }
+
   async function deliver(file) {
-    const result = await window.EasyPenShare.shareOrDownload(file);
+    const text = loadPref(PROMO_KEY) !== '0' ? t('share.promo') : '';
+    const result = await window.EasyPenShare.shareOrDownload(file, { text });
     if (result === 'shared') {
       state.dirty = false;
       toast(t('viewer.shared'), 'success');
+      maybeInvite();
     } else if (result === 'downloaded') {
       state.dirty = false;
       toast(t('viewer.downloaded'), 'success');
+      maybeInvite();
     } else if (result === 'needs-gesture') {
       // Preparing took too long for the browser's "user tap" window - ask for one more tap
       el.readyDialog.showModal();
@@ -1971,6 +2005,18 @@
       window.EasyPenShare.download(lastFile);
       state.dirty = false;
       toast(t('viewer.downloaded'), 'success');
+      maybeInvite();
+    });
+  }
+
+  function wireInviteDialog() {
+    const d = el.inviteDialog;
+    d.querySelectorAll('[data-action="close"]').forEach((b) => b.addEventListener('click', () => d.close()));
+    d.querySelector('[data-action="share"]').addEventListener('click', async () => {
+      d.close();
+      const result = await window.EasyPenShare.shareApp(t('share.appText'));
+      if (result === 'copied') toast(t('share.copied'), 'success');
+      else if (result === 'failed') toast(t('share.failed'), 'error', 6000);
     });
   }
 
@@ -2041,6 +2087,7 @@
 
   wireReadyDialog();
   wireNameDialog();
+  wireInviteDialog();
   wireMoveDialog();
   wireAddPages();
   wireDrawTray();

@@ -17,6 +17,7 @@ To work, the App stores information in the browser using local storage technolog
 | IndexedDB | Saved signatures (up to 3) | Reusing a signature, if you choose to | Until you delete them |
 | IndexedDB | The document open for editing | Showing and editing the document | Until you return to the home screen |
 | Cache Storage (Service Worker) | App files | Fast start and working without a network connection | Until a version update or clearing the site data |
+| localStorage | Preferences: the drawing tool and colour, whether to add a link to EasyPen to the share message, and whether the invitation to share the app was already shown | Remembering your choices | Until clearing the site data |
 
 ## 3. Consent
 
