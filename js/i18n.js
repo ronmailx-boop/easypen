@@ -189,7 +189,7 @@
       'app.title': 'EasyPen - Digital Signature',
       'home.install': 'Install app',
       'share.app': 'Share EasyPen',
-      'footer.guides': 'Guides (Hebrew)',
+      'footer.guides': 'Guides',
       'share.appHint': 'Did EasyPen help you? Tell your friends',
       'share.appText': 'EasyPen - sign PDFs and photos on your phone in seconds. Free, no sign-up, and your files never leave your device.',
       'share.copied': 'Link copied. You can paste it into any message',
