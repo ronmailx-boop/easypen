@@ -91,7 +91,8 @@ MVP ראשוני הושלם. חבילת בדיקות e2e נוספה ל-`tests/` 
 - [x] SEO לגוגל: canonical ל-easypen.vplusstudio.app, תיאור עשיר יותר, JSON-LD מסוג WebApplication, `robots.txt` + `sitemap.xml`, `noindex` לעורך (viewer) ו-`_headers` שמסמן noindex לכתובת workers.dev (כפילות). גרסה 42
 - [x] מדידת ביקורים: Cloudflare Web Analytics (בלי עוגיות) דרך `js/analytics.js` — נטען אחרי הדף ורק בכתובת easypen.vplusstudio.app; הטוקן (ציבורי מטבעו) בקובץ. מדיניות פרטיות + עוגיות עודכנו (עברית ואנגלית). הנתונים: Cloudflare → Analytics & Logs → Web Analytics. גרסה 43
 - [x] שיתוף ויראלי: בהודעת השיתוף של מסמך חתום נוסף "נחתם בקלות עם EasyPen … easypen.vplusstudio.app" (תיבת סימון בחלונית שם הקובץ, ברירת מחדל מסומן, נזכר ב-localStorage). כפתור "שתפו את EasyPen" במסך הבית (שיתוף הקישור, או העתקה כשאין תפריט שיתוף). הזמנה חד-פעמית "נהניתם מ-EasyPen?" אחרי השמירה הראשונה. מדיניות פרטיות/עוגיות: שורת localStorage. 2 בדיקות e2e. גרסה 44
-- [ ] לבדוק בטלפון: הקישור מופיע בוואטסאפ עם הקובץ החתום; כפתור "שתפו את EasyPen"; ההזמנה אחרי השמירה הראשונה
+- [x] נבדק בטלפון: הקישור ל-EasyPen מופיע בוואטסאפ עם הקובץ החתום
+- [ ] לבדוק בטלפון: כפתור "שתפו את EasyPen" במסך הבית; ההזמנה "נהניתם מ-EasyPen?" אחרי השמירה הראשונה
 - [ ] המשתמש: Google Search Console → הוספת הנכס (Domain דרך Cloudflare) → שליחת sitemap → בקשת הוספה לאינדקס
 
 ## פתוח / לשלב הבא
