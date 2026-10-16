@@ -1,6 +1,6 @@
 // Voice-over for the promo video: what the narrator says over each screen (the intro card, the
 // five steps and the outro card), per language, and the Google Cloud Text-to-Speech voice.
-// Run `node scripts/promo-voice.js [he|en|ru]` to (re)make scripts/voice/<lang>-<n>.mp3; the video
+// Run `NODE_USE_ENV_PROXY=1 node scripts/promo-voice.js [he|en|ru]` to (re)make scripts/voice/<lang>-<n>.mp3; the video
 // script picks them up when they are there. Needs the API key in GOOGLE_TTS_API_KEY (an
 // environment variable, never in the code), unless the network adds it to the request.
 const fs = require('fs');

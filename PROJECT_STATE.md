@@ -1,12 +1,9 @@
 # PROJECT_STATE - EasyPen
 
 ## Current Focus
-**עצרנו ב (16.10.2026):** קריין (גבר) לסרטוני התדמית בשלוש השפות. הקוד מוכן ומוזג (`scripts/promo-voice.js` + סנכרון בתוך `scripts/make-promo-video.js`). המשתמש יצר פרויקט Google Cloud בשם easypen בחשבון vplusstudio.app@gmail.com (תקופת ניסיון עם 921 ₪ קרדיט עד 15.1.2027; לא ללחוץ Upgrade), הפעיל את Cloud Text-to-Speech API, יצר מפתח `easypen-tts` מוגבל ל-Text-to-Speech, ושמר אותו ב-Network secrets של סביבת הענן (Default): אתר `texttospeech.googleapis.com`, כותרת `X-Goog-Api-Key`, בלי קידומת.
+**עצרנו ב (16.10.2026):** הקריין נוסף לשלושת סרטוני התדמית (Google TTS, קול גבר). מפתח ה-API שמור ב-Network secrets של סביבת הענן (texttospeech.googleapis.com, כותרת X-Goog-Api-Key); פרויקט Google Cloud: easypen בחשבון vplusstudio.app@gmail.com, תקופת ניסיון עד 15.1.2027 (לא ללחוץ Upgrade).
 
-**הצעד הבא (בשיחה חדשה, "תמשיך עם הקריין"):**
-1. `node scripts/promo-voice.js` — בודק את הקולות הזמינים, בוחר קול גבר (Chirp3-HD-Charon או Wavenet) ושומר `scripts/voice/<lang>-<n>.mp3` + `<lang>.json`. אם נכשל על הרשאה — לבדוק את ה-secret (הכותרת והקידומת).
-2. לבנות מחדש את שלושת הסרטונים (`node scripts/make-promo-video.js he|en|ru`), לבדוק תמונות + מיקום הקול, לעדכן אורך הסרטון בכיתובים ו-PT..S בעמודי המדריכים (כרגע 24 שניות), למזג, ולבקש מהמשתמש לבדוק בטלפון עם קול (הגייה של "איזי פן" / "פי די אף" / "Изи Пен").
-3. עדיין פתוח: לבדוק בטלפון את מסך הפתיחה הארוך (24 שניות); Google Search Console (המשתמש).
+**הצעד הבא:** המשתמש בודק בטלפון עם קול — הגייה ועוצמה. שינוי טקסט: לערוך את `lines` ב-`scripts/promo-voice.js`, להריץ `NODE_USE_ENV_PROXY=1 node scripts/promo-voice.js` ואז לבנות את הסרטונים מחדש. עוד פתוח: Google Search Console (המשתמש).
 
 ## MVP - משימות
 - [x] מבנה PWA סטטי (index / viewer / share-target), נתיבים יחסיים ל-GitHub Pages
@@ -121,7 +118,8 @@
 - [ ] לבדוק בטלפון
 - [x] קריין (גבר) לסרטונים — הקוד מוכן: `scripts/promo-voice.js` (הטקסטים לכל שפה + יצירת קבצים ב-Google Cloud Text-to-Speech אל `scripts/voice/`), והסקריפט של הסרטון מסנכרן כל משפט למסך שלו, מחזיק את המסך עד סוף המשפט ומנמיך את המוסיקה מתחת לקול. נבדק עם צפצופים במקום קול. תוקן גם באג: סוף מסך הסיום נחתך (מסך סטטי לא שולח פריימים)
 - [x] קריין: המשתמש יצר מפתח API ב-Google Cloud (Text-to-Speech API) ומוסיף אותו בהגדרות סביבת הענן (Network secrets ל-texttospeech.googleapis.com עם הכותרת X-Goog-Api-Key, או משתנה סביבה GOOGLE_TTS_API_KEY), — נשמר ב-Network secrets (16.10.2026)
-- [ ] קריין: בשיחה חדשה `node scripts/promo-voice.js` ובניית שלושת הסרטונים עם הקול
+- [x] קריין בשלושת הסרטונים: Google TTS, קול גבר Chirp3-HD-Charon (he/en/ru), הקבצים ב-`scripts/voice/` (נוצרים ב-`NODE_USE_ENV_PROXY=1 node scripts/promo-voice.js` — fetch של Node עובר דרך הפרוקסי שמוסיף את המפתח רק עם הדגל הזה). קול +4dB, המוסיקה מונמכת מתחתיו (sidechain), לימיטר. הסרטונים עכשיו 28 שניות (רוסית 29), הכיתובים ו-PT28S/PT29S עודכנו
+- [ ] לבדוק בטלפון עם קול (הגייה: "איזי פן", "פי די אף", "Изи Пен"; עוצמת הקול מול המוסיקה)
 - [x] נוסה סרטון 10 שניות של יד מאוירת שמחזיקה טלפון (נבדק בטלפון שמתנגן). המשתמש לא אהב אותו, והוא הוסר: הסרטונים, הסקריפט ושינויי הקוד בוטלו. נבדק בטלפון שהוסר
 - [x] שיתוף מ-`?lang=ru` מציג בוואטסאפ תיאור ברוסית. נבדק בטלפון
 - [x] המסמכים המשפטיים ברוסית: `docs/legal/ru/` (4 מסמכים), נשמרים גם לאופליין. הצהרת הנגישות (עברית/אנגלית) מזכירה עכשיו רוסית. גרסה 48

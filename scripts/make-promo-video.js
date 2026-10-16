@@ -1,4 +1,4 @@
-// EasyPen promo video (24 s, 1080x1920, Hebrew / English / Russian): drives the real app inside a
+// EasyPen promo video (28 s, 1080x1920, Hebrew / English / Russian): drives the real app inside a
 // phone frame, records it (CDP screencast) and encodes media/easypen-promo-<lang>.mp4 (+ .jpg, the
 // poster shown before it plays in the guides), with scripts/promo-music.mp3 as background music
 // ("Upbeat" by Atlasaudio, Pixabay Content License: free for commercial use, no attribution) and,
@@ -388,7 +388,7 @@ const OUTRO_HTML = `
   await sleep(200);
 
   // The intro and outro cards play at a readable pace, the work in the app is sped up (about
-  // 1.25x the earlier 30 s cut) and drawing the signature twice as fast again: about 24 seconds
+  // 1.25x the earlier 30 s cut) and drawing the signature twice as fast again: about 24 seconds, plus time for the narrator
   frames.sort((a, b) => a.t - b.t);
   const first = frames[0].t, end = Math.max(stoppedAt, frames[frames.length - 1].t + 0.04);
   const speed = (t) => (t >= sigFrom && t < sigTo ? ACTIONS / 2 : t >= actionsFrom && t < actionsTo ? ACTIONS : CARD);
@@ -410,9 +410,9 @@ const OUTRO_HTML = `
   const audio = !said.length ? ['-af', fadeMusic] : ['-filter_complex', [
     `[1:a]${fadeMusic}[m]`,
     ...said.map(({ t }, k) => { const ms = Math.round(at(t) * 1000); return `[${k + 2}:a]aresample=44100,adelay=${ms}|${ms}[v${k}]`; }),
-    `${said.map((_, k) => `[v${k}]`).join('')}amix=inputs=${said.length}:normalize=0,apad,asplit[vk][vm]`,
-    '[m][vk]sidechaincompress=threshold=0.02:ratio=8:attack=20:release=400[md]',
-    '[md][vm]amix=inputs=2:normalize=0[a]'].join(';'), '-map', '0:v', '-map', '[a]'];
+    `${said.map((_, k) => `[v${k}]`).join('')}amix=inputs=${said.length}:normalize=0,volume=4dB,apad,asplit[vk][vm]`,
+    '[m][vk]sidechaincompress=threshold=0.01:ratio=12:attack=20:release=400[md]',
+    '[md][vm]amix=inputs=2:normalize=0,alimiter=limit=0.95[a]'].join(';'), '-map', '0:v', '-map', '[a]'];
   execFileSync(FFMPEG, ['-y', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', path.join(OUT, 'frames.txt'), '-i', music,
     ...said.flatMap(({ i }) => ['-i', VOICE[i].file]),
     '-vf', 'fps=30,scale=1080:1920:flags=lanczos,format=yuv420p', ...audio,
