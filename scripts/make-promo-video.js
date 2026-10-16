@@ -1,16 +1,18 @@
 // EasyPen promo video (24 s, 1080x1920, Hebrew / English / Russian): drives the real app inside a
 // phone frame, records it (CDP screencast) and encodes media/easypen-promo-<lang>.mp4 (+ .jpg, the
 // poster shown before it plays in the guides), with scripts/promo-music.mp3 as background music
-// ("Upbeat" by Atlasaudio, Pixabay Content License: free for commercial use, no attribution).
+// ("Upbeat" by Atlasaudio, Pixabay Content License: free for commercial use, no attribution) and,
+// when scripts/voice has them (scripts/promo-voice.js), a narrator reading each screen.
 // Needs ffmpeg (FFMPEG=/path/to/ffmpeg, or `pip install imageio-ffmpeg`) and the fonts Heebo,
 // Noto Sans Hebrew and Noto Sans installed (Google Fonts).
 // Usage: node scripts/make-promo-video.js [he|en|ru] [workDir]
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { execFileSync } = require('child_process');
+const { execFileSync, spawnSync } = require('child_process');
 const { chromium } = require('playwright');
 const { start } = require('../tests/helpers/server');
+const { clips } = require('./promo-voice');
 
 const ROOT = path.join(__dirname, '..');
 // Everything that is said or typed in the video, per language
@@ -57,6 +59,9 @@ const VIDEO = path.join(ROOT, 'media', `easypen-promo-${LANG}.mp4`);
 const FFMPEG = process.env.FFMPEG ||
   execFileSync('python3', ['-c', 'import imageio_ffmpeg as f; print(f.get_ffmpeg_exe())']).toString().trim();
 const FRAMES = path.join(OUT, 'frames');
+// Narration clips and their lengths in seconds (none: music only)
+const VOICE = (clips(LANG) || []).map((file) => ({ file,
+  seconds: +/Duration: (\d+):(\d+):([\d.]+)/.exec(spawnSync(FFMPEG, ['-i', file]).stderr).slice(1).reduce((t, x) => t * 60 + +x, 0) }));
 fs.rmSync(FRAMES, { recursive: true, force: true });
 fs.mkdirSync(FRAMES, { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -193,6 +198,8 @@ const OUTRO_HTML = `
   });
   await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 92, maxWidth: 1080, maxHeight: 1920, everyNthFrame: 1 });
   const t0 = Date.now();
+  // Video seconds per recorded second: the intro and outro cards, and the work in the app
+  const CARD = 0.7, ACTIONS = 0.56;
   const mark = (label) => console.log(((Date.now() - t0) / 1000).toFixed(1).padStart(5), label);
 
   // Finger helpers (page coordinates)
@@ -239,7 +246,13 @@ const OUTRO_HTML = `
     [fx, fy] = points[points.length - 1];
     await finger(fx, fy, 'on');
   }
+  // Narration: when each line starts (recording time), and holding a screen until it is said
+  const said = [];
+  let saidUntil = 0;
+  const say = (i, pace) => { if (!VOICE[i]) return; said.push({ i, t: Date.now() / 1000 }); saidUntil = Date.now() + (VOICE[i].seconds + 0.25) / pace * 1000; };
+  const spoken = () => sleep(Math.max(0, saidUntil - Date.now()));
   async function caption(step, text) {
+    await spoken();
     await page.evaluate(() => document.getElementById('cap').classList.add('out'));
     await sleep(220);
     await page.evaluate(({ step, text }) => {
@@ -247,6 +260,7 @@ const OUTRO_HTML = `
       document.getElementById('txt').textContent = text;
       document.getElementById('cap').classList.remove('out');
     }, { step, text });
+    say(+step, ACTIONS);
   }
   // A point on page 1 of the document, from fractions of the page
   async function onPage(fx_, fy_) {
@@ -256,7 +270,10 @@ const OUTRO_HTML = `
 
   // ---- 0: intro ----
   mark('intro');
-  await sleep(3200);
+  await sleep(300);
+  say(0, CARD);
+  await sleep(2900);
+  await spoken();
   await page.evaluate(() => document.getElementById('intro').classList.add('hide'));
   const actionsFrom = Date.now() / 1000 + 0.5;
   await caption('1', L.steps[0]);
@@ -359,16 +376,21 @@ const OUTRO_HTML = `
   mark('outro');
   const actionsTo = Date.now() / 1000;
   await page.evaluate((html) => { const o = document.getElementById('outro'); o.innerHTML = html; o.classList.remove('hide'); }, OUTRO_HTML);
-  await sleep(3100);
+  await sleep(300);
+  say(6, CARD);
+  await sleep(2800);
+  await spoken();
+  if (VOICE.length) await sleep(500);
   mark('end');
+  // A still screen sends no frames: the last one lasts until here
+  const stoppedAt = Date.now() / 1000;
   await cdp.send('Page.stopScreencast');
   await sleep(200);
 
   // The intro and outro cards play at a readable pace, the work in the app is sped up (about
   // 1.25x the earlier 30 s cut) and drawing the signature twice as fast again: about 24 seconds
   frames.sort((a, b) => a.t - b.t);
-  const first = frames[0].t, end = frames[frames.length - 1].t + 0.04;
-  const CARD = 0.7, ACTIONS = 0.56;
+  const first = frames[0].t, end = Math.max(stoppedAt, frames[frames.length - 1].t + 0.04);
   const speed = (t) => (t >= sigFrom && t < sigTo ? ACTIONS / 2 : t >= actionsFrom && t < actionsTo ? ACTIONS : CARD);
   // Recording time -> video time
   const at = (t) => frames.reduce((v, f, i) => { const e = Math.min(t, frames[i + 1]?.t ?? end); return e > f.t ? v + (e - f.t) * speed(f.t) : v; }, 0);
@@ -381,11 +403,19 @@ const OUTRO_HTML = `
 
   fs.mkdirSync(path.dirname(VIDEO), { recursive: true });
   const length = at(end).toFixed(2);
-  // Music from the start of the track, a little quieter, fading out over the last 1.5 s
+  // Music from the start of the track, a little quieter, fading out over the last 1.5 s; under
+  // the narrator it dips (sidechain) so the words are clear
   const music = path.join(__dirname, 'promo-music.mp3');
+  const fadeMusic = `volume=-4dB,afade=t=in:d=0.3,afade=t=out:st=${(length - 1.5).toFixed(2)}:d=1.5`;
+  const audio = !said.length ? ['-af', fadeMusic] : ['-filter_complex', [
+    `[1:a]${fadeMusic}[m]`,
+    ...said.map(({ t }, k) => { const ms = Math.round(at(t) * 1000); return `[${k + 2}:a]aresample=44100,adelay=${ms}|${ms}[v${k}]`; }),
+    `${said.map((_, k) => `[v${k}]`).join('')}amix=inputs=${said.length}:normalize=0,apad,asplit[vk][vm]`,
+    '[m][vk]sidechaincompress=threshold=0.02:ratio=8:attack=20:release=400[md]',
+    '[md][vm]amix=inputs=2:normalize=0[a]'].join(';'), '-map', '0:v', '-map', '[a]'];
   execFileSync(FFMPEG, ['-y', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', path.join(OUT, 'frames.txt'), '-i', music,
-    '-vf', 'fps=30,scale=1080:1920:flags=lanczos,format=yuv420p',
-    '-af', `volume=-4dB,afade=t=in:d=0.3,afade=t=out:st=${(length - 1.5).toFixed(2)}:d=1.5`,
+    ...said.flatMap(({ i }) => ['-i', VOICE[i].file]),
+    '-vf', 'fps=30,scale=1080:1920:flags=lanczos,format=yuv420p', ...audio,
     '-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-c:a', 'aac', '-b:a', '128k',
     '-movflags', '+faststart', '-t', length, VIDEO], { stdio: 'inherit' });
   execFileSync(FFMPEG, ['-y', '-loglevel', 'error', '-ss', at(first + 2.4).toFixed(2), '-i', VIDEO, '-frames:v', '1', '-vf', 'scale=540:960', '-q:v', '4',
