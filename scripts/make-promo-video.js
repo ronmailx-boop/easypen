@@ -277,7 +277,7 @@ const OUTRO_HTML = `
   await app().waitForSelector('dialog.sig-dialog[open]');
   await sleep(300);
   const c = await app().locator('.sig-canvas').boundingBox();
-  // A handwritten-looking signature: a tall initial, a run of joined letters and an underline,
+  // A handwritten-looking signature: a tall initial and a run of joined letters,
   // drawn as smooth curves through points (fractions of the drawing box)
   const spline = (cp, per) => cp.slice(0, -1).flatMap((p1, i) => {
     const p0 = cp[i - 1] || p1, p2 = cp[i + 1], p3 = cp[i + 2] || p2;
@@ -289,8 +289,7 @@ const OUTRO_HTML = `
     [0.405, 0.62], [0.43, 0.53], [0.45, 0.47], [0.47, 0.48], [0.48, 0.56], [0.495, 0.62], [0.53, 0.52], [0.565, 0.32], [0.575, 0.25],
     [0.56, 0.24], [0.545, 0.34], [0.55, 0.55], [0.565, 0.62], [0.6, 0.56], [0.625, 0.5], [0.645, 0.52], [0.65, 0.59], [0.67, 0.62],
     [0.71, 0.56], [0.75, 0.58], [0.81, 0.59], [0.88, 0.5]], 4), 1300);
-  await stroke(spline([[0.2, 0.8], [0.45, 0.83], [0.7, 0.78], [0.86, 0.7]], 6), 350);
-  await sleep(250);
+  await sleep(600);
   await tapSel('dialog.sig-dialog [data-action="confirm"]', { after: 200 });
   await app().waitForSelector('dialog.sig-dialog', { state: 'detached' });
   await sleep(450);
