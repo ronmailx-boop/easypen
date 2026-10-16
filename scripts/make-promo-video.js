@@ -308,7 +308,7 @@ const OUTRO_HTML = `
   await caption('3', L.steps[2]);
   await sleep(200);
   await tapSel('#add-text', { after: 300 });
-  const [nx, ny] = await onPage(fields.name.x + fields.name.w * (L.dir === 'rtl' ? 0.62 : 0.1), fields.name.y + fields.name.h * 0.3);
+  const [nx, ny] = await onPage(fields.name.x + fields.name.w * (L.dir === 'rtl' ? 0.255 : 0.1), fields.name.y + fields.name.h * 0.3);
   await tap(nx, ny, { after: 250 });
   await hideFinger();
   for (const ch of L.typed) { await page.keyboard.type(ch); await sleep(85); }
