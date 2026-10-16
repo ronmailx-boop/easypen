@@ -95,10 +95,11 @@ const STAGE_HTML = `<!doctype html><html lang="${LANG}" dir="${L.dir}"><head><me
   .cap .txt { font-size: 25px; font-weight: 800; letter-spacing: -.2px; text-shadow: 0 2px 10px rgba(0,0,0,.18) }
   .cap > div { transition: opacity .35s, transform .35s }
   .cap.out > div { opacity: 0; transform: translateY(-8px) }
-  .phone { position: absolute; left: 50%; top: 110px; width: 291px; height: 508px; margin-left: -145.5px;
-    border-radius: 38px; background: #0d1222; padding: 9px; box-shadow: 0 24px 50px rgba(0,0,0,.35), inset 0 0 0 1.5px #3b4563 }
-  .screen { width: 273px; height: 490px; border-radius: 30px; overflow: hidden; position: relative; background: #fff }
-  iframe { border: 0; width: 390px; height: 700px; transform: scale(.7); transform-origin: 0 0; position: absolute; left: 0; top: 0 }
+  /* Galaxy S25 FE proportions: 19.5:9 screen, app at its 384x832 CSS viewport */
+  .phone { position: absolute; left: 50%; top: 110px; width: 244px; height: 508px; margin-left: -122px;
+    border-radius: 34px; background: #0d1222; padding: 9px; box-shadow: 0 24px 50px rgba(0,0,0,.35), inset 0 0 0 1.5px #3b4563 }
+  .screen { width: 226px; height: 490px; border-radius: 26px; overflow: hidden; position: relative; background: #fff }
+  iframe { border: 0; width: 384px; height: 832px; transform: scale(.5885); transform-origin: 0 0; position: absolute; left: 0; top: 0 }
   .finger { position: absolute; width: 90px; height: 90px; margin: -45px 0 0 -45px; border-radius: 50%; pointer-events: none; z-index: 20;
     background: rgba(255,255,255,.55); border: 6px solid rgba(47,79,196,.55); box-shadow: 0 6px 24px rgba(0,0,0,.25);
     opacity: 0; transition: opacity .2s, transform .12s }
