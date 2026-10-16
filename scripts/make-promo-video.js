@@ -84,8 +84,11 @@ const DOC_HTML = `<!doctype html><html lang="${LANG}" dir="${L.dir}"><head><meta
 // ---------- the stage: brand background, captions, phone frame with the app ----------
 const STAGE_HTML = `<!doctype html><html lang="${LANG}" dir="${L.dir}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>
   * { box-sizing: border-box }
-  html, body { margin: 0; width: 360px; height: 640px; overflow: hidden; font-family: ${L.font} }
-  body { background: radial-gradient(120% 80% at 50% 0%, #4565e0 0%, #2f4fc4 45%, #1d2f86 100%); color: #fff }
+  html, body { margin: 0; width: 1080px; height: 1920px; overflow: hidden; font-family: ${L.font} }
+  body { background: #1d2f86; color: #fff }
+  /* Laid out at 360x640 and scaled 3x: the browser draws everything (and the app) at full 1080x1920 */
+  #stage { position: absolute; left: 0; top: 0; width: 360px; height: 640px; transform: scale(3); transform-origin: 0 0;
+    background: radial-gradient(120% 80% at 50% 0%, #4565e0 0%, #2f4fc4 45%, #1d2f86 100%) }
   .cap { position: absolute; top: 26px; inset-inline: 0; text-align: center; height: 74px }
   .cap .step { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%;
     background: #fff; color: #2f4fc4; font-weight: 800; font-size: 17px; margin-bottom: 6px }
@@ -96,8 +99,8 @@ const STAGE_HTML = `<!doctype html><html lang="${LANG}" dir="${L.dir}"><head><me
     border-radius: 38px; background: #0d1222; padding: 9px; box-shadow: 0 24px 50px rgba(0,0,0,.35), inset 0 0 0 1.5px #3b4563 }
   .screen { width: 273px; height: 490px; border-radius: 30px; overflow: hidden; position: relative; background: #fff }
   iframe { border: 0; width: 390px; height: 700px; transform: scale(.7); transform-origin: 0 0; position: absolute; left: 0; top: 0 }
-  .finger { position: absolute; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 50%; pointer-events: none; z-index: 5;
-    background: rgba(255,255,255,.55); border: 2px solid rgba(47,79,196,.55); box-shadow: 0 2px 8px rgba(0,0,0,.25);
+  .finger { position: absolute; width: 90px; height: 90px; margin: -45px 0 0 -45px; border-radius: 50%; pointer-events: none; z-index: 20;
+    background: rgba(255,255,255,.55); border: 6px solid rgba(47,79,196,.55); box-shadow: 0 6px 24px rgba(0,0,0,.25);
     opacity: 0; transition: opacity .2s, transform .12s }
   .finger.on { opacity: 1 } .finger.down { transform: scale(.78); background: rgba(47,79,196,.35) }
   .card { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
@@ -114,17 +117,16 @@ const STAGE_HTML = `<!doctype html><html lang="${LANG}" dir="${L.dir}"><head><me
     box-shadow: 0 10px 26px rgba(0,0,0,.25) }
   .pop { animation: pop .6s cubic-bezier(.2,1.4,.4,1) both } .pop2 { animation-delay: .15s } .pop3 { animation-delay: .3s } .pop4 { animation-delay: .45s } .pop5 { animation-delay: .6s }
   @keyframes pop { from { opacity: 0; transform: translateY(14px) scale(.96) } to { opacity: 1; transform: none } }
-</style></head><body>
+</style></head><body><div id="stage">
   <div class="cap out" id="cap"><div><div class="step" id="step">1</div><div class="txt" id="txt"></div></div></div>
   <div class="phone"><div class="screen"><iframe id="app" src="about:blank"></iframe></div></div>
-  <div class="finger" id="finger"></div>
   <div class="card" id="intro">
     <div class="logo pop"><img src="icons/icon.svg" alt=""></div>
     <div class="name pop pop2">EasyPen</div>
     <div class="tag pop pop3">${L.intro}</div>
   </div>
   <div class="card hide" id="outro"></div>
-</body></html>`;
+</div><div class="finger" id="finger"></div></body></html>`;
 
 const OUTRO_HTML = `
   <div class="logo pop"><img src="icons/icon.svg" alt=""></div>
@@ -153,7 +155,7 @@ const OUTRO_HTML = `
   await docPage.close();
 
   const context = await browser.newContext({
-    viewport: { width: 360, height: 640 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true,
+    viewport: { width: 1080, height: 1920 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true,
     locale: L.locale, serviceWorkers: 'block'
   });
   // In the app: a phone-like font, no install banner or invite, and a share sheet that "sends"
@@ -195,14 +197,14 @@ const OUTRO_HTML = `
   const mark = (label) => console.log(((Date.now() - t0) / 1000).toFixed(1).padStart(5), label);
 
   // Finger helpers (page coordinates)
-  let fx = 180, fy = 420;
+  let fx = 540, fy = 1260;
   const finger = (x, y, cls) => page.evaluate(({ x, y, cls }) => {
     const f = document.getElementById('finger');
     f.style.left = x + 'px'; f.style.top = y + 'px';
     f.className = 'finger ' + cls;
   }, { x, y, cls });
   async function moveTo(x, y, ms = 380) {
-    const steps = Math.max(6, Math.round(ms / 28));
+    const steps = Math.max(6, Math.round(ms / 45));
     await finger(fx, fy, 'on');
     for (let i = 1; i <= steps; i++) {
       const k = i / steps, e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
@@ -255,7 +257,7 @@ const OUTRO_HTML = `
 
   // ---- 0: intro ----
   mark('intro');
-  await sleep(1900);
+  await sleep(1600);
   await page.evaluate(() => document.getElementById('intro').classList.add('hide'));
   await caption('1', L.steps[0]);
   await sleep(500);
@@ -286,7 +288,7 @@ const OUTRO_HTML = `
     const y = c.y + c.height * (0.62 - 0.2 * k * (1 - Math.cos(th)) * 0.9);
     pts.push([x, y]);
   }
-  await stroke(pts, 1200);
+  await stroke(pts, 1000);
   await stroke([[c.x + c.width * 0.2, c.y + c.height * 0.78], [c.x + c.width * 0.5, c.y + c.height * 0.74], [c.x + c.width * 0.82, c.y + c.height * 0.7]].flatMap((p, i, a) =>
     i ? Array.from({ length: 8 }, (_, k) => [a[i - 1][0] + (p[0] - a[i - 1][0]) * (k + 1) / 8, a[i - 1][1] + (p[1] - a[i - 1][1]) * (k + 1) / 8]) : [p]), 350);
   await sleep(250);
@@ -352,7 +354,7 @@ const OUTRO_HTML = `
   // ---- outro ----
   mark('outro');
   await page.evaluate((html) => { const o = document.getElementById('outro'); o.innerHTML = html; o.classList.remove('hide'); }, OUTRO_HTML);
-  await sleep(3400);
+  await sleep(3100);
   mark('end');
   await cdp.send('Page.stopScreencast');
   await sleep(200);
