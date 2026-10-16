@@ -983,8 +983,8 @@ test('guides: every guide (Hebrew, English and Russian) opens, has its title, ca
   }
 });
 
-test('guides: the demo video is on the Hebrew guides page and the PDF-on-phone guide, loaded only on play', async () => {
-  for (const dir of ['guides/', 'guides/sign-pdf-on-phone/']) {
+test('guides: the demo video (in the page language) is on the guides page and the PDF-on-phone guide, loaded only on play', async () => {
+  for (const [lang, base] of [['he', 'guides/'], ['en', 'en/guides/'], ['ru', 'ru/guides/']]) for (const dir of [base, base + 'sign-pdf-on-phone/']) {
     await page.goto(server.baseUrl + dir);
     const v = await page.evaluate(() => {
       const el = document.querySelector('.guide-video video');
@@ -995,8 +995,9 @@ test('guides: the demo video is on the Hebrew guides page and the PDF-on-phone g
     assert.equal(v.preload, 'none');
     assert.ok(v.muted && v.playsInline);
     for (const url of [v.src, v.poster]) assert.equal((await page.request.get(url)).status(), 200, url);
-    assert.equal(v.ld.contentUrl, 'https://easypen.vplusstudio.app/media/easypen-promo-he.mp4');
-    assert.equal(v.ld.thumbnailUrl, 'https://easypen.vplusstudio.app/media/easypen-promo-he.jpg');
+    assert.equal(v.ld.contentUrl, `https://easypen.vplusstudio.app/media/easypen-promo-${lang}.mp4`);
+    assert.equal(v.ld.thumbnailUrl, `https://easypen.vplusstudio.app/media/easypen-promo-${lang}.jpg`);
+    assert.equal(v.ld.inLanguage, lang);
   }
   await page.goto(server.baseUrl + 'guides/sign-rental-contract/');
   assert.equal(await page.locator('video').count(), 0, 'only where it fits');

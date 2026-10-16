@@ -117,7 +117,7 @@ GUIDES = [
 ]
 
 EN_GUIDES = [
-  dict(slug='sign-pdf-on-phone',
+  dict(slug='sign-pdf-on-phone', video=True,
     title='How to sign a PDF on your phone – free, no sign-up',
     short='Sign a PDF on your phone',
     desc='A quick guide: sign a PDF on your phone in under a minute, free, with no app to install and no account. The file never leaves your device.',
@@ -227,7 +227,7 @@ EN_GUIDES = [
 ]
 
 RU_GUIDES = [
-  dict(slug='sign-pdf-on-phone',
+  dict(slug='sign-pdf-on-phone', video=True,
     title='Как подписать PDF на телефоне – бесплатно и без регистрации',
     short='Как подписать PDF на телефоне',
     desc='Короткая инструкция: подпишите PDF на телефоне меньше чем за минуту, бесплатно, без установки приложения и без регистрации. Файл не покидает устройство.',
@@ -359,10 +359,14 @@ T = {
              index_desc='Короткие инструкции по подписи PDF, договоров и заявлений на телефоне с EasyPen: бесплатно, без регистрации, файлы не покидают устройство.',
              index_lead='Как подписать документ на телефоне, заполнить бланк и отправить его обратно – без принтера и без сканера.'),
 }
-# The 30-second demo (scripts/make-promo-video.js), only in Hebrew for now
+# The 30-second demo in each language (scripts/make-promo-video.js)
 VIDEO = {
   'he': dict(file='media/easypen-promo-he', name='EasyPen בפעולה: חתימה על מסמך מהטלפון ב-30 שניות',
              desc='סרטון קצר: מעלים מסמך, חותמים באצבע, ממלאים שם, מסמנים V ושולחים – הכול מהטלפון עם EasyPen.'),
+  'en': dict(file='media/easypen-promo-en', name='EasyPen in action: signing a document on your phone in 30 seconds',
+             desc='A short video: upload a document, sign with your finger, fill in your name, tick a box and send it – all on your phone with EasyPen.'),
+  'ru': dict(file='media/easypen-promo-ru', name='EasyPen в действии: подпись документа на телефоне за 30 секунд',
+             desc='Короткое видео: загрузите документ, подпишите пальцем, впишите имя, поставьте галочку и отправьте – всё на телефоне с EasyPen.'),
 }
 
 def video_html(lang, up):
