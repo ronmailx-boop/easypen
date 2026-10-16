@@ -993,7 +993,7 @@ test('guides: the demo video (in the page language) is on the guides page and th
     });
     assert.ok(v, `video on ${dir}`);
     assert.equal(v.preload, 'none');
-    assert.ok(v.muted && v.playsInline);
+    assert.ok(!v.muted && v.playsInline);
     for (const url of [v.src, v.poster]) assert.equal((await page.request.get(url)).status(), 200, url);
     assert.equal(v.ld.contentUrl, `https://easypen.vplusstudio.app/media/easypen-promo-${lang}.mp4`);
     assert.equal(v.ld.thumbnailUrl, `https://easypen.vplusstudio.app/media/easypen-promo-${lang}.jpg`);

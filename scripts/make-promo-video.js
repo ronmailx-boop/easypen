@@ -1,6 +1,7 @@
 // EasyPen promo video (22 s, 1080x1920, Hebrew / English / Russian): drives the real app inside a
 // phone frame, records it (CDP screencast) and encodes media/easypen-promo-<lang>.mp4 (+ .jpg, the
-// poster shown before it plays in the guides).
+// poster shown before it plays in the guides), with scripts/promo-music.mp3 as background music
+// ("Upbeat" by Atlasaudio, Pixabay Content License: free for commercial use, no attribution).
 // Needs ffmpeg (FFMPEG=/path/to/ffmpeg, or `pip install imageio-ffmpeg`) and the fonts Heebo,
 // Noto Sans Hebrew and Noto Sans installed (Google Fonts).
 // Usage: node scripts/make-promo-video.js [he|en|ru] [workDir]
@@ -379,9 +380,14 @@ const OUTRO_HTML = `
   await server.close();
 
   fs.mkdirSync(path.dirname(VIDEO), { recursive: true });
-  execFileSync(FFMPEG, ['-y', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', path.join(OUT, 'frames.txt'),
+  const length = at(end).toFixed(2);
+  // Music from the start of the track, a little quieter, fading out over the last 1.5 s
+  const music = path.join(__dirname, 'promo-music.mp3');
+  execFileSync(FFMPEG, ['-y', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', path.join(OUT, 'frames.txt'), '-i', music,
     '-vf', 'fps=30,scale=1080:1920:flags=lanczos,format=yuv420p',
-    '-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-movflags', '+faststart', '-t', at(end).toFixed(2), VIDEO], { stdio: 'inherit' });
+    '-af', `volume=-4dB,afade=t=in:d=0.3,afade=t=out:st=${(length - 1.5).toFixed(2)}:d=1.5`,
+    '-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-c:a', 'aac', '-b:a', '128k',
+    '-movflags', '+faststart', '-t', length, VIDEO], { stdio: 'inherit' });
   execFileSync(FFMPEG, ['-y', '-loglevel', 'error', '-ss', at(first + 2.4).toFixed(2), '-i', VIDEO, '-frames:v', '1', '-vf', 'scale=540:960', '-q:v', '4',
     VIDEO.replace(/\.mp4$/, '.jpg')], { stdio: 'inherit' });
   console.log('video', VIDEO);
