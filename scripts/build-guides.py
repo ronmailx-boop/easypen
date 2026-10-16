@@ -7,7 +7,7 @@ SITE = 'https://easypen.vplusstudio.app/'
 DATE = '2026-10-15'
 
 GUIDES = [
-  dict(slug='sign-pdf-on-phone',
+  dict(slug='sign-pdf-on-phone', video=True,
     title='איך לחתום על PDF בטלפון – בחינם ובלי הרשמה',
     short='איך לחתום על PDF בטלפון',
     desc='מדריך קצר: חותמים על קובץ PDF מהטלפון תוך פחות מדקה, בחינם, בלי להתקין אפליקציה ובלי להירשם. הקובץ לא עוזב את המכשיר.',
@@ -359,6 +359,28 @@ T = {
              index_desc='Короткие инструкции по подписи PDF, договоров и заявлений на телефоне с EasyPen: бесплатно, без регистрации, файлы не покидают устройство.',
              index_lead='Как подписать документ на телефоне, заполнить бланк и отправить его обратно – без принтера и без сканера.'),
 }
+# The 30-second demo (scripts/make-promo-video.js), only in Hebrew for now
+VIDEO = {
+  'he': dict(file='media/easypen-promo-he', name='EasyPen בפעולה: חתימה על מסמך מהטלפון ב-30 שניות',
+             desc='סרטון קצר: מעלים מסמך, חותמים באצבע, ממלאים שם, מסמנים V ושולחים – הכול מהטלפון עם EasyPen.'),
+}
+
+def video_html(lang, up):
+    v = VIDEO[lang]
+    return f'''    <figure class="guide-video">
+      <video controls muted playsinline preload="none" width="540" height="960" poster="{up}{v["file"]}.jpg">
+        <source src="{up}{v["file"]}.mp4" type="video/mp4">
+      </video>
+      <figcaption class="muted small">{v["name"]}</figcaption>
+    </figure>
+'''
+
+def video_ld(lang, page_url):
+    v = VIDEO[lang]
+    return {"@type": "VideoObject", "name": v['name'], "description": v['desc'], "inLanguage": lang,
+            "thumbnailUrl": SITE + v['file'] + '.jpg', "contentUrl": SITE + v['file'] + '.mp4',
+            "uploadDate": "2026-10-16", "duration": "PT30S", "embedUrl": page_url}
+
 SETS = {'he': GUIDES, 'en': EN_GUIDES, 'ru': RU_GUIDES}
 PREFIX = {'he': 'guides/', 'en': 'en/guides/', 'ru': 'ru/guides/'}
 
@@ -475,12 +497,19 @@ for lang, guides in SETS.items():
              "author": {"@type": "Organization", "name": "vplus studio"},
              "publisher": {"@type": "Organization", "name": "vplus studio"}},
             breadcrumb_ld(items_ld)]}
+        with_video = g.get('video') and lang in VIDEO
+        if with_video:
+            data['@graph'].append(video_ld(lang, url))
         html = HEAD.format(lang=lang, dir=t['dir'], title=g['title'] + ' | EasyPen', desc=g['desc'], url=url,
                            alternates=alternates(g['slug'] + '/'), switch=switch(lang, up, g['slug'] + '/'),
                            up=up, og_type='article', locale=t['locale'], ld=ld(data),
                            crumbs_label=t['crumbs_label'],
                            crumbs=crumbs([('EasyPen', up), (t['guides'], up + prefix), (g['short'], None)], t['sep']))
         body = g['body'].strip('\n').replace('href="../../../"', f'href="{up}"').replace('href="../../"', f'href="{up}"')
+        if with_video:
+            # Right after the opening paragraph
+            lead_end = body.index('</p>') + len('</p>')
+            body = body[:lead_end] + '\n\n' + video_html(lang, up).rstrip('\n') + body[lead_end:]
         html += f'    <article>\n      <h1>{g["title"]}</h1>\n' + body + '\n    </article>\n'
         html += CTA.format(up=up, **t)
         lis = [f'      <li><a href="{up}{prefix}{o["slug"]}/">{o["short"]}</a></li>' for o in guides if o['slug'] != g['slug']]
@@ -494,6 +523,8 @@ for lang, guides in SETS.items():
     data = {"@context": "https://schema.org", "@graph": [
         {"@type": "CollectionPage", "name": t['index_title'], "description": t['index_desc'], "inLanguage": lang, "url": url},
         breadcrumb_ld([('EasyPen', SITE), (t['guides'], url)])]}
+    if lang in VIDEO:
+        data['@graph'].append(video_ld(lang, url))
     cards = '\n'.join(f'''      <li>
         <a href="{g["slug"]}/">
           <strong>{g["short"]}</strong>
@@ -506,7 +537,7 @@ for lang, guides in SETS.items():
                        crumbs=crumbs([('EasyPen', up), (t['guides'], None)], t['sep']))
     html += f'''    <h1>{t["index_title"]}</h1>
     <p class="lead">{t["index_lead"]}</p>
-    <ul class="guide-list">
+{video_html(lang, up) if lang in VIDEO else ''}    <ul class="guide-list">
 {cards}
     </ul>
 ''' + CTA.format(up=up, **t) + FOOT.format(up=up, prefix=prefix, **t)

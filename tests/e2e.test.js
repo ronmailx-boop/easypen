@@ -983,6 +983,25 @@ test('guides: every guide (Hebrew, English and Russian) opens, has its title, ca
   }
 });
 
+test('guides: the demo video is on the Hebrew guides page and the PDF-on-phone guide, loaded only on play', async () => {
+  for (const dir of ['guides/', 'guides/sign-pdf-on-phone/']) {
+    await page.goto(server.baseUrl + dir);
+    const v = await page.evaluate(() => {
+      const el = document.querySelector('.guide-video video');
+      const ld = JSON.parse(document.querySelector('script[type="application/ld+json"]').textContent)['@graph'].find((o) => o['@type'] === 'VideoObject');
+      return el && { preload: el.preload, muted: el.muted, playsInline: el.playsInline, src: el.querySelector('source').src, poster: el.poster, ld };
+    });
+    assert.ok(v, `video on ${dir}`);
+    assert.equal(v.preload, 'none');
+    assert.ok(v.muted && v.playsInline);
+    for (const url of [v.src, v.poster]) assert.equal((await page.request.get(url)).status(), 200, url);
+    assert.equal(v.ld.contentUrl, 'https://easypen.vplusstudio.app/media/easypen-promo-he.mp4');
+    assert.equal(v.ld.thumbnailUrl, 'https://easypen.vplusstudio.app/media/easypen-promo-he.jpg');
+  }
+  await page.goto(server.baseUrl + 'guides/sign-rental-contract/');
+  assert.equal(await page.locator('video').count(), 0, 'only where it fits');
+});
+
 test('english: the home screen links to the English guides', async () => {
   await useEnglish();
   await page.goto(server.baseUrl);

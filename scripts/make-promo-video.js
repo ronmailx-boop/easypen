@@ -1,5 +1,6 @@
 // EasyPen promo video (30 s, 1080x1920, Hebrew): drives the real app inside a phone frame,
-// records it (CDP screencast) and encodes marketing/easypen-promo-he.mp4.
+// records it (CDP screencast) and encodes media/easypen-promo-he.mp4 (+ .jpg, the poster shown
+// before it plays in the guides).
 // Needs ffmpeg (FFMPEG=/path/to/ffmpeg, or `pip install imageio-ffmpeg`) and the Hebrew fonts
 // Heebo + Noto Sans Hebrew installed (Google Fonts). Usage: node scripts/make-promo-video.js [workDir]
 const fs = require('fs');
@@ -11,7 +12,7 @@ const { start } = require('../tests/helpers/server');
 
 const ROOT = path.join(__dirname, '..');
 const OUT = process.argv[2] || fs.mkdtempSync(path.join(os.tmpdir(), 'easypen-video-'));
-const VIDEO = path.join(ROOT, 'marketing', 'easypen-promo-he.mp4');
+const VIDEO = path.join(ROOT, 'media', 'easypen-promo-he.mp4');
 const FFMPEG = process.env.FFMPEG ||
   execFileSync('python3', ['-c', 'import imageio_ffmpeg as f; print(f.get_ffmpeg_exe())']).toString().trim();
 const FRAMES = path.join(OUT, 'frames');
@@ -332,5 +333,7 @@ const OUTRO_HTML = `
   execFileSync(FFMPEG, ['-y', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', path.join(OUT, 'frames.txt'),
     '-vf', `fps=60,setpts=PTS*30/${seconds.toFixed(3)},fps=30,scale=1080:1920:flags=lanczos,format=yuv420p`,
     '-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-movflags', '+faststart', '-t', '30', VIDEO], { stdio: 'inherit' });
+  execFileSync(FFMPEG, ['-y', '-loglevel', 'error', '-ss', '1.7', '-i', VIDEO, '-frames:v', '1', '-vf', 'scale=540:960', '-q:v', '4',
+    VIDEO.replace(/\.mp4$/, '.jpg')], { stdio: 'inherit' });
   console.log('video', VIDEO);
 })().catch((e) => { console.error(e); process.exit(1); });
