@@ -1,4 +1,4 @@
-// EasyPen promo video (20 s, 1080x1920, Hebrew / English / Russian): drives the real app inside a
+// EasyPen promo video (25 s, 1080x1920, Hebrew / English / Russian): drives the real app inside a
 // phone frame, records it (CDP screencast) and encodes media/easypen-promo-<lang>.mp4 (+ .jpg, the
 // poster shown before it plays in the guides).
 // Needs ffmpeg (FFMPEG=/path/to/ffmpeg, or `pip install imageio-ffmpeg`) and the fonts Heebo,
@@ -360,11 +360,11 @@ const OUTRO_HTML = `
   await cdp.send('Page.stopScreencast');
   await sleep(200);
 
-  // Exactly 20 seconds: the intro and outro cards play at a readable pace, the work in the app
-  // is sped up to fill the rest (about 1.5x the earlier 30 s cut)
+  // Exactly 25 seconds: the intro and outro cards play at a readable pace, the work in the app
+  // is sped up to fill the rest (about 1.25x the earlier 30 s cut)
   frames.sort((a, b) => a.t - b.t);
   const first = frames[0].t, end = frames[frames.length - 1].t + 0.04;
-  const CARD = 0.7, LENGTH = 20;
+  const CARD = 0.7, LENGTH = 25;
   const cards = (actionsFrom - first) + (end - actionsTo);
   const speed = (t) => (t >= actionsFrom && t < actionsTo ? (LENGTH - CARD * cards) / (actionsTo - actionsFrom) : CARD);
   // Recording time -> video time
