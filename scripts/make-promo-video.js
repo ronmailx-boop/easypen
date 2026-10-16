@@ -1,4 +1,4 @@
-// EasyPen promo video (30 s, 1080x1920, Hebrew / English / Russian): drives the real app inside a
+// EasyPen promo video (20 s, 1080x1920, Hebrew / English / Russian): drives the real app inside a
 // phone frame, records it (CDP screencast) and encodes media/easypen-promo-<lang>.mp4 (+ .jpg, the
 // poster shown before it plays in the guides).
 // Needs ffmpeg (FFMPEG=/path/to/ffmpeg, or `pip install imageio-ffmpeg`) and the fonts Heebo,
@@ -257,6 +257,7 @@ const OUTRO_HTML = `
   mark('intro');
   await sleep(1600);
   await page.evaluate(() => document.getElementById('intro').classList.add('hide'));
+  const actionsFrom = Date.now() / 1000 + 0.5;
   await caption('1', L.steps[0]);
   await sleep(500);
 
@@ -352,28 +353,34 @@ const OUTRO_HTML = `
 
   // ---- outro ----
   mark('outro');
+  const actionsTo = Date.now() / 1000;
   await page.evaluate((html) => { const o = document.getElementById('outro'); o.innerHTML = html; o.classList.remove('hide'); }, OUTRO_HTML);
   await sleep(3100);
   mark('end');
   await cdp.send('Page.stopScreencast');
   await sleep(200);
 
-  // ffmpeg concat list with each frame's real duration
+  // Exactly 20 seconds: the intro and outro cards play at a readable pace, the work in the app
+  // is sped up to fill the rest (about 1.5x the earlier 30 s cut)
   frames.sort((a, b) => a.t - b.t);
-  const end = frames[frames.length - 1].t + 0.04;
-  const list = frames.map((f, i) => `file '${f.file}'\nduration ${Math.max(0.001, (frames[i + 1]?.t ?? end) - f.t).toFixed(4)}`).join('\n') + `\nfile '${frames[frames.length - 1].file}'\n`;
+  const first = frames[0].t, end = frames[frames.length - 1].t + 0.04;
+  const CARD = 0.7, LENGTH = 20;
+  const cards = (actionsFrom - first) + (end - actionsTo);
+  const speed = (t) => (t >= actionsFrom && t < actionsTo ? (LENGTH - CARD * cards) / (actionsTo - actionsFrom) : CARD);
+  // Recording time -> video time
+  const at = (t) => frames.reduce((v, f, i) => { const e = Math.min(t, frames[i + 1]?.t ?? end); return e > f.t ? v + (e - f.t) * speed(f.t) : v; }, 0);
+  // ffmpeg concat list with each frame's duration in the video
+  const list = frames.map((f, i) => `file '${f.file}'\nduration ${Math.max(0.001, ((frames[i + 1]?.t ?? end) - f.t) * speed(f.t)).toFixed(4)}`).join('\n') + `\nfile '${frames[frames.length - 1].file}'\n`;
   fs.writeFileSync(path.join(OUT, 'frames.txt'), list);
-  const seconds = end - frames[0].t;
-  console.log('frames', frames.length, 'seconds', seconds.toFixed(1));
+  console.log('frames', frames.length, 'seconds', (end - first).toFixed(1), 'actions speed', (1 / speed(actionsFrom)).toFixed(2), 'video', at(end).toFixed(2));
   await browser.close();
   await server.close();
 
-  // Exactly 30 seconds (a few percent faster or slower is not noticeable)
   fs.mkdirSync(path.dirname(VIDEO), { recursive: true });
   execFileSync(FFMPEG, ['-y', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', path.join(OUT, 'frames.txt'),
-    '-vf', `fps=60,setpts=PTS*30/${seconds.toFixed(3)},fps=30,scale=1080:1920:flags=lanczos,format=yuv420p`,
-    '-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-movflags', '+faststart', '-t', '30', VIDEO], { stdio: 'inherit' });
-  execFileSync(FFMPEG, ['-y', '-loglevel', 'error', '-ss', '1.7', '-i', VIDEO, '-frames:v', '1', '-vf', 'scale=540:960', '-q:v', '4',
+    '-vf', 'fps=30,scale=1080:1920:flags=lanczos,format=yuv420p',
+    '-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-movflags', '+faststart', '-t', String(LENGTH), VIDEO], { stdio: 'inherit' });
+  execFileSync(FFMPEG, ['-y', '-loglevel', 'error', '-ss', at(first + 2.4).toFixed(2), '-i', VIDEO, '-frames:v', '1', '-vf', 'scale=540:960', '-q:v', '4',
     VIDEO.replace(/\.mp4$/, '.jpg')], { stdio: 'inherit' });
   console.log('video', VIDEO);
 })().catch((e) => { console.error(e); process.exit(1); });
