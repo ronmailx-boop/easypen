@@ -1,4 +1,4 @@
-// EasyPen promo video (22 s, 1080x1920, Hebrew / English / Russian): drives the real app inside a
+// EasyPen promo video (24 s, 1080x1920, Hebrew / English / Russian): drives the real app inside a
 // phone frame, records it (CDP screencast) and encodes media/easypen-promo-<lang>.mp4 (+ .jpg, the
 // poster shown before it plays in the guides), with scripts/promo-music.mp3 as background music
 // ("Upbeat" by Atlasaudio, Pixabay Content License: free for commercial use, no attribution).
@@ -256,7 +256,7 @@ const OUTRO_HTML = `
 
   // ---- 0: intro ----
   mark('intro');
-  await sleep(1600);
+  await sleep(3200);
   await page.evaluate(() => document.getElementById('intro').classList.add('hide'));
   const actionsFrom = Date.now() / 1000 + 0.5;
   await caption('1', L.steps[0]);
@@ -365,7 +365,7 @@ const OUTRO_HTML = `
   await sleep(200);
 
   // The intro and outro cards play at a readable pace, the work in the app is sped up (about
-  // 1.25x the earlier 30 s cut) and drawing the signature twice as fast again: about 22 seconds
+  // 1.25x the earlier 30 s cut) and drawing the signature twice as fast again: about 24 seconds
   frames.sort((a, b) => a.t - b.t);
   const first = frames[0].t, end = frames[frames.length - 1].t + 0.04;
   const CARD = 0.7, ACTIONS = 0.56;
