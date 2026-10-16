@@ -8,6 +8,9 @@ const path = require('path');
 
 const VOICE = {
   he: {
+    // Hebrew is read by ElevenLabs ("Adam", Eleven v4, made on the site and split into the clips by
+    // the pauses; the whole take is in scripts/voice/source): Google's Hebrew voices sounded wrong
+    manual: 'ElevenLabs Adam (Eleven v4)',
     languageCode: 'he-IL', voices: ['he-IL-Chirp3-HD-Charon', 'he-IL-Wavenet-B', 'he-IL-Standard-B'],
     lines: ['איזי פֶּן. חותמים על מסמכים, ישר מהטלפון.', 'מעלים פי די אף, או תמונה.', 'חותמים באצבע.', 'ממלאים פרטים.',
       'מסמנים וי.', 'שומרים, ושולחים.', 'בחינם, בלי הרשמה. הקבצים לא עוזבים את המכשיר.']
@@ -44,6 +47,7 @@ async function tts(endpoint, body) {
 
 async function make(lang) {
   const v = VOICE[lang];
+  if (v.manual) return console.log(lang, 'skipped: recorded with', v.manual);
   const available = new Set((await tts(`voices?languageCode=${v.languageCode}`)).voices.map((x) => x.name));
   const name = v.voices.find((n) => available.has(n));
   if (!name) throw new Error(`None of ${v.voices.join(', ')} is available`);
