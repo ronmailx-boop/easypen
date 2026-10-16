@@ -1,8 +1,12 @@
 # PROJECT_STATE - EasyPen
 
 ## Current Focus
-MVP ראשוני הושלם. חבילת בדיקות e2e נוספה ל-`tests/` (`npm test`, 10 בדיקות, יציבות).
-**הצעד הבא:** פריסה ל-GitHub Pages ובדיקה על מכשיר אנדרואיד אמיתי (התקנה, שיתוף PDF מוואטסאפ, navigator.share עם קובץ).
+**עצרנו ב (16.10.2026):** קריין (גבר) לסרטוני התדמית בשלוש השפות. הקוד מוכן ומוזג (`scripts/promo-voice.js` + סנכרון בתוך `scripts/make-promo-video.js`). המשתמש יצר פרויקט Google Cloud בשם easypen בחשבון vplusstudio.app@gmail.com (תקופת ניסיון עם 921 ₪ קרדיט עד 15.1.2027; לא ללחוץ Upgrade), הפעיל את Cloud Text-to-Speech API, יצר מפתח `easypen-tts` מוגבל ל-Text-to-Speech, ושמר אותו ב-Network secrets של סביבת הענן (Default): אתר `texttospeech.googleapis.com`, כותרת `X-Goog-Api-Key`, בלי קידומת.
+
+**הצעד הבא (בשיחה חדשה, "תמשיך עם הקריין"):**
+1. `node scripts/promo-voice.js` — בודק את הקולות הזמינים, בוחר קול גבר (Chirp3-HD-Charon או Wavenet) ושומר `scripts/voice/<lang>-<n>.mp3` + `<lang>.json`. אם נכשל על הרשאה — לבדוק את ה-secret (הכותרת והקידומת).
+2. לבנות מחדש את שלושת הסרטונים (`node scripts/make-promo-video.js he|en|ru`), לבדוק תמונות + מיקום הקול, לעדכן אורך הסרטון בכיתובים ו-PT..S בעמודי המדריכים (כרגע 24 שניות), למזג, ולבקש מהמשתמש לבדוק בטלפון עם קול (הגייה של "איזי פן" / "פי די אף" / "Изи Пен").
+3. עדיין פתוח: לבדוק בטלפון את מסך הפתיחה הארוך (24 שניות); Google Search Console (המשתמש).
 
 ## MVP - משימות
 - [x] מבנה PWA סטטי (index / viewer / share-target), נתיבים יחסיים ל-GitHub Pages
@@ -116,7 +120,8 @@ MVP ראשוני הושלם. חבילת בדיקות e2e נוספה ל-`tests/` 
 - [x] מסך הפתיחה (הלוגו והמשפט) מוצג פי 2 זמן (בערך 2.2 שניות). הסרטונים עכשיו 24 שניות, הכיתובים ו-PT24S עודכנו
 - [ ] לבדוק בטלפון
 - [x] קריין (גבר) לסרטונים — הקוד מוכן: `scripts/promo-voice.js` (הטקסטים לכל שפה + יצירת קבצים ב-Google Cloud Text-to-Speech אל `scripts/voice/`), והסקריפט של הסרטון מסנכרן כל משפט למסך שלו, מחזיק את המסך עד סוף המשפט ומנמיך את המוסיקה מתחת לקול. נבדק עם צפצופים במקום קול. תוקן גם באג: סוף מסך הסיום נחתך (מסך סטטי לא שולח פריימים)
-- [ ] קריין: המשתמש יוצר מפתח API ב-Google Cloud (Text-to-Speech API) ומוסיף אותו בהגדרות סביבת הענן (Network secrets ל-texttospeech.googleapis.com עם הכותרת X-Goog-Api-Key, או משתנה סביבה GOOGLE_TTS_API_KEY), ואז בשיחה חדשה: `node scripts/promo-voice.js` ובניית שלושת הסרטונים
+- [x] קריין: המשתמש יצר מפתח API ב-Google Cloud (Text-to-Speech API) ומוסיף אותו בהגדרות סביבת הענן (Network secrets ל-texttospeech.googleapis.com עם הכותרת X-Goog-Api-Key, או משתנה סביבה GOOGLE_TTS_API_KEY), — נשמר ב-Network secrets (16.10.2026)
+- [ ] קריין: בשיחה חדשה `node scripts/promo-voice.js` ובניית שלושת הסרטונים עם הקול
 - [x] נוסה סרטון 10 שניות של יד מאוירת שמחזיקה טלפון (נבדק בטלפון שמתנגן). המשתמש לא אהב אותו, והוא הוסר: הסרטונים, הסקריפט ושינויי הקוד בוטלו. נבדק בטלפון שהוסר
 - [x] שיתוף מ-`?lang=ru` מציג בוואטסאפ תיאור ברוסית. נבדק בטלפון
 - [x] המסמכים המשפטיים ברוסית: `docs/legal/ru/` (4 מסמכים), נשמרים גם לאופליין. הצהרת הנגישות (עברית/אנגלית) מזכירה עכשיו רוסית. גרסה 48
