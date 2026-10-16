@@ -1,8 +1,9 @@
-// EasyPen promo video (30 s, 1080x1920, Hebrew): drives the real app inside a phone frame,
-// records it (CDP screencast) and encodes media/easypen-promo-he.mp4 (+ .jpg, the poster shown
-// before it plays in the guides).
-// Needs ffmpeg (FFMPEG=/path/to/ffmpeg, or `pip install imageio-ffmpeg`) and the Hebrew fonts
-// Heebo + Noto Sans Hebrew installed (Google Fonts). Usage: node scripts/make-promo-video.js [workDir]
+// EasyPen promo video (30 s, 1080x1920, Hebrew / English / Russian): drives the real app inside a
+// phone frame, records it (CDP screencast) and encodes media/easypen-promo-<lang>.mp4 (+ .jpg, the
+// poster shown before it plays in the guides).
+// Needs ffmpeg (FFMPEG=/path/to/ffmpeg, or `pip install imageio-ffmpeg`) and the fonts Heebo,
+// Noto Sans Hebrew and Noto Sans installed (Google Fonts).
+// Usage: node scripts/make-promo-video.js [he|en|ru] [workDir]
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -11,8 +12,47 @@ const { chromium } = require('playwright');
 const { start } = require('../tests/helpers/server');
 
 const ROOT = path.join(__dirname, '..');
-const OUT = process.argv[2] || fs.mkdtempSync(path.join(os.tmpdir(), 'easypen-video-'));
-const VIDEO = path.join(ROOT, 'media', 'easypen-promo-he.mp4');
+// Everything that is said or typed in the video, per language
+const LANGS = {
+  he: {
+    locale: 'he-IL', dir: 'rtl', font: 'Heebo, "Noto Sans Hebrew", sans-serif', shared: /שותף/,
+    intro: 'חותמים על מסמכים<br>ישר מהטלפון',
+    steps: ['מעלים PDF או תמונה', 'חותמים באצבע', 'ממלאים פרטים', 'מסמנים ✓', 'שומרים ושולחים'],
+    pills: ['✓ בחינם, בלי הרשמה', '✓ הקבצים לא עוזבים את המכשיר'],
+    file: 'הסכם שכירות.pdf', typed: 'רון כהן',
+    doc: { title: 'הסכם שכירות', sub: 'דירת 3 חדרים · רחוב הרצל 12, תל אביב',
+      paras: ['הסכם זה נערך בין בעל הדירה לבין השוכר, לתקופה של 12 חודשים החל מ-1 בנובמבר 2026.',
+        'השוכר מתחייב לשמור על הדירה ולהחזירה בתום התקופה במצב תקין.'],
+      name: 'שם השוכר:', agree: 'קראתי ואני מאשר/ת את תנאי ההסכם', sig: 'חתימת השוכר:' }
+  },
+  en: {
+    locale: 'en-US', dir: 'ltr', font: 'Heebo, "Noto Sans", sans-serif', shared: /Document shared/,
+    intro: 'Sign documents<br>right on your phone',
+    steps: ['Upload a PDF or photo', 'Sign with your finger', 'Fill in your details', 'Tick the box ✓', 'Save & send'],
+    pills: ['✓ Free, no sign-up', '✓ Files never leave your device'],
+    file: 'Rental agreement.pdf', typed: 'John Smith',
+    doc: { title: 'Rental Agreement', sub: '2-bedroom apartment · 12 Park Street',
+      paras: ['This agreement is made between the landlord and the tenant for a period of 12 months, starting 1 November 2026.',
+        'The tenant will take good care of the apartment and return it in good condition.'],
+      name: 'Tenant name:', agree: 'I have read and agree to the terms', sig: 'Tenant signature:' }
+  },
+  ru: {
+    locale: 'ru-RU', dir: 'ltr', font: '"Noto Sans", sans-serif', shared: /Документ отправлен/,
+    intro: 'Подписывайте документы<br>прямо в телефоне',
+    steps: ['Загрузите PDF или фото', 'Подпишите пальцем', 'Заполните данные', 'Поставьте ✓', 'Сохраните и отправьте'],
+    pills: ['✓ Бесплатно, без регистрации', '✓ Файлы не покидают устройство'],
+    file: 'Договор аренды.pdf', typed: 'Иван Петров',
+    doc: { title: 'Договор аренды', sub: 'Двухкомнатная квартира · ул. Парковая, 12',
+      paras: ['Договор заключён между арендодателем и арендатором на 12 месяцев, начиная с 1 ноября 2026 г.',
+        'Арендатор обязуется бережно относиться к квартире и вернуть её в исправном состоянии.'],
+      name: 'ФИО арендатора:', agree: 'Согласен(на) с условиями договора', sig: 'Подпись арендатора:' }
+  }
+};
+const LANG = process.argv[2] || 'he';
+const L = LANGS[LANG];
+if (!L) throw new Error(`Unknown language ${LANG} (he, en or ru)`);
+const OUT = process.argv[3] || fs.mkdtempSync(path.join(os.tmpdir(), 'easypen-video-'));
+const VIDEO = path.join(ROOT, 'media', `easypen-promo-${LANG}.mp4`);
 const FFMPEG = process.env.FFMPEG ||
   execFileSync('python3', ['-c', 'import imageio_ffmpeg as f; print(f.get_ffmpeg_exe())']).toString().trim();
 const FRAMES = path.join(OUT, 'frames');
@@ -21,9 +61,9 @@ fs.mkdirSync(FRAMES, { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ---------- the demo document (A5, large type so it reads on a phone) ----------
-const DOC_HTML = `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><style>
+const DOC_HTML = `<!doctype html><html lang="${LANG}" dir="${L.dir}"><head><meta charset="utf-8"><style>
   @page { size: 148mm 160mm; margin: 0 }
-  body { margin: 0; font-family: "Noto Sans Hebrew"; color: #1d2433 }
+  body { margin: 0; font-family: "Noto Sans Hebrew", "Noto Sans"; color: #1d2433 }
   .p { width: 148mm; height: 160mm; box-sizing: border-box; padding: 11mm 10mm; position: relative }
   h1 { font-size: 27pt; margin: 0 0 2mm; text-align: center }
   .sub { text-align: center; color: #667; font-size: 13pt; margin-bottom: 6mm }
@@ -33,19 +73,18 @@ const DOC_HTML = `<!doctype html><html lang="he" dir="rtl"><head><meta charset="
   .box { width: 7mm; height: 7mm; border: 1.5px solid #1d2433; display: inline-block; border-radius: 1mm }
   .fill { color: #b0b6c3 }
 </style></head><body><div class="p">
-  <h1>הסכם שכירות</h1>
-  <div class="sub">דירת 3 חדרים · רחוב הרצל 12, תל אביב</div>
-  <p>הסכם זה נערך בין בעל הדירה לבין השוכר, לתקופה של 12 חודשים החל מ-1 בנובמבר 2026.</p>
-  <p>השוכר מתחייב לשמור על הדירה ולהחזירה בתום התקופה במצב תקין.</p>
-  <div class="row">שם השוכר: <span class="line" id="name"></span></div>
-  <div class="row"><span class="box" id="agree"></span> קראתי ואני מאשר/ת את תנאי ההסכם</div>
-  <div class="row">חתימת השוכר: <span class="line" id="sig"></span></div>
+  <h1>${L.doc.title}</h1>
+  <div class="sub">${L.doc.sub}</div>
+  ${L.doc.paras.map((t) => `<p>${t}</p>`).join('\n  ')}
+  <div class="row">${L.doc.name} <span class="line" id="name"></span></div>
+  <div class="row"><span class="box" id="agree"></span> ${L.doc.agree}</div>
+  <div class="row">${L.doc.sig} <span class="line" id="sig"></span></div>
 </div></body></html>`;
 
 // ---------- the stage: brand background, captions, phone frame with the app ----------
-const STAGE_HTML = `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>
+const STAGE_HTML = `<!doctype html><html lang="${LANG}" dir="${L.dir}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>
   * { box-sizing: border-box }
-  html, body { margin: 0; width: 360px; height: 640px; overflow: hidden; font-family: Heebo, "Noto Sans Hebrew", sans-serif }
+  html, body { margin: 0; width: 360px; height: 640px; overflow: hidden; font-family: ${L.font} }
   body { background: radial-gradient(120% 80% at 50% 0%, #4565e0 0%, #2f4fc4 45%, #1d2f86 100%); color: #fff }
   .cap { position: absolute; top: 26px; inset-inline: 0; text-align: center; height: 74px }
   .cap .step { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%;
@@ -82,7 +121,7 @@ const STAGE_HTML = `<!doctype html><html lang="he" dir="rtl"><head><meta charset
   <div class="card" id="intro">
     <div class="logo pop"><img src="icons/icon.svg" alt=""></div>
     <div class="name pop pop2">EasyPen</div>
-    <div class="tag pop pop3">חותמים על מסמכים<br>ישר מהטלפון</div>
+    <div class="tag pop pop3">${L.intro}</div>
   </div>
   <div class="card hide" id="outro"></div>
 </body></html>`;
@@ -91,8 +130,8 @@ const OUTRO_HTML = `
   <div class="logo pop"><img src="icons/icon.svg" alt=""></div>
   <div class="name pop pop2">EasyPen</div>
   <div class="pills">
-    <div class="pill pop pop3">✓ בחינם, בלי הרשמה</div>
-    <div class="pill pop pop4">✓ הקבצים לא עוזבים את המכשיר</div>
+    <div class="pill pop pop3">${L.pills[0]}</div>
+    <div class="pill pop pop4">${L.pills[1]}</div>
   </div>
   <div class="url pop pop5">easypen.vplusstudio.app</div>`;
 
@@ -100,7 +139,7 @@ const OUTRO_HTML = `
   const server = await start();
   const browser = await chromium.launch();
 
-  // The demo PDF, printed by the browser (real Hebrew text), and where its fields are
+  // The demo PDF, printed by the browser (real text in the language), and where its fields are
   const docPage = await browser.newPage();
   await docPage.setContent(DOC_HTML);
   await docPage.evaluate(() => document.fonts.ready);
@@ -115,7 +154,7 @@ const OUTRO_HTML = `
 
   const context = await browser.newContext({
     viewport: { width: 360, height: 640 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true,
-    locale: 'he-IL', serviceWorkers: 'block'
+    locale: L.locale, serviceWorkers: 'block'
   });
   // In the app: a phone-like font, no install banner or invite, and a share sheet that "sends"
   await context.addInitScript(() => {
@@ -218,13 +257,13 @@ const OUTRO_HTML = `
   mark('intro');
   await sleep(1900);
   await page.evaluate(() => document.getElementById('intro').classList.add('hide'));
-  await caption('1', 'מעלים PDF או תמונה');
+  await caption('1', L.steps[0]);
   await sleep(500);
 
   // ---- 1: upload ----
   mark('upload');
   await tapSel('.upload-btn', { after: 150 });
-  await app().setInputFiles('#file-input', { name: 'הסכם שכירות.pdf', mimeType: 'application/pdf', buffer: pdf });
+  await app().setInputFiles('#file-input', { name: L.file, mimeType: 'application/pdf', buffer: pdf });
   await app().waitForURL(/viewer\.html/);
   await app().waitForSelector('.page.is-rendered');
   await hideFinger();
@@ -232,7 +271,7 @@ const OUTRO_HTML = `
 
   // ---- 2: signature ----
   mark('signature');
-  await caption('2', 'חותמים באצבע');
+  await caption('2', L.steps[1]);
   await sleep(250);
   await tapSel('#add-sig', { after: 350 });
   if (await app().locator('#sig-picker[open]').isVisible().catch(() => false)) await tapSel('#sig-picker [data-action="new"]');
@@ -267,13 +306,13 @@ const OUTRO_HTML = `
 
   // ---- 3: text ----
   mark('text');
-  await caption('3', 'ממלאים פרטים');
+  await caption('3', L.steps[2]);
   await sleep(200);
   await tapSel('#add-text', { after: 300 });
-  const [nx, ny] = await onPage(fields.name.x + fields.name.w * 0.62, fields.name.y + fields.name.h * 0.3);
+  const [nx, ny] = await onPage(fields.name.x + fields.name.w * (L.dir === 'rtl' ? 0.62 : 0.1), fields.name.y + fields.name.h * 0.3);
   await tap(nx, ny, { after: 250 });
   await hideFinger();
-  for (const ch of 'רון כהן') { await page.keyboard.type(ch); await sleep(85); }
+  for (const ch of L.typed) { await page.keyboard.type(ch); await sleep(85); }
   await sleep(250);
   await page.keyboard.press('Escape');
   await sleep(200);
@@ -284,7 +323,7 @@ const OUTRO_HTML = `
 
   // ---- 4: tick ----
   mark('draw');
-  await caption('4', 'מסמנים ✓');
+  await caption('4', L.steps[3]);
   await sleep(200);
   await tapSel('#draw-btn', { after: 400 });
   const a = fields.agree;
@@ -300,14 +339,14 @@ const OUTRO_HTML = `
 
   // ---- 5: save & share ----
   mark('share');
-  await caption('5', 'שומרים ושולחים');
+  await caption('5', L.steps[4]);
   await sleep(200);
   await tapSel('#save-share', { after: 300 });
   await app().waitForSelector('#name-dialog[open]');
   await sleep(700);
   await tapSel('#name-dialog [type="submit"]', { after: 100 });
   await hideFinger();
-  await app().waitForFunction(() => /שותף/.test(document.getElementById('toast')?.textContent || ''), null, { timeout: 15000 });
+  await app().waitForFunction((re) => new RegExp(re).test(document.getElementById('toast')?.textContent || ''), L.shared.source, { timeout: 15000 });
   await sleep(1300);
 
   // ---- outro ----
