@@ -99,6 +99,9 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (request.method !== 'GET') return;
+  // Videos (guides): straight from the network - range requests can't go into the cache,
+  // and they shouldn't take up space on the phone
+  if (url.pathname.startsWith(new URL(scopeUrl('media/')).pathname) || request.headers.has('range')) return;
   event.respondWith(cacheFirst(request, event));
 });
 
