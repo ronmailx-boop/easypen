@@ -1,4 +1,4 @@
-// EasyPen promo video (25 s, 1080x1920, Hebrew / English / Russian): drives the real app inside a
+// EasyPen promo video (22 s, 1080x1920, Hebrew / English / Russian): drives the real app inside a
 // phone frame, records it (CDP screencast) and encodes media/easypen-promo-<lang>.mp4 (+ .jpg, the
 // poster shown before it plays in the guides).
 // Needs ffmpeg (FFMPEG=/path/to/ffmpeg, or `pip install imageio-ffmpeg`) and the fonts Heebo,
@@ -286,11 +286,13 @@ const OUTRO_HTML = `
     return Array.from({ length: per }, (_, s) => { const t = s / per, t2 = t * t, t3 = t2 * t;
       return [0, 1].map((k) => 0.5 * (2 * p1[k] + (p2[k] - p0[k]) * t + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * t2 + (3 * p1[k] - p0[k] - 3 * p2[k] + p3[k]) * t3)); });
   }).concat([cp[cp.length - 1]]).map(([u, v]) => [c.x + c.width * u, c.y + c.height * v]);
+  const sigFrom = Date.now() / 1000;
   await stroke(spline([[0.13, 0.66], [0.17, 0.44], [0.21, 0.2], [0.235, 0.24], [0.215, 0.46], [0.18, 0.64], [0.165, 0.68], [0.2, 0.58],
     [0.28, 0.4], [0.32, 0.47], [0.27, 0.57], [0.245, 0.6], [0.3, 0.63], [0.345, 0.56], [0.365, 0.49], [0.385, 0.48], [0.395, 0.55],
     [0.405, 0.62], [0.43, 0.53], [0.45, 0.47], [0.47, 0.48], [0.48, 0.56], [0.495, 0.62], [0.53, 0.52], [0.565, 0.32], [0.575, 0.25],
     [0.56, 0.24], [0.545, 0.34], [0.55, 0.55], [0.565, 0.62], [0.6, 0.56], [0.625, 0.5], [0.645, 0.52], [0.65, 0.59], [0.67, 0.62],
     [0.71, 0.56], [0.75, 0.58], [0.81, 0.59], [0.88, 0.5]], 4), 1300);
+  const sigTo = Date.now() / 1000;
   await sleep(600);
   await tapSel('dialog.sig-dialog [data-action="confirm"]', { after: 200 });
   await app().waitForSelector('dialog.sig-dialog', { state: 'detached' });
@@ -360,13 +362,15 @@ const OUTRO_HTML = `
   await cdp.send('Page.stopScreencast');
   await sleep(200);
 
-  // Exactly 25 seconds: the intro and outro cards play at a readable pace, the work in the app
-  // is sped up to fill the rest (about 1.25x the earlier 30 s cut)
+  // About 22 seconds: the intro and outro cards play at a readable pace, the work in the app is
+  // sped up to fill the rest (about 1.25x the earlier 30 s cut), and drawing the signature
+  // twice as fast again
   frames.sort((a, b) => a.t - b.t);
   const first = frames[0].t, end = frames[frames.length - 1].t + 0.04;
-  const CARD = 0.7, LENGTH = 25;
+  const CARD = 0.7, LENGTH = 25; // before the faster signature
   const cards = (actionsFrom - first) + (end - actionsTo);
-  const speed = (t) => (t >= actionsFrom && t < actionsTo ? (LENGTH - CARD * cards) / (actionsTo - actionsFrom) : CARD);
+  const ACTIONS = (LENGTH - CARD * cards) / (actionsTo - actionsFrom);
+  const speed = (t) => (t >= sigFrom && t < sigTo ? ACTIONS / 2 : t >= actionsFrom && t < actionsTo ? ACTIONS : CARD);
   // Recording time -> video time
   const at = (t) => frames.reduce((v, f, i) => { const e = Math.min(t, frames[i + 1]?.t ?? end); return e > f.t ? v + (e - f.t) * speed(f.t) : v; }, 0);
   // ffmpeg concat list with each frame's duration in the video
@@ -379,7 +383,7 @@ const OUTRO_HTML = `
   fs.mkdirSync(path.dirname(VIDEO), { recursive: true });
   execFileSync(FFMPEG, ['-y', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', path.join(OUT, 'frames.txt'),
     '-vf', 'fps=30,scale=1080:1920:flags=lanczos,format=yuv420p',
-    '-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-movflags', '+faststart', '-t', String(LENGTH), VIDEO], { stdio: 'inherit' });
+    '-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-movflags', '+faststart', '-t', at(end).toFixed(2), VIDEO], { stdio: 'inherit' });
   execFileSync(FFMPEG, ['-y', '-loglevel', 'error', '-ss', at(first + 2.4).toFixed(2), '-i', VIDEO, '-frames:v', '1', '-vf', 'scale=540:960', '-q:v', '4',
     VIDEO.replace(/\.mp4$/, '.jpg')], { stdio: 'inherit' });
   console.log('video', VIDEO);
