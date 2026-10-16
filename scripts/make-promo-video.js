@@ -277,17 +277,19 @@ const OUTRO_HTML = `
   await app().waitForSelector('dialog.sig-dialog[open]');
   await sleep(300);
   const c = await app().locator('.sig-canvas').boundingBox();
-  // A handwritten-looking signature: a loop, a few waves and a tail
-  const pts = [];
-  for (let i = 0; i <= 70; i++) {
-    const th = (i / 70) * Math.PI * 7, k = 1 - 0.45 * i / 70;
-    const x = c.x + c.width * (0.13 + 0.032 * th - 0.05 * Math.sin(th));
-    const y = c.y + c.height * (0.62 - 0.2 * k * (1 - Math.cos(th)) * 0.9);
-    pts.push([x, y]);
-  }
-  await stroke(pts, 1000);
-  await stroke([[c.x + c.width * 0.2, c.y + c.height * 0.78], [c.x + c.width * 0.5, c.y + c.height * 0.74], [c.x + c.width * 0.82, c.y + c.height * 0.7]].flatMap((p, i, a) =>
-    i ? Array.from({ length: 8 }, (_, k) => [a[i - 1][0] + (p[0] - a[i - 1][0]) * (k + 1) / 8, a[i - 1][1] + (p[1] - a[i - 1][1]) * (k + 1) / 8]) : [p]), 350);
+  // A handwritten-looking signature: a tall initial, a run of joined letters and an underline,
+  // drawn as smooth curves through points (fractions of the drawing box)
+  const spline = (cp, per) => cp.slice(0, -1).flatMap((p1, i) => {
+    const p0 = cp[i - 1] || p1, p2 = cp[i + 1], p3 = cp[i + 2] || p2;
+    return Array.from({ length: per }, (_, s) => { const t = s / per, t2 = t * t, t3 = t2 * t;
+      return [0, 1].map((k) => 0.5 * (2 * p1[k] + (p2[k] - p0[k]) * t + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * t2 + (3 * p1[k] - p0[k] - 3 * p2[k] + p3[k]) * t3)); });
+  }).concat([cp[cp.length - 1]]).map(([u, v]) => [c.x + c.width * u, c.y + c.height * v]);
+  await stroke(spline([[0.13, 0.66], [0.17, 0.44], [0.21, 0.2], [0.235, 0.24], [0.215, 0.46], [0.18, 0.64], [0.165, 0.68], [0.2, 0.58],
+    [0.28, 0.4], [0.32, 0.47], [0.27, 0.57], [0.245, 0.6], [0.3, 0.63], [0.345, 0.56], [0.365, 0.49], [0.385, 0.48], [0.395, 0.55],
+    [0.405, 0.62], [0.43, 0.53], [0.45, 0.47], [0.47, 0.48], [0.48, 0.56], [0.495, 0.62], [0.53, 0.52], [0.565, 0.32], [0.575, 0.25],
+    [0.56, 0.24], [0.545, 0.34], [0.55, 0.55], [0.565, 0.62], [0.6, 0.56], [0.625, 0.5], [0.645, 0.52], [0.65, 0.59], [0.67, 0.62],
+    [0.71, 0.56], [0.75, 0.58], [0.81, 0.59], [0.88, 0.5]], 4), 1300);
+  await stroke(spline([[0.2, 0.8], [0.45, 0.83], [0.7, 0.78], [0.86, 0.7]], 6), 350);
   await sleep(250);
   await tapSel('dialog.sig-dialog [data-action="confirm"]', { after: 200 });
   await app().waitForSelector('dialog.sig-dialog', { state: 'detached' });
