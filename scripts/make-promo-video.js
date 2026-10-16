@@ -259,7 +259,8 @@ const OUTRO_HTML = `
   await page.evaluate(() => document.getElementById('intro').classList.add('hide'));
   const actionsFrom = Date.now() / 1000 + 0.5;
   await caption('1', L.steps[0]);
-  await sleep(500);
+  // A good look at the home screen before the first tap
+  await sleep(1600);
 
   // ---- 1: upload ----
   mark('upload');
@@ -362,14 +363,11 @@ const OUTRO_HTML = `
   await cdp.send('Page.stopScreencast');
   await sleep(200);
 
-  // About 22 seconds: the intro and outro cards play at a readable pace, the work in the app is
-  // sped up to fill the rest (about 1.25x the earlier 30 s cut), and drawing the signature
-  // twice as fast again
+  // The intro and outro cards play at a readable pace, the work in the app is sped up (about
+  // 1.25x the earlier 30 s cut) and drawing the signature twice as fast again: about 22 seconds
   frames.sort((a, b) => a.t - b.t);
   const first = frames[0].t, end = frames[frames.length - 1].t + 0.04;
-  const CARD = 0.7, LENGTH = 25; // before the faster signature
-  const cards = (actionsFrom - first) + (end - actionsTo);
-  const ACTIONS = (LENGTH - CARD * cards) / (actionsTo - actionsFrom);
+  const CARD = 0.7, ACTIONS = 0.56;
   const speed = (t) => (t >= sigFrom && t < sigTo ? ACTIONS / 2 : t >= actionsFrom && t < actionsTo ? ACTIONS : CARD);
   // Recording time -> video time
   const at = (t) => frames.reduce((v, f, i) => { const e = Math.min(t, frames[i + 1]?.t ?? end); return e > f.t ? v + (e - f.t) * speed(f.t) : v; }, 0);
