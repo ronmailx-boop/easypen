@@ -113,8 +113,6 @@ const STAGE_HTML = `<!doctype html><html lang="${LANG}" dir="${L.dir}"><head><me
   .tag { font-size: 23px; font-weight: 700; margin-top: 6px; line-height: 1.3 }
   .pills { display: flex; flex-direction: column; gap: 9px; margin-top: 26px }
   .pill { background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.28); border-radius: 999px; padding: 7px 18px; font-size: 17px; font-weight: 600 }
-  .url { margin-top: 30px; background: #fff; color: #2f4fc4; font-weight: 800; border-radius: 14px; padding: 11px 18px; font-size: 19px; direction: ltr;
-    box-shadow: 0 10px 26px rgba(0,0,0,.25) }
   .pop { animation: pop .6s cubic-bezier(.2,1.4,.4,1) both } .pop2 { animation-delay: .15s } .pop3 { animation-delay: .3s } .pop4 { animation-delay: .45s } .pop5 { animation-delay: .6s }
   @keyframes pop { from { opacity: 0; transform: translateY(14px) scale(.96) } to { opacity: 1; transform: none } }
 </style></head><body><div id="stage">
@@ -134,8 +132,7 @@ const OUTRO_HTML = `
   <div class="pills">
     <div class="pill pop pop3">${L.pills[0]}</div>
     <div class="pill pop pop4">${L.pills[1]}</div>
-  </div>
-  <div class="url pop pop5">easypen.vplusstudio.app</div>`;
+  </div>`;
 
 (async () => {
   const server = await start();
