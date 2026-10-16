@@ -8,7 +8,8 @@ const path = require('path');
 
 const VOICE = {
   he: {
-    // Hebrew is read by ElevenLabs ("Adam", Eleven v4, made on the site and split into the clips by
+    // Hebrew is read by ElevenLabs ("Adam", Eleven v4, made on the site on the Starter plan (commercial
+    // license, 16.10.2026) and split into the clips by
     // the pauses; the whole take is in scripts/voice/source): Google's Hebrew voices sounded wrong
     manual: 'ElevenLabs Adam (Eleven v4)',
     languageCode: 'he-IL', voices: ['he-IL-Chirp3-HD-Charon', 'he-IL-Wavenet-B', 'he-IL-Standard-B'],
