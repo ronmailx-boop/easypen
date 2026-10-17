@@ -13,6 +13,7 @@
     he: {
       'app.title': 'EasyPen - חתימה דיגיטלית',
       'home.install': 'התקנת האפליקציה',
+      'home.lang': 'שפה',
       'share.app': 'שתפו את EasyPen',
       'footer.guides': 'מדריכים',
       'share.appHint': 'EasyPen עזרה לכם? ספרו לחברים',
@@ -188,6 +189,7 @@
     en: {
       'app.title': 'EasyPen - Digital Signature',
       'home.install': 'Install app',
+      'home.lang': 'Language',
       'share.app': 'Share EasyPen',
       'footer.guides': 'Guides',
       'share.appHint': 'Did EasyPen help you? Tell your friends',
@@ -363,6 +365,7 @@
     ru: {
       'app.title': 'EasyPen - электронная подпись',
       'home.install': 'Установить приложение',
+      'home.lang': 'Язык',
       'share.app': 'Поделиться EasyPen',
       'footer.guides': 'Инструкции',
       'share.appHint': 'EasyPen вам помог? Расскажите друзьям',
@@ -545,22 +548,39 @@
   }
 
   // ?lang=he|en|ru shows another language without changing the device's (kept for the tab,
-  // so it stays when moving between pages); ?lang=auto goes back to the device language
+  // so it stays when moving between pages); ?lang=auto goes back to the device language.
+  // The home screen's language picker saves the choice on the device (CHOICE_KEY).
   const LANG_KEY = 'easypen.lang';
+  const CHOICE_KEY = 'easypen.langChoice';
+  const known = (value) => (Object.hasOwn(STRINGS, value || '') ? value : null);
   function chosen() {
     try {
       const asked = new URLSearchParams(global.location.search).get('lang');
       if (asked === 'auto') global.sessionStorage.removeItem(LANG_KEY);
-      else if (Object.hasOwn(STRINGS, asked || '')) global.sessionStorage.setItem(LANG_KEY, asked);
-      const saved = global.sessionStorage.getItem(LANG_KEY);
-      return Object.hasOwn(STRINGS, saved || '') ? saved : null;
+      else if (known(asked)) global.sessionStorage.setItem(LANG_KEY, asked);
+      return known(global.sessionStorage.getItem(LANG_KEY)) || known(global.localStorage.getItem(CHOICE_KEY));
     } catch (e) {
       return null; // No storage (or the Service Worker): the device language
     }
   }
 
   const nav = global.navigator || {};
-  const lang = chosen() || pick(nav.language || (nav.languages && nav.languages[0]));
+  const device = pick(nav.language || (nav.languages && nav.languages[0]));
+  const lang = chosen() || device;
+
+  // The picker's choice: saved for the next visits (the device language clears it, so a phone
+  // whose language changes later follows it), then the page reloads in that language
+  function choose(value) {
+    if (!known(value)) return;
+    try {
+      global.sessionStorage.removeItem(LANG_KEY);
+      if (value === device) global.localStorage.removeItem(CHOICE_KEY);
+      else global.localStorage.setItem(CHOICE_KEY, value);
+    } catch (e) { /* No storage: only this page load */ }
+    const url = new URL(global.location.href);
+    url.searchParams.set('lang', value);
+    global.location.replace(url.href);
+  }
   const dir = lang === 'he' ? 'rtl' : 'ltr';
 
   // Text for `key`, with {name} placeholders filled from `vars`
@@ -590,5 +610,5 @@
     }
   }
 
-  global.EasyPenI18n = { lang, dir, t, apply, pick, STRINGS };
+  global.EasyPenI18n = { lang, dir, t, apply, pick, choose, STRINGS };
 })(self);

@@ -223,6 +223,10 @@
     if (result === 'copied') toast(t('share.copied'), 'success');
     else if (result === 'failed') toast(t('share.failed'), 'error', 6000);
   });
+  // Language picker: shows the current language, a new one reloads the app in it
+  const langSelect = document.getElementById('lang-select');
+  langSelect.value = window.EasyPenI18n.lang;
+  langSelect.addEventListener('change', () => window.EasyPenI18n.choose(langSelect.value));
   // The guides in the reader's language (English or Russian pages on such a phone)
   if (window.EasyPenI18n.lang !== 'he') document.getElementById('guides-link').href = `${window.EasyPenI18n.lang}/guides/`;
 })();

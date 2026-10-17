@@ -159,6 +159,39 @@ img { max-width: 100%; }
   color: var(--primary-dark);
 }
 
+/* Header buttons: install + language */
+.header-actions { display: flex; align-items: center; gap: .25rem; }
+
+/* The language button: a native <select> (the phone's own list) dressed as a ghost button */
+.lang-picker {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  border-radius: 12px;
+  color: var(--primary-dark);
+}
+.lang-picker svg {
+  position: absolute;
+  inset-inline-start: .55rem;
+  pointer-events: none;
+}
+.lang-picker select {
+  min-height: 44px;
+  padding: 0 .7rem;
+  padding-inline-start: 2.1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: .9rem;
+  font-weight: 700;
+  cursor: pointer;
+  appearance: none;
+}
+.lang-picker select:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+
 /* ---------- Home ---------- */
 
 .home-main {
