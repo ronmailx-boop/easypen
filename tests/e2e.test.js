@@ -56,7 +56,12 @@ async function useRussian() {
   await newSession('ru-RU');
 }
 
-const hebrewOnScreen = () => page.evaluate(() => (document.title + document.body.innerText).match(/[\u0590-\u05FF]+/g));
+// The language picker names each language in its own script (עברית on purpose): left out
+const hebrewOnScreen = (on = page) => on.evaluate(() => {
+  const picker = document.querySelector('.lang-picker');
+  const text = document.body.innerText.replace(picker ? picker.innerText : '', '');
+  return (document.title + text).match(/[\u0590-\u05FF]+/g);
+});
 
 afterEach(async () => {
   await context.close();
@@ -1078,6 +1083,37 @@ test('language link: ?lang=ru shows Russian on a Hebrew device, kept across page
   assert.equal(await page.evaluate(() => document.documentElement.lang), 'he');
 });
 
+test('language picker: one button on the home screen, follows the device, the choice is kept on the device', async () => {
+  // Hebrew device: Hebrew shown and selected
+  await page.goto(server.baseUrl);
+  assert.equal(await page.inputValue('#lang-select'), 'he');
+  assert.deepEqual(await page.$$eval('#lang-select option', (os) => os.map((o) => o.textContent)), ['עברית', 'English', 'Русский']);
+  // Picking Russian reloads the app in Russian
+  await Promise.all([page.waitForURL(/lang=ru/), page.selectOption('#lang-select', 'ru')]);
+  await page.waitForSelector('#sig-empty', { state: 'visible' });
+  assert.deepEqual(await page.evaluate(() => [document.documentElement.lang, document.documentElement.dir]), ['ru', 'ltr']);
+  assert.equal(await page.textContent('h1'), 'Подписать документ');
+  assert.equal(await page.getAttribute('#lang-select', 'aria-label'), 'Язык');
+  assert.equal(await page.inputValue('#lang-select'), 'ru');
+  // Kept in a new tab (saved on the device, not only for the tab)
+  const tab = await context.newPage();
+  await tab.goto(server.baseUrl + 'legal.html?doc=terms');
+  await tab.waitForSelector('#legal-content h1');
+  assert.equal(await tab.textContent('#legal-content h1'), 'Условия использования');
+  await tab.close();
+  // Back to Hebrew (the device language) clears the saved choice
+  await Promise.all([page.waitForURL(/lang=he/), page.selectOption('#lang-select', 'he')]);
+  assert.equal(await page.textContent('h1'), 'חתימה על מסמך');
+  assert.equal(await page.evaluate(() => localStorage.getItem('easypen.langChoice')), null);
+});
+
+test('language picker: an English device shows English and the picker on English', async () => {
+  await useEnglish();
+  await page.goto(server.baseUrl);
+  assert.equal(await page.textContent('h1'), 'Sign a document');
+  assert.equal(await page.inputValue('#lang-select'), 'en');
+});
+
 test('share link: in Russian and English it points to ru/ or en/, whose preview is in that language and which opens the app in it', async () => {
   for (const [lang, title, h1] of [['ru', 'EasyPen - электронная подпись', 'Подписать документ'], ['en', 'EasyPen - Digital Signature', 'Sign a document']]) {
     // The page as a link preview reads it (no scripts): title and description in the language
@@ -1382,7 +1418,7 @@ test('english: an English device gets the home screen in English, left to right'
     const p = await en.newPage();
     const errors = [];
     p.on('pageerror', (e) => errors.push(e.message));
-    const hebrew = () => p.evaluate(() => (document.title + document.body.innerText).match(/[֐-׿]+/g));
+    const hebrew = () => hebrewOnScreen(p);
     await p.goto(server.baseUrl);
     await p.waitForSelector('#sig-empty', { state: 'visible' });
     assert.deepEqual(await p.evaluate(() => [document.documentElement.lang, document.documentElement.dir]), ['en', 'ltr']);
