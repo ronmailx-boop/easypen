@@ -21,6 +21,8 @@ async function main() {
   fs.rmSync(target, { recursive: true, force: true });
   fs.mkdirSync(target);
   await new TwaGenerator().createTwaProject(target, manifest, new ConsoleLog('android-generate'));
+  // Build output and signing keys never go into git
+  fs.writeFileSync(path.join(target, '.gitignore'), 'build/\n.gradle/\nlocal.properties\n*.keystore\n*.p12\n*.jks\n');
   // Bubblewrap keeps its own copy of the manifest next to the project
   fs.copyFileSync(path.join(root, 'twa-manifest.json'), path.join(target, 'twa-manifest.json'));
   console.log('Android project ready in android/');
