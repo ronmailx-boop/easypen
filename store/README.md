@@ -26,15 +26,9 @@
 ## מה אתה עושה (לפי הסדר)
 
 ### 1. מפתח העלאה (פעם אחת)
-1. GitHub → הריפו → Settings → Secrets and variables → Actions → New repository secret:
-   `ANDROID_KEYSTORE_PASSWORD` = סיסמה אקראית של **16 תווים לפחות** (מומלץ ממנהל סיסמאות, ולשמור אותה שם).
-2. Actions → **Android - create upload key** → Run workflow.
-3. בסיום: בעמוד הריצה, Artifacts → `upload-key` → הורדה. בתוך ה-zip:
-   - `upload-keystore-base64.txt` - להעתיק את **כל** הטקסט ל-Secret חדש בשם `ANDROID_KEYSTORE_BASE64`.
-   - `upload-keystore.p12` - גיבוי. לשמור במקום בטוח (מנהל סיסמאות / Drive פרטי).
-4. למחוק את ה-artifact מעמוד הריצה (הוא נמחק לבד אחרי יום).
+**הדרך המומלצת: מהטלפון עם Termux**, לפי [`termux.md`](termux.md). המפתח נוצר בטלפון ונשמר ישירות כסודות ב-GitHub (`ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEYSTORE_BASE64`). לא נוצר שום קובץ ב-GitHub Actions.
 
-הריפו ציבורי, ולכן ה-artifact מוגן רק בסיסמה. זו הסיבה לדרישה של 16 תווים לפחות. אם המפתח אבד או דלף, אפשר לבקש מ-Google מפתח העלאה חדש (Play App Signing), והאפליקציה עצמה לא נפגעת.
+חלופה בלי Termux: ה-workflow "Android - create upload key". הוא יוצר את המפתח ב-GitHub ומעלה אותו כ-artifact ליום אחד. הריפו ציבורי, ולכן ה-artifact מוגן רק בסיסמה (16 תווים לפחות). אם המפתח אבד או דלף, Google יכולה לאשר מפתח העלאה חדש (Play App Signing).
 
 ### 2. בניית האפליקציה
 Actions → **Android - build** → Run workflow. בסיום: Artifacts → `easypen-aab` → בתוכו `easypen-1.0.0-1.aab`.
@@ -63,8 +57,8 @@ Actions → **Android - build** → Run workflow. בסיום: Artifacts → `eas
 1. [Google Cloud Console](https://console.cloud.google.com/) → פרויקט (קיים או חדש) → APIs & Services → Enable **Google Play Android Developer API**.
 2. IAM & Admin → Service Accounts → Create → שם `easypen-play` → Done → הקלקה עליו → Keys → Add key → JSON. יורד קובץ.
 3. Play Console → Users and permissions → Invite new users → כתובת המייל של חשבון השירות (`...@...iam.gserviceaccount.com`) → App permissions → EasyPen → **View financial data** + **Manage orders and subscriptions** → Invite.
-4. Cloudflare → Workers & Pages → `easypen` → Settings → Variables and Secrets → Add → Type **Secret** → שם `PLAY_SERVICE_ACCOUNT` → להדביק את **כל** תוכן קובץ ה-JSON → Deploy.
-   - לא לשלוח את הקובץ בצ'אט ולא לשמור אותו בריפו. אחרי ההדבקה אפשר למחוק אותו מהטלפון.
+4. לשמור את קובץ ה-JSON כסוד `PLAY_SERVICE_ACCOUNT` ב-GitHub, מ-Termux ([`termux.md`](termux.md) שלב 5). ה-workflow "Deploy to Cloudflare" מעתיק אותו ל-Worker.
+   - לא לשלוח את הקובץ בצ'אט ולא לשמור אותו בריפו. אחרי השמירה מוחקים אותו מהטלפון.
 
 ### 6. בדיקה לפני פרסום
 1. Play Console → Settings → **License testing** → להוסיף את חשבון ה-Gmail שלך (ושל מי שבודק). רכישות של בודקים לא עולות כסף, והחידושים מואצים (חודש = 5 דקות).

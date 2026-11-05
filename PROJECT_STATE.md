@@ -3,7 +3,7 @@
 ## Current Focus
 **עצרנו ב (5.11.2026):** הכנה ל-Google Play (TWA + מנוי עם 30 יום ניסיון). כל הקוד מוכן (גרסה 54), המגבלות באתר עדיין **כבויות** (`WEB_LIMITS = false` ב-`js/plan.js`). מדריך מלא: `store/README.md`.
 
-**הצעד הבא (המשתמש, לפי `store/README.md`):** Secret `ANDROID_KEYSTORE_PASSWORD` → workflow "Android - create upload key" → Secret `ANDROID_KEYSTORE_BASE64` → workflow "Android - build" (פעם ראשונה שהפרויקט נבנה, לבדוק שעבר) → יצירת האפליקציה ב-Play Console + Internal testing → לשלוח לי את טביעות האצבע SHA-256 (App signing + upload) → אני מוסיף ל-`worker/assetlinks.mjs`. במקביל: מנויים `easypen_monthly`/`easypen_yearly` + offer `trial-30d`, חשבון שירות → Secret `PLAY_SERVICE_ACCOUNT` ב-Cloudflare. אחרי הפרסום: להפעיל `WEB_LIMITS = true`. עוד פתוח: Google Search Console, ביטול מנוי ElevenLabs.
+**הצעד הבא (המשתמש, לפי `store/README.md` + `store/termux.md`):** מוזג ל-main. מפתח העלאה נוצר בטלפון ב-Termux ונשמר כסודות GitHub דרך `gh` → workflow "Android - build" (פעם ראשונה שהפרויקט נבנה, לבדוק שעבר) → יצירת האפליקציה ב-Play Console + Internal testing → לשלוח לי את טביעות האצבע SHA-256 (App signing + upload) → אני מוסיף ל-`worker/assetlinks.mjs`. במקביל: מנויים `easypen_monthly`/`easypen_yearly` + offer `trial-30d`, חשבון שירות → Secret `PLAY_SERVICE_ACCOUNT` ב-GitHub (ה-deploy מעתיק ל-Worker). ל-Claude אין גישה ל-Play Console (נבדק 5.11.2026: אין חיבור, ה-API מחזיר 401). אחרי הפרסום: להפעיל `WEB_LIMITS = true`. עוד פתוח: Google Search Console, ביטול מנוי ElevenLabs.
 
 ## MVP - משימות
 - [x] מבנה PWA סטטי (index / viewer / share-target), נתיבים יחסיים ל-GitHub Pages
@@ -141,6 +141,7 @@
 - [x] `store/README.md` (מדריך Play Console צעד-צעד) + `store/listing-en|he|ru.md`
 - [x] בדיקות e2e: גרסה בסיסית (נעילות + שורת EasyPen בכל עמוד, כולל מסובב), גרסה מלאה בלי שורה, משתמשים קיימים
 - [ ] המשתמש: מפתח העלאה + בנייה ראשונה + Play Console (ראו Current Focus)
+- [x] `store/termux.md`: הוראות Termux (gh, keytool) לסודות; deploy-cloudflare.yml מעתיק `PLAY_SERVICE_ACCOUNT` ל-Worker
 - [ ] טביעות אצבע SHA-256 → `worker/assetlinks.mjs`
 - [ ] בדיקה בטלפון עם License tester: רכישה, ניסיון, ביטול, שחזור, שיתוף קובץ אל האפליקציה
 - [ ] צילומי מסך + Feature graphic לחנות

@@ -1,5 +1,6 @@
 # Deploys the app to Cloudflare Workers (static assets, see wrangler.jsonc) on every push to main.
 # Needs the repository secret CLOUDFLARE_API_TOKEN (template "Edit Cloudflare Workers").
+# Optional: PLAY_SERVICE_ACCOUNT (Google Play service account JSON), copied to the Worker.
 name: Deploy to Cloudflare
 
 on:
@@ -41,3 +42,16 @@ jobs:
       - name: Deploy
         if: steps.token.outputs.present == 'true'
         run: npx --yes wrangler@4 deploy
+
+      # The Google Play service account (JSON) for /api/play/verify: kept as the GitHub secret
+      # PLAY_SERVICE_ACCOUNT and copied to the Worker's secret of the same name
+      - name: Worker secret for Google Play
+        if: steps.token.outputs.present == 'true'
+        env:
+          PLAY_SERVICE_ACCOUNT: ${{ secrets.PLAY_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$PLAY_SERVICE_ACCOUNT" ]; then
+            echo "::notice::PLAY_SERVICE_ACCOUNT secret is not set - purchases can't be verified yet."
+            exit 0
+          fi
+          printf '%s' "$PLAY_SERVICE_ACCOUNT" | npx --yes wrangler@4 secret put PLAY_SERVICE_ACCOUNT
