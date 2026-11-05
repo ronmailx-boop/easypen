@@ -1,0 +1,51 @@
+# Creates the upload key that signs the Android app for Google Play - run ONCE, by hand
+# (Actions → "Android - create upload key" → Run workflow).
+#
+# Before running: add the repository secret ANDROID_KEYSTORE_PASSWORD (at least 16 characters,
+# best a random one from a password manager - keep it there too).
+# After running: download the "upload-key" artifact (kept for 1 day), open
+# upload-keystore-base64.txt and save its whole text as the repository secret
+# ANDROID_KEYSTORE_BASE64. Keep the zip in a safe place (password manager / private drive) and
+# delete the artifact from the run page. The key is protected by the password, which never
+# leaves the secrets.
+name: Android - create upload key
+on:
+  workflow_dispatch:
+jobs:
+  create:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      EXISTING_KEY: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+    steps:
+      - name: Check secrets
+        run: |
+          if [ -n "$EXISTING_KEY" ]; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 already exists - not creating a second key (Google Play knows the first one)."
+            exit 1
+          fi
+          if [ ${#STORE_PASSWORD} -lt 16 ]; then
+            echo "::error::Add the secret ANDROID_KEYSTORE_PASSWORD (at least 16 characters) first."
+            exit 1
+          fi
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Create the key
+        run: |
+          mkdir out
+          keytool -genkeypair -noprompt -storetype PKCS12 -keystore out/upload-keystore.p12 \
+            -alias upload -keyalg RSA -keysize 4096 -validity 10000 \
+            -dname "CN=vplus studio, O=vplus studio, C=IL" \
+            -storepass:env STORE_PASSWORD -keypass:env STORE_PASSWORD
+          base64 -w0 out/upload-keystore.p12 > out/upload-keystore-base64.txt
+          echo "Upload key SHA-256 fingerprint (public, for .well-known/assetlinks.json):"
+          keytool -list -v -keystore out/upload-keystore.p12 -alias upload -storepass:env STORE_PASSWORD | grep "SHA256:"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: upload-key
+          path: out/
+          retention-days: 1

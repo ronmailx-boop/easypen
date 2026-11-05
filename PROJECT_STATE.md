@@ -1,9 +1,9 @@
 # PROJECT_STATE - EasyPen
 
 ## Current Focus
-**עצרנו ב (17.10.2026):** כפתור השפה הוקטן לגלובוס בלבד בקצה הכותרת (גרסה 53) — לבדוק בטלפון. קודם לכן (16.10.2026): קריין בסרטוני התדמית. אנגלית ורוסית: Google TTS (Chirp3-HD-Charon), נבדק ומצוין. עברית: Google לא היה טוב — הוחלף בהקראה של ElevenLabs (Adam, Eleven v4) שהמשתמש יצר והועלתה לצ'אט; חולקה ל-7 קטעים לפי ההפסקות.
+**עצרנו ב (5.11.2026):** הכנה ל-Google Play (TWA + מנוי עם 30 יום ניסיון). כל הקוד מוכן (גרסה 54), המגבלות באתר עדיין **כבויות** (`WEB_LIMITS = false` ב-`js/plan.js`). מדריך מלא: `store/README.md`.
 
-**הצעד הבא:** ההקראה העברית נוצרה מחדש ב-ElevenLabs Starter (רישיון מסחרי) והוחלפה. נבדק בטלפון ונשמע טוב. נשאר: המשתמש מבטל את מנוי ElevenLabs (מתחדש אוטומטית); Google Search Console. שינוי טקסט בעברית: ליצור מחדש ב-ElevenLabs ולחלק; באנגלית/רוסית: `NODE_USE_ENV_PROXY=1 node scripts/promo-voice.js`. עוד פתוח: Google Search Console (המשתמש).
+**הצעד הבא (המשתמש, לפי `store/README.md`):** Secret `ANDROID_KEYSTORE_PASSWORD` → workflow "Android - create upload key" → Secret `ANDROID_KEYSTORE_BASE64` → workflow "Android - build" (פעם ראשונה שהפרויקט נבנה, לבדוק שעבר) → יצירת האפליקציה ב-Play Console + Internal testing → לשלוח לי את טביעות האצבע SHA-256 (App signing + upload) → אני מוסיף ל-`worker/assetlinks.mjs`. במקביל: מנויים `easypen_monthly`/`easypen_yearly` + offer `trial-30d`, חשבון שירות → Secret `PLAY_SERVICE_ACCOUNT` ב-Cloudflare. אחרי הפרסום: להפעיל `WEB_LIMITS = true`. עוד פתוח: Google Search Console, ביטול מנוי ElevenLabs.
 
 ## MVP - משימות
 - [x] מבנה PWA סטטי (index / viewer / share-target), נתיבים יחסיים ל-GitHub Pages
@@ -130,6 +130,21 @@
 - [x] המסמכים המשפטיים ברוסית: `docs/legal/ru/` (4 מסמכים), נשמרים גם לאופליין. הצהרת הנגישות (עברית/אנגלית) מזכירה עכשיו רוסית. גרסה 48
 - [x] בחירת שפה בקישור: `?lang=ru` / `?lang=en` / `?lang=he` (נשמר ב-sessionStorage ללשונית, נשאר במעבר בין מסכים), `?lang=auto` חוזר לשפת המכשיר. מדיניות פרטיות/עוגיות (3 שפות): שורת sessionStorage. בדיקת e2e. גרסה 49
 - [ ] המשתמש: Google Search Console → הוספת הנכס (Domain דרך Cloudflare) → שליחת sitemap → בקשת הוספה לאינדקס
+
+## Google Play - מנוי עם ניסיון (אושר 5.11.2026)
+החלטות: TWA בשם חבילה `app.vplusstudio.easypen`. **אתר = גרסה בסיסית** (PDF אחד, טקסט, חתימה שמורה אחת, שורת `Signed with EasyPen · easypen.vplusstudio.app` בתחתית כל עמוד). **אפליקציה = גרסה מלאה** במנוי: ₪12.90 לחודש, ₪79 לשנה ($3.99 / $24.99 בחו"ל), 30 יום ניסיון של Google (עם אמצעי תשלום). אחרי הניסיון בלי מנוי האפליקציה חוזרת ליכולות האתר. משתמשים קיימים באתר: 30 יום גרסה מלאה + הודעה. נעול בגרסה הבסיסית: תמונות, איחוד קבצים, הוספת קבצים, ציור, דגימת צבע, יותר מחתימה שמורה אחת. דף חנות: אנגלית (ברירת מחדל) + עברית + רוסית.
+- [x] `js/plan.js`: זיהוי האפליקציה (referrer `android-app://` או `?source=twa`, נשמר ב-sessionStorage), `isFull()`, חלון "הגרסה המלאה" (באפליקציה: מסלולים ומחירים מ-Google, רכישה ב-PaymentRequest, "כבר יש לי מנוי"; באתר: קישור לחנות, באייפון "בקרוב"), מנוי שמור ב-localStorage (עובד בלי רשת; 3 ימי חסד כשהשרת לא זמין), זיהוי משתמשים קיימים (חתימה שמורה או העדפות ב-localStorage)
+- [x] נעילות: `home.js` (כמה קבצים/תמונות, שיתוף אל האפליקציה, חתימה שמורה שנייה), `viewer.js` (ציור, הוספת קבצים, דגימת צבע, "שמור לשימוש חוזר"), שורת EasyPen בייצוא (`pdf-handler.js` → `drawFooter`, מסתובבת עם /Rotate ו-CropBox). כרטיס "הגרסה המלאה" / "ניהול המנוי" במסך הבית. טקסטים בעברית/אנגלית/רוסית
+- [x] `worker/index.mjs` (Worker ב-Cloudflare, רק `/api/*` ו-`/.well-known/assetlinks.json` דרך `run_worker_first`): `POST /api/play/verify` → Play Developer API subscriptionsv2 + acknowledge (חובה תוך 3 ימים; DGAPI v2 לא יכול לאשר מהאפליקציה). Secret `PLAY_SERVICE_ACCOUNT`. לא שומר כלום. בדיקות ב-`tests/worker.test.js`
+- [x] `twa-manifest.json` + `android/` (נוצר ב-`scripts/android-generate.js` עם @bubblewrap/core 1.27.0, Play Billing מופעל, share target), workflows: `android-upload-key.yml` (פעם אחת), `build-android.yml` (AAB חתום כ-artifact). הבנייה לא נבדקה בסביבת Claude (התקנת Android SDK נחסמה) → תיבדק בריצה הראשונה ב-GitHub Actions
+- [x] מסמכים משפטיים (עברית/אנגלית/רוסית): תנאי שימוש סעיף 2א (מנוי, ניסיון, ביטול, חוק הגנת הצרכן), פרטיות 6א (Google Play, אסימון רכישה לא נשמר), עוגיות (שורת localStorage)
+- [x] `store/README.md` (מדריך Play Console צעד-צעד) + `store/listing-en|he|ru.md`
+- [x] בדיקות e2e: גרסה בסיסית (נעילות + שורת EasyPen בכל עמוד, כולל מסובב), גרסה מלאה בלי שורה, משתמשים קיימים
+- [ ] המשתמש: מפתח העלאה + בנייה ראשונה + Play Console (ראו Current Focus)
+- [ ] טביעות אצבע SHA-256 → `worker/assetlinks.mjs`
+- [ ] בדיקה בטלפון עם License tester: רכישה, ניסיון, ביטול, שחזור, שיתוף קובץ אל האפליקציה
+- [ ] צילומי מסך + Feature graphic לחנות
+- [ ] אחרי הפרסום: `WEB_LIMITS = true` (+ גרסה)
 
 ## פתוח / לשלב הבא
 - [x] GitHub Actions לפריסה ל-Cloudflare Workers (`.github/workflows/deploy-cloudflare.yml`) — חיבור Git בלוח הבקרה נכשל בנייד (לולאת Connect GitHub ב-Pages וב-Workers)

@@ -85,6 +85,10 @@ npm install && npm test
 ```
 פירוט ב-[`tests/README.md`](tests/README.md). `package.json` משמש לבדיקות בלבד — האתר עצמו לא דורש build.
 
+## Google Play
+
+האפליקציה בחנות היא TWA של האתר (`android/`, `twa-manifest.json`), עם מנוי לגרסה המלאה דרך Google Play Billing (`js/plan.js`). האימות והאישור של הרכישות נעשים ב-Worker (`worker/index.mjs`). מדריך ההקמה: [`store/README.md`](store/README.md).
+
 ## פריסה
 כל הנתיבים יחסיים, כך שהאתר עובד גם בשורש הדומיין וגם תחת תת-תיקייה.
 

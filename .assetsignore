@@ -16,3 +16,7 @@ PROJECT_STATE.md
 README.md
 .wrangler
 scripts
+worker
+android
+store
+twa-manifest.json

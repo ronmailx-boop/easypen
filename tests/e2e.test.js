@@ -1811,3 +1811,97 @@ test('service worker: works offline behind a host that redirects .html to pretty
     await cf.close();
   }
 });
+
+/* ---------------- free version / full version (js/plan.js) ---------------- */
+
+// The website limits (off until the app is in Google Play) turned on for this test
+async function useWebLimits(extra = {}) {
+  await page.addInitScript((extra) => {
+    localStorage.setItem('easypen.testLimits', '1');
+    for (const [k, v] of Object.entries(extra)) localStorage.setItem(k, v);
+  }, extra);
+}
+
+// The text of every page of a PDF, read with pdf.js in the editor
+async function pdfText(bytes) {
+  return page.evaluate(async (b64) => {
+    const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const doc = await window.PdfHandler.load(bin);
+    const out = [];
+    for (let n = 1; n <= doc.numPages; n++) {
+      const pg = await doc.getPage(n);
+      const vp = pg.getViewport({ scale: 1 });
+      const content = await pg.getTextContent();
+      const text = content.items.map((i) => i.str).join(' ');
+      // Where the EasyPen line is on the page as shown: [x, y, dirX, dirY] (y down)
+      const item = content.items.find((i) => i.str.includes('Signed with EasyPen'));
+      let at = null;
+      if (item) {
+        const [a, b, c, d, e, f] = vp.transform;
+        const [ia, ib, , , ie, iff] = item.transform;
+        at = { x: (a * ie + c * iff + e) / vp.width, y: (b * ie + d * iff + f) / vp.height,
+          dirX: a * ia + c * ib, dirY: b * ia + d * ib };
+      }
+      out.push({ text, at });
+    }
+    return out;
+  }, bytes.toString('base64'));
+}
+
+test('free version: photos, combining, drawing and adding files open the full-version sheet; the saved PDF carries the EasyPen line', async () => {
+  await useWebLimits();
+  await page.goto(server.baseUrl);
+  await page.waitForSelector('#plan-card:not([hidden])');
+  // Two files: the sheet (Google Play link outside the app), nothing opens
+  await page.setInputFiles('#file-input', [pdfFile('a.pdf'), pdfFile('b.pdf')]);
+  await page.waitForSelector('#paywall[open]');
+  assert.match(await page.textContent('#paywall .paywall-reason'), /איחוד/);
+  assert.equal(await page.getAttribute('#paywall .paywall-body a', 'href'),
+    'https://play.google.com/store/apps/details?id=app.vplusstudio.easypen');
+  await page.click('#paywall .icon-btn');
+  assert.match(page.url(), /index\.html|\/$/);
+
+  // One PDF: the basic version opens it
+  await page.setInputFiles('#file-input', pdfFile('basic.pdf'));
+  await page.waitForURL(/viewer\.html/);
+  await page.waitForSelector('.page.is-rendered');
+  await page.click('#draw-btn');
+  await page.waitForSelector('#paywall[open]');
+  assert.match(await page.textContent('#paywall .paywall-reason'), /ציור/);
+  await page.click('#paywall .icon-btn');
+  assert.equal(await page.evaluate(() => document.body.classList.contains('draw-mode')), false);
+
+  // A signature, saved: the free version keeps one, so the next new one can't be saved
+  await drawNewSignatureAndPlace();
+  const { bytes } = await exportViaDownload('free');
+  const pages = await pdfText(bytes);
+  for (const { at } of pages) {
+    // On every page, also rotated ones: centred at the bottom, reading left to right
+    assert.ok(at, 'the line on every page');
+    assert.ok(at.y > 0.95 && at.x > 0.2 && at.x < 0.5, JSON.stringify(at));
+    assert.ok(at.dirX > 0 && Math.abs(at.dirY) < 1e-6, JSON.stringify(at));
+  }
+});
+
+test('full version: without limits (before launch) nothing is locked and the PDF has no EasyPen line', async () => {
+  await openInEditor('full.pdf');
+  assert.equal(await page.isHidden('#plan-card'), true);
+  await drawNewSignatureAndPlace();
+  const { bytes } = await exportViaDownload('full');
+  const pages = await pdfText(bytes);
+  assert.ok(pages.every((p) => !p.text.includes('Signed with EasyPen')));
+});
+
+test('free version: earlier users keep everything for 30 days and are told once', async () => {
+  await useWebLimits({ 'easypen.invited': '1' });
+  await page.goto(server.baseUrl);
+  await page.waitForSelector('#legacy-dialog[open]');
+  assert.match(await page.textContent('#legacy-dialog .legacy-text'), /\d/);
+  await page.click('#legacy-dialog .btn-primary');
+  assert.equal(await page.textContent('#plan-card h2'), 'הגרסה המלאה פעילה');
+  await page.setInputFiles('#file-input', [pdfFile('a.pdf'), pdfFile('b.pdf')]);
+  await page.waitForURL(/viewer\.html/);
+  await page.goto(server.baseUrl);
+  await page.waitForSelector('#plan-card:not([hidden])');
+  assert.equal(await page.isVisible('#legacy-dialog[open]'), false, 'told only once');
+});
