@@ -19,6 +19,7 @@
   const uploadBtn = document.querySelector('.upload-btn');
   const uploadStatus = document.getElementById('upload-status');
   const Combine = window.EasyPenCombine;
+  const Plan = window.EasyPenPlan;
 
   const MSG_PDF_ONLY = t('home.pdfOnly');
 
@@ -53,6 +54,8 @@
       await openDocument(files[0].name || 'document.pdf', files[0]);
       return;
     }
+    // Photos and combining: the full version
+    if (!await Plan.allow(files.length > 1 ? 'combine' : 'images')) return;
     await openCombined(files);
   }
 
@@ -108,6 +111,7 @@
       showUploadError(t('home.shareError'));
       return true;
     }
+    if (!await Plan.allow(files.length > 1 ? 'combine' : 'images')) return true;
     await openCombined(files);
     return true;
   }
@@ -149,13 +153,18 @@
       sigList.appendChild(li);
     }
 
-    const max = Storage.MAX_SIGNATURES;
+    // The free version saves one signature; earlier ones stay usable
+    const max = Math.max(Plan.maxSignatures(), list.length);
     sigEmpty.hidden = list.length > 0;
+    sigEmpty.textContent = Plan.isFull() ? t('home.sigsEmpty') : t('plan.sigsEmptyFree');
     sigCount.textContent = list.length ? t('home.sigCount', { n: list.length, max }) : '';
-    addSigBtn.hidden = list.length >= max;
+    addSigBtn.hidden = list.length >= Storage.MAX_SIGNATURES;
+    savedCount = list.length;
   }
 
+  let savedCount = 0;
   async function addSignature() {
+    if (savedCount >= Plan.maxSignatures() && !await Plan.allow('sigs')) return;
     const result = await window.openSignatureDialog({ title: t('home.newSig'), confirmLabel: t('home.saveForReuse') });
     if (!result) return;
     try {
@@ -212,7 +221,60 @@
   fileInput.addEventListener('change', onFileSelected);
   addSigBtn.addEventListener('click', addSignature);
 
+  // The full version: a card that shows it (or the subscription, in the app)
+  const planCard = document.getElementById('plan-card');
+  const intro = document.querySelector('[data-i18n="home.intro"]');
+  function renderPlanCard() {
+    // The free version opens one PDF: no "files are combined" on the home screen
+    intro.textContent = Plan.isFull() ? t('home.intro') : t('plan.introFree');
+    planCard.replaceChildren();
+    planCard.hidden = !Plan.limited;
+    if (!Plan.limited) return;
+    const title = document.createElement('h2');
+    if (Plan.isFull()) {
+      title.textContent = t('plan.active');
+      planCard.appendChild(title);
+      if (Plan.inApp) {
+        const manage = document.createElement('a');
+        manage.className = 'btn btn-ghost btn-sm';
+        manage.href = Plan.MANAGE_URL;
+        manage.target = '_blank';
+        manage.rel = 'noopener';
+        manage.textContent = t('plan.manage');
+        planCard.appendChild(manage);
+      }
+      return;
+    }
+    title.textContent = t('plan.card');
+    const text = document.createElement('p');
+    text.className = 'muted';
+    text.textContent = t('plan.cardText');
+    const more = document.createElement('button');
+    more.type = 'button';
+    more.className = 'btn btn-secondary btn-block';
+    more.textContent = t('plan.cardBtn');
+    more.addEventListener('click', () => Plan.showPaywall());
+    planCard.append(title, text, more);
+  }
+
+  // Once, for people who used EasyPen before the limits: until when everything stays open
+  function showLegacyNotice() {
+    const date = Plan.takeLegacyNotice();
+    if (!date) return;
+    const d = document.getElementById('legacy-dialog');
+    d.querySelector('.legacy-text').textContent = t('plan.legacyText', { date });
+    d.querySelectorAll('[data-action="close"]').forEach((b) => b.addEventListener('click', () => d.close()));
+    d.showModal();
+  }
+
+  window.addEventListener('easypen-plan', () => {
+    renderPlanCard();
+    renderSignatures();
+  });
+  Plan.ready.then(showLegacyNotice);
+
   handleQueryErrors();
+  renderPlanCard();
   renderSignatures();
   // Each document is a one-off local session: leaving the editor discards it
   // (cleared first, so it can't remove a document made from shared files)

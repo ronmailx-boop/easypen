@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last updated:** 15 October 2026
+**Last updated:** 5 November 2026
 
 ## 1. General
 
@@ -31,6 +31,7 @@ All the software the App needs, including the libraries for processing PDF files
 | App files | Working without a network connection | Browser cache (Cache Storage) | Until a version update or clearing the site data |
 | Preferences (drawing tool, link to EasyPen in the share message, whether the invitation to share was shown) | Remembering your choices | localStorage in the browser | Until clearing the site data |
 | The display language, if chosen with a link (for example `?lang=ru`) | Showing the App in the chosen language | sessionStorage in the browser | Until the tab is closed |
+| The subscription status (the date it is paid up to) and the transition period for existing users | Unlocking the full version, also offline | localStorage in the browser | Until the site data is cleared |
 
 A signature is saved for reuse only if you choose the "Save for reuse" option.
 
@@ -62,6 +63,14 @@ The Operator does not receive this data and does not use it. Its handling is sub
 - Measurement works only with a network connection. Using the App offline is not measured.
 
 The legal basis is the Operator's legitimate interest in improving the service and knowing how users find it (Article 6(1)(f) GDPR, where it applies). You can block the measurement with an ad blocker or tracking blocker in your browser, and the App keeps working as usual.
+
+## 6A. Subscription in the Google Play app
+
+Buying and paying for the full version subscription is done through Google Play, subject to [Google's Privacy Policy](https://policies.google.com/privacy). The Operator **does not receive** your payment details.
+
+- To verify a subscription and acknowledge it as Google requires, the app sends the Operator's server (Cloudflare Workers) the product ID and the purchase token provided by Google Play. The server checks them with the Google Play Developer API and returns only whether the subscription is active and until when. **The purchase token is not stored**, and it does not include your name or email address.
+- Google provides the Operator with reports on orders and subscriptions (such as the order number, product, price, country and date) for accounting, tax and refund handling.
+- The legal basis is performing the agreement with you (Article 6(1)(b) GDPR, where it applies) and the Operator's accounting obligations.
 
 ## 7. Sharing the signed file
 

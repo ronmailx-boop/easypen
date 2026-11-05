@@ -10,6 +10,9 @@
   'use strict';
 
   const Storage = window.EasyPenStorage;
+  const Plan = window.EasyPenPlan;
+  // On every page of a document saved with the free version
+  const FREE_FOOTER = 'Signed with EasyPen · easypen.vplusstudio.app';
   const { toast } = window.EasyPenUI;
   const { t, dir: UI_DIR } = window.EasyPenI18n;
   const RTL = UI_DIR === 'rtl';
@@ -368,7 +371,9 @@
   }
 
   function wireAddPages() {
-    el.addPagesBtn.addEventListener('click', () => el.addPagesInput.click());
+    el.addPagesBtn.addEventListener('click', async () => {
+      if (await Plan.allow('addFiles')) el.addPagesInput.click();
+    });
     el.addPagesInput.addEventListener('change', () => {
       const files = Array.from(el.addPagesInput.files || []);
       el.addPagesInput.value = '';
@@ -1250,13 +1255,14 @@
   }
 
   async function drawNewSignature(savedCount) {
-    const canSave = savedCount < Storage.MAX_SIGNATURES;
+    const canSave = savedCount < Plan.maxSignatures();
     const result = await window.openSignatureDialog({
       title: t('home.newSig'),
       showSaveOption: canSave,
       saveChecked: canSave,
       confirmLabel: t('viewer.addToDoc'),
-      pickColor: pickColorFromDocument
+      // Picking a colour from the document: the full version
+      pickColor: () => (Plan.isFull() ? pickColorFromDocument() : Plan.showPaywall('sample').then(() => null))
     });
     if (!result) return;
     if (canSave && result.save) {
@@ -1631,7 +1637,9 @@
 
   function wireDrawTray() {
     loadDrawPrefs();
-    el.drawBtn.addEventListener('click', () => setDrawMode(true));
+    el.drawBtn.addEventListener('click', async () => {
+      if (await Plan.allow('draw')) setDrawMode(true);
+    });
     el.drawDone.addEventListener('click', () => setDrawMode(false));
     el.drawCancel.addEventListener('click', cancelDrawing);
     el.drawUndo.addEventListener('click', undo);
@@ -1935,7 +1943,9 @@
       // Let the busy indicator paint before the heavy work
       await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
       const overlays = await collectOverlays();
-      const bytes = await window.PdfHandler.exportPdf(state.doc, overlays, order);
+      // The free version marks the document; the full version doesn't
+      const footer = Plan.isFull() ? null : FREE_FOOTER;
+      const bytes = await window.PdfHandler.exportPdf(state.doc, overlays, order, { footer });
       lastFile = new File([bytes], `${baseName}.pdf`, { type: 'application/pdf' });
     } catch (err) {
       console.error(err);

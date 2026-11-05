@@ -1,0 +1,57 @@
+{
+  "packageId": "app.vplusstudio.easypen",
+  "host": "easypen.vplusstudio.app",
+  "name": "EasyPen",
+  "launcherName": "EasyPen",
+  "display": "standalone",
+  "themeColor": "#2F4FC4",
+  "themeColorDark": "#1E1B6B",
+  "navigationColor": "#FFFFFF",
+  "navigationColorDark": "#000000",
+  "navigationDividerColor": "#DFE3F0",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#FFFFFF",
+  "enableNotifications": false,
+  "startUrl": "/?source=twa",
+  "iconUrl": "https://easypen.vplusstudio.app/icons/icon-512.png",
+  "maskableIconUrl": "https://easypen.vplusstudio.app/icons/icon-maskable-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "upload"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://easypen.vplusstudio.app/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {
+    "playBilling": { "enabled": true }
+  },
+  "alphaDependencies": { "enabled": false },
+  "enableSiteSettingsShortcut": false,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://easypen.vplusstudio.app/",
+  "minSdkVersion": 21,
+  "shareTarget": {
+    "action": "https://easypen.vplusstudio.app/share-target/",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "files": [
+        { "name": "file", "accept": ["application/pdf", "image/jpeg", "image/png"] }
+      ]
+    }
+  },
+  "orientation": "portrait",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "protocolHandlers": [],
+  "fileHandlers": [],
+  "launchHandlerClientMode": "",
+  "displayOverride": [],
+  "appVersion": "1.0.0"
+}

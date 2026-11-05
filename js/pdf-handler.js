@@ -172,15 +172,43 @@
    * pdf-lib, so they are re-built from rendered page images instead (see rasterizeExport).
    * The result has no password.
    */
+  /*
+   * A small line at the bottom of each page as it is shown (the free version).
+   * Latin text in a standard font, so nothing has to be embedded. With /Rotate the
+   * shown bottom is another edge of the page: the line turns with it.
+   */
+  async function drawFooter(pdfDoc, text) {
+    const { StandardFonts, rgb, degrees } = global.PDFLib;
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    for (const page of pdfDoc.getPages()) {
+      const box = page.getCropBox();
+      const rot = normRotation(page.getRotation().angle);
+      const shownWidth = rot % 180 ? box.height : box.width;
+      const size = Math.max(5, Math.min(8, shownWidth / 75));
+      const w = font.widthOfTextAtSize(text, size);
+      const m = size * 1.2;  // distance from the edge
+      const right = box.x + box.width;
+      const top = box.y + box.height;
+      const at = {
+        0: { x: box.x + (box.width - w) / 2, y: box.y + m },
+        90: { x: right - m, y: box.y + (box.height - w) / 2 },
+        180: { x: box.x + (box.width + w) / 2, y: top - m },
+        270: { x: box.x + m, y: box.y + (box.height + w) / 2 }
+      }[rot];
+      page.drawText(text, { ...at, size, font, color: rgb(0.45, 0.47, 0.55), rotate: degrees(rot) });
+    }
+  }
+
   // order: original page numbers in the order the pages should come out (optional)
-  async function exportPdf(doc, overlays, order) {
+  // options.footer: a line for the bottom of every page (the free version)
+  async function exportPdf(doc, overlays, order, options = {}) {
     const { PDFDocument } = global.PDFLib;
-    if (doc.locked) return rasterizeExport(doc, overlays, order);
+    if (doc.locked) return rasterizeExport(doc, overlays, order, options);
     let pdfDoc;
     try {
       pdfDoc = await PDFDocument.load(doc.bytes, { updateMetadata: false });
     } catch (e) {
-      if (e && /encrypt/i.test(e.message || '')) return rasterizeExport(doc, overlays, order);
+      if (e && /encrypt/i.test(e.message || '')) return rasterizeExport(doc, overlays, order, options);
       throw e;
     }
     const pages = pdfDoc.getPages();
@@ -194,13 +222,14 @@
       for (let i = pages.length - 1; i >= 0; i--) pdfDoc.removePage(i);
       order.forEach((num) => pdfDoc.addPage(pages[num - 1]));
     }
+    if (options.footer) await drawFooter(pdfDoc, options.footer);
     pdfDoc.setModificationDate(new Date());
     pdfDoc.setProducer('EasyPen');
     return pdfDoc.save();
   }
 
   // Fallback: new PDF whose pages are high resolution images of the original pages.
-  async function rasterizeExport(doc, overlays, order) {
+  async function rasterizeExport(doc, overlays, order, options = {}) {
     const { PDFDocument } = global.PDFLib;
     const out = await PDFDocument.create();
     const byPage = groupByPage(overlays);
@@ -223,6 +252,7 @@
       newPage.drawImage(image, { x: 0, y: 0, width: size.width, height: size.height });
       if (byPage.has(n)) await drawOverlaysOnPage(out, newPage, byPage.get(n));
     }
+    if (options.footer) await drawFooter(out, options.footer);
     out.setProducer('EasyPen');
     return out.save();
   }

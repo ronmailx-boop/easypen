@@ -1437,3 +1437,54 @@ html:has(> body.viewer),
 }
 .guide-list strong { color: var(--primary-dark); font-size: 1.05rem; }
 .guide-list .muted { font-size: .92rem; line-height: 1.55; }
+
+/* ---------------- Full version (js/plan.js) ---------------- */
+
+.plan-card {
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+  background: var(--primary-soft);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.plan-card h2 { margin: 0 0 .25rem; font-size: 1.05rem; }
+.plan-card p { margin: 0 0 .75rem; }
+
+.paywall-reason { margin: 0 0 .5rem; font-weight: 600; }
+.paywall-features {
+  margin: 0 0 .75rem;
+  padding-inline-start: 1.25rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.paywall-plans {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .5rem;
+  margin-bottom: .75rem;
+}
+.paywall-plan {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .2rem;
+  min-height: 44px;
+  padding: .75rem .5rem;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.paywall-plan[aria-checked="true"] { border-color: var(--primary); background: var(--primary-soft); }
+.paywall-plan-name { font-weight: 700; }
+.paywall-plan-price { font-size: .95rem; }
+.paywall-badge {
+  font-size: .75rem;
+  font-weight: 700;
+  color: var(--success);
+}
+.paywall-body .small { margin: .5rem 0; }
+.paywall-body .form-error:empty { display: none; }

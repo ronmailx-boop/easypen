@@ -1,3 +1,6 @@
 node_modules/
 test-results/
 .wrangler/
+*.keystore
+*.p12
+*.jks

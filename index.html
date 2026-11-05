@@ -81,6 +81,8 @@
       </p>
     </section>
 
+    <section id="plan-card" class="plan-card" hidden></section>
+
     <section class="signatures-section" aria-labelledby="sigs-title">
       <div class="section-head">
         <h2 id="sigs-title" data-i18n="home.sigs">החתימות שלי</h2>
@@ -120,11 +122,25 @@
     <p class="footer-version"><span data-i18n="footer.version">גרסה</span> <span data-app-version>10</span></p>
   </footer>
 
+  <dialog id="legacy-dialog" class="modal sheet" aria-labelledby="legacy-title">
+    <div class="modal-card">
+      <header class="modal-header">
+        <h2 id="legacy-title" data-i18n="plan.legacyTitle">EasyPen מתעדכנת</h2>
+        <button type="button" class="icon-btn" data-action="close" aria-label="סגור" data-i18n-aria="pad.close">✕</button>
+      </header>
+      <p class="muted legacy-text"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-primary" data-action="close" data-i18n="plan.ok">הבנתי</button>
+      </div>
+    </div>
+  </dialog>
+
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="js/version.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/plan.js"></script>
   <script src="js/signature-pad.js"></script>
   <script src="js/combine-pdf.js"></script>
   <script src="js/share.js"></script>

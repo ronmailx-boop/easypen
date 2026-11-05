@@ -22,6 +22,7 @@ const SHELL = [
   'js/i18n.js',
   'js/storage.js',
   'js/ui.js',
+  'js/plan.js',
   'js/home.js',
   'js/signature-pad.js',
   'js/combine-pdf.js',

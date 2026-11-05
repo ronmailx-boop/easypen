@@ -1,9 +1,17 @@
-// Cloudflare Workers: serves the app as static assets (no Worker script, no build step).
+// Cloudflare Workers: serves the app as static assets (no build step), plus one small
+// Worker (worker/index.mjs): /api/* checks Google Play subscriptions, and the Android
+// app's /.well-known/assetlinks.json.
 // Files that are not part of the app are listed in .assetsignore.
 {
   "name": "easypen",
   "compatibility_date": "2026-09-30",
-  "assets": { "directory": "." },
+  "main": "worker/index.mjs",
+  "assets": {
+    "directory": ".",
+    "binding": "ASSETS",
+    // Only these reach the Worker; every other address is served as a file, as before
+    "run_worker_first": ["/api/*", "/.well-known/assetlinks.json"]
+  },
   // Keep easypen.ronmailx.workers.dev alive; wrangler turns it off when routes are set unless this is explicit.
   "workers_dev": true,
   // Custom domain on the vplusstudio.app zone (same Cloudflare account); DNS and certificate are created on deploy.

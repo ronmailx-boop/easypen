@@ -1,6 +1,6 @@
 # Terms of Use
 
-**Last updated:** 7 October 2026
+**Last updated:** 5 November 2026
 
 ## 1. General
 
@@ -14,7 +14,17 @@ The App lets you open PDF files or JPG and PNG images (several files are combine
 
 - Processing happens on your device only. Files are not sent to the Operator.
 - At this stage, only PDF files and JPG and PNG images are supported.
-- At this stage, the Service is provided free of charge.
+- The Service comes in two versions: a basic version on the website, free of charge, and a full version in the EasyPen app on Google Play, with a paid subscription (section 2A).
+
+## 2A. Full version subscription
+
+1. **Versions.** The basic version lets you sign one PDF file, add text, save one signature for reuse and share the file. Every page of a file created with the basic version gets the line "Signed with EasyPen · easypen.vplusstudio.app" at the bottom. The full version adds signing photos, combining files, adding files to an open document, free drawing, picking a color from the document and saving up to 3 signatures, without that line. The Operator may change which features are in each version, with advance notice to subscribers where a change reduces the full version.
+2. **Plans and price.** The subscription is offered as a monthly or a yearly plan. The current price, in the local currency and including VAT where applicable, is shown in the Google Play purchase window before you confirm.
+3. **Free trial.** A new subscriber gets a 30-day free trial, once per Google account, subject to Google Play's eligibility rules. When the trial ends, the subscription renews automatically as a paid subscription for the chosen plan unless cancelled before then.
+4. **Billing and renewal.** Purchase, billing and automatic renewal are handled by Google Play under its terms. The Operator does not receive or store your payment details. The subscription renews at the start of each period (month or year) until cancelled.
+5. **Cancellation.** You can cancel at any time in Google Play (Profile → Payments & subscriptions → Subscriptions), or from the app with "Manage subscription". Cancelling during the trial costs nothing. Cancelling later stops the renewal, and the full version stays available until the end of the paid period.
+6. **Consumer rights.** Nothing here limits your rights under the consumer protection laws that apply to you, including the Israeli Consumer Protection Law, 5741-1981, and its regulations, among them the right to cancel an ongoing transaction at any time. Refund requests are handled through Google Play, and you may also contact the Operator using the details in section 13.
+7. **Existing users.** Anyone who used the website before the basic version was introduced gets the full version on the website free of charge for 30 days from their first visit after the change, and is told so on screen.
 
 ## 3. Capacity
 
