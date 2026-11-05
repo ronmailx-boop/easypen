@@ -242,6 +242,8 @@ async function captureApp(browser, server, lang) {
   await page.waitForSelector('#plan-card:not([hidden])');
   await page.evaluate(() => { window.EasyPenPlan.showPaywall(); });
   await page.waitForSelector('#paywall .paywall-plan');
+  // No prices in the store images: they may change, and Google Play shows the real ones
+  await page.addStyleTag({ content: '.paywall-plan-price, .paywall-badge { display: none !important }' });
   await shot('trial');
   await context.close();
   return shots;
