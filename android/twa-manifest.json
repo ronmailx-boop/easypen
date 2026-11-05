@@ -34,7 +34,7 @@
   "isChromeOSOnly": false,
   "isMetaQuest": false,
   "fullScopeUrl": "https://easypen.vplusstudio.app/",
-  "minSdkVersion": 23,
+  "minSdkVersion": 24,
   "shareTarget": {
     "action": "https://easypen.vplusstudio.app/share-target/",
     "method": "POST",
