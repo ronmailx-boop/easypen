@@ -68,7 +68,7 @@ Actions → **Android - build** → Run workflow. בסיום: Artifacts → `eas
 ### 7. דף החנות
 - Store presence → Main store listing: הטקסטים מ-`listing-en.md`. Translations → Add: Hebrew, Russian, מ-`listing-he.md` / `listing-ru.md`.
 - אייקון 512×512: `android/store_icon.png`.
-- Feature graphic (1024×500) וצילומי מסך (2-8, לטלפון): אני יכול להכין, צריך רק לבקש.
+- **צילומי מסך** (6 לטלפון, 1080×1920) ו-**Feature graphic** (1024×500), לכל שפה: `store/graphics/en|he|ru/`. ב-Main store listing מעלים את האנגליים, ובכל תרגום את אלה של אותה שפה (Phone screenshots: 01 עד 06 לפי הסדר). יצירה מחדש אחרי שינוי באפליקציה: `node scripts/make-store-assets.js` (צריך את הגופנים Heebo ו-Noto Sans).
 - Privacy policy URL: `https://easypen.vplusstudio.app/legal.html?doc=privacy`
 - Category: Productivity. Contact email: של vplus studio.
 
