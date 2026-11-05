@@ -144,7 +144,7 @@
 - [x] `store/termux.md`: הוראות Termux (gh, keytool) לסודות; deploy-cloudflare.yml מעתיק `PLAY_SERVICE_ACCOUNT` ל-Worker
 - [ ] טביעות אצבע SHA-256 → `worker/assetlinks.mjs`
 - [ ] בדיקה בטלפון עם License tester: רכישה, ניסיון, ביטול, שחזור, שיתוף קובץ אל האפליקציה
-- [x] צילומי מסך (6, 1080×1920) + Feature graphic (1024×500) לכל שפה ב-`store/graphics/<lang>/`, מהאפליקציה האמיתית (`scripts/make-store-assets.js`, Playwright; מחירים מ-Google Play מדומה: ₪ בעברית וברוסית, $ באנגלית)
+- [x] צילומי מסך (6, 1080×1920) + Feature graphic (1024×500) לכל שפה ב-`store/graphics/<lang>/`, מהאפליקציה האמיתית (`scripts/make-store-assets.js`, Playwright). **בלי מחירים בתמונות** (החלטה 5.11.2026): מחירים עשויים להשתנות, ו-Google Play מציגה את המחיר בעצמה
 - [ ] אחרי הפרסום: `WEB_LIMITS = true` (+ גרסה)
 
 ## פתוח / לשלב הבא
