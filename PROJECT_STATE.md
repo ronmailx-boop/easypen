@@ -1,7 +1,7 @@
 # PROJECT_STATE - EasyPen
 
 ## Current Focus
-**עצרנו ב (6.11.2026):** כל ההגדרות ב-Play Console הושלמו (מנויים, License testing, חשבון שירות + Secret). רכישת בדיקה עברה ואושרה (acknowledge). הצעד הבא: Production release, ואחרי שהאפליקציה בחנות: WEB_LIMITS = true. קודם: הכנה ל-Google Play (TWA + מנוי עם 30 יום ניסיון). כל הקוד מוכן (גרסה 54), המגבלות באתר עדיין **כבויות** (`WEB_LIMITS = false` ב-`js/plan.js`). מדריך מלא: `store/README.md`.
+**עצרנו ב (6.11.2026):** האפליקציה **נשלחה לבדיקה של Google ל-Production** (14 שינויים: גרסה 1 (1.0.0), 178 מדינות, דף חנות en/he/ru עם סרטונים, App content; פרסום מנוהל כבוי, כלומר עולה לבד כשמאושר). מחכים 1-7 ימים. כשהיא בחנות: המשתמש כותב "תפעיל את המגבלות באתר" ← `WEB_LIMITS = true` ב-`js/plan.js` + גרסה. עוד פתוח: אימות חשבון הבנק (הפקדה קטנה ← pay.google.com), הרשמה לעמלת 15% (הכפתור לא נמצא; על מנויים 15% ממילא), להחזיר את מדיניות iam.disableServiceAccountKeyCreation בפרויקט easypen (Inherit parent), בדיקת ביטול מנוי.
 
 **הצעד הבא (המשתמש, לפי `store/README.md` + `store/termux.md`):** מוזג ל-main. מפתח העלאה נוצר בטלפון ב-Termux ונשמר כסודות GitHub דרך `gh` → workflow "Android - build" (פעם ראשונה שהפרויקט נבנה, לבדוק שעבר) → יצירת האפליקציה ב-Play Console + Internal testing → לשלוח לי את טביעות האצבע SHA-256 (App signing + upload) → אני מוסיף ל-`worker/assetlinks.mjs`. במקביל: מנויים `easypen_monthly`/`easypen_yearly` + offer `trial-30d`, חשבון שירות → Secret `PLAY_SERVICE_ACCOUNT` ב-GitHub (ה-deploy מעתיק ל-Worker). ל-Claude אין גישה ל-Play Console (נבדק 5.11.2026: אין חיבור, ה-API מחזיר 401). אחרי הפרסום: להפעיל `WEB_LIMITS = true`. עוד פתוח: Google Search Console, ביטול מנוי ElevenLabs.
 
