@@ -1,6 +1,7 @@
 # Deploys the app to Cloudflare Workers (static assets, see wrangler.jsonc) on every push to main.
 # Needs the repository secret CLOUDFLARE_API_TOKEN (template "Edit Cloudflare Workers").
-# Optional: PLAY_SERVICE_ACCOUNT (Google Play service account JSON), copied to the Worker.
+# Optional: PLAY_SERVICE_ACCOUNT (Google Play service account JSON) and REVIEW_ACCESS_CODE
+# (Google Play reviewers' access code), copied to the Worker.
 name: Deploy to Cloudflare
 
 on:
@@ -55,3 +56,15 @@ jobs:
             exit 0
           fi
           printf '%s' "$PLAY_SERVICE_ACCOUNT" | npx --yes wrangler@4 secret put PLAY_SERVICE_ACCOUNT
+
+      # The access code for Google Play's app reviewers (/api/access)
+      - name: Worker secret for the reviewers' access code
+        if: steps.token.outputs.present == 'true'
+        env:
+          REVIEW_ACCESS_CODE: ${{ secrets.REVIEW_ACCESS_CODE }}
+        run: |
+          if [ -z "$REVIEW_ACCESS_CODE" ]; then
+            echo "::notice::REVIEW_ACCESS_CODE secret is not set - access codes are refused."
+            exit 0
+          fi
+          printf '%s' "$REVIEW_ACCESS_CODE" | npx --yes wrangler@4 secret put REVIEW_ACCESS_CODE

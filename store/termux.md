@@ -91,6 +91,17 @@ gh workflow run deploy-cloudflare.yml -R $REPO
 ```
 ה-workflow "Deploy to Cloudflare" מעתיק את הסוד ל-Worker. לא צריך להיכנס ל-Cloudflare.
 
+## 6. קוד גישה לבודקי Google Play
+בודקי Google לא נרשמים למנויים. כדי שיוכלו לבדוק את הגרסה המלאה, הם מקבלים קוד גישה שנבדק בשרת. יוצרים את הקוד ושומרים אותו ב-GitHub:
+```bash
+CODE=$(openssl rand -hex 6 | tr a-f A-F); echo "$CODE"
+```
+```bash
+printf '%s' "$CODE" | gh secret set REVIEW_ACCESS_CODE -R $REPO
+gh workflow run deploy-cloudflare.yml -R $REPO
+```
+את הקוד שמופיע על המסך מדביקים **רק** ב-Play Console ← תוכן האפליקציה ← גישה לאפליקציה, בשדה הסיסמה (ראו `store/README.md`), ולא בצ'אט. הקוד פותח את הגרסה המלאה ל-30 יום במכשיר שבו הוזן. כדי להחליף אותו, מריצים את שתי הפקודות שוב ומעדכנים את Play Console.
+
 ## בעיות נפוצות
 | הודעה | פתרון |
 |---|---|

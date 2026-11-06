@@ -106,3 +106,18 @@ test('worker: assetlinks.json links the Android app to the site', async () => {
   assert.equal(statement.target.package_name, 'app.vplusstudio.easypen');
   assert.ok(Array.isArray(statement.target.sha256_cert_fingerprints));
 });
+
+test('worker: the reviewers\' access code opens the full version, a wrong one or none does not', async () => {
+  const access = (body, extra = {}) => worker.default.fetch(new Request('https://easypen.vplusstudio.app/api/access', {
+    method: 'POST', body: JSON.stringify(body)
+  }), { ...env, ...extra });
+  const withCode = { REVIEW_ACCESS_CODE: 'AB12CD34EF56' };
+  const ok = await (await access({ code: ' ab12cd34ef56 ' }, withCode)).json();
+  assert.equal(ok.active, true);
+  assert.ok(ok.expiry > Date.now() + 29 * 86400000);
+  assert.equal((await (await access({ code: 'AB12CD34EF57' }, withCode)).json()).active, false);
+  assert.equal((await (await access({ code: '' }, withCode)).json()).active, false);
+  assert.equal((await (await access({ code: 'anything' })).json()).active, false);
+  assert.equal((await access({ code: 'x' }, { REVIEW_ACCESS_CODE: 'short' })).status, 200);
+  assert.equal(calls.length, 0);
+});
