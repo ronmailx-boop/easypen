@@ -30,7 +30,7 @@
     "playBilling": { "enabled": true }
   },
   "alphaDependencies": { "enabled": false },
-  "enableSiteSettingsShortcut": false,
+  "enableSiteSettingsShortcut": true,
   "isChromeOSOnly": false,
   "isMetaQuest": false,
   "fullScopeUrl": "https://easypen.vplusstudio.app/",
