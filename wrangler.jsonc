@@ -14,6 +14,8 @@
   },
   // Keep easypen.ronmailx.workers.dev alive; wrangler turns it off when routes are set unless this is explicit.
   "workers_dev": true,
+  // Worker logs (Cloudflare → Workers → easypen → Logs): why a purchase check failed
+  "observability": { "enabled": true },
   // Custom domain on the vplusstudio.app zone (same Cloudflare account); DNS and certificate are created on deploy.
   "routes": [{ "pattern": "easypen.vplusstudio.app", "custom_domain": true }]
 }
