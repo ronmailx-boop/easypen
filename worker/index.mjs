@@ -110,7 +110,7 @@ export async function checkSubscription(env, sku, token) {
   const res = await fetch(`${API}/purchases/subscriptionsv2/tokens/${encodeURIComponent(token)}`, { headers: auth });
   // Unknown or expired token (or another app's): not a subscription
   if (res.status === 400 || res.status === 404 || res.status === 410) return { active: false, expiry: 0 };
-  if (!res.ok) throw new Error(`subscriptionsv2 ${res.status}`);
+  if (!res.ok) throw new Error(`subscriptionsv2 ${res.status} ${await googleError(res)}`);
   const sub = await res.json();
   const items = (sub.lineItems || []).filter((i) => i.productId === sku);
   const expiry = Math.max(0, ...items.map((i) => Date.parse(i.expiryTime) || 0));
@@ -122,9 +122,20 @@ export async function checkSubscription(env, sku, token) {
       body: '{}'
     });
     // Not fatal: the next check acknowledges it (Google allows 3 days)
-    if (!ack.ok) console.error('acknowledge failed', ack.status);
+    if (!ack.ok) console.error('acknowledge failed', ack.status, await googleError(ack));
   }
   return { active, expiry: active ? expiry : 0 };
+}
+
+// Google's reason for a refusal, for the Worker log (its error message: no tokens or keys in it)
+async function googleError(res) {
+  try {
+    const body = await res.json();
+    const e = body.error;
+    return String((e && (e.message || e.status)) || body.error_description || e || '').slice(0, 300);
+  } catch (err) {
+    return '';
+  }
 }
 
 /* ---------------- Google OAuth for the service account ---------------- */
@@ -147,7 +158,7 @@ async function accessToken(env) {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: jwt })
   });
-  if (!res.ok) throw new Error(`oauth ${res.status}`);
+  if (!res.ok) throw new Error(`oauth ${res.status} ${await googleError(res)}`);
   const data = await res.json();
   cached = { token: data.access_token, until: Date.now() + (data.expires_in || 3600) * 1000 };
   return cached.token;
