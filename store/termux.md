@@ -9,7 +9,7 @@
 ## 1. התקנה (פעם אחת)
 ```bash
 pkg update -y && pkg upgrade -y
-pkg install -y gh openjdk-21 openssl
+pkg install -y gh openssl
 termux-setup-storage
 ```
 `termux-setup-storage` יבקש הרשאה לקבצים. מאשרים. מעכשיו תיקיית ההורדות של הטלפון נגישה בנתיב `~/storage/downloads`.
@@ -33,13 +33,19 @@ REPO=ronmailx-boop/easypen
 PASS=$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c 28); echo "$PASS"
 ```
 
-**ב. יצירת המפתח** (לוקח כמה שניות):
+**ב. יצירת המפתח** עם `openssl`. ב-Termux על Android 15 ומעלה, `keytool` נכשל עם `ProtoLogNative ... Aborted`. כל פקודה מדביקים לבד:
 ```bash
+export PASS
 mkdir -p ~/easypen-key && cd ~/easypen-key
-keytool -genkeypair -noprompt -storetype PKCS12 -keystore upload-keystore.p12 \
-  -alias upload -keyalg RSA -keysize 4096 -validity 10000 \
-  -dname "CN=vplus studio, O=vplus studio, C=IL" \
-  -storepass "$PASS" -keypass "$PASS"
+```
+```bash
+openssl req -x509 -newkey rsa:4096 -sha256 -days 10000 -nodes -keyout key.pem -out cert.pem -subj "/CN=vplus studio/O=vplus studio/C=IL"
+```
+```bash
+openssl pkcs12 -export -inkey key.pem -in cert.pem -name upload -out upload-keystore.p12 -passout env:PASS
+```
+```bash
+rm key.pem && ls -l upload-keystore.p12
 ```
 
 **ג. שמירה ב-GitHub כסודות:**
@@ -50,9 +56,9 @@ gh secret list -R $REPO
 ```
 ברשימה צריכים להופיע `ANDROID_KEYSTORE_BASE64` ו-`ANDROID_KEYSTORE_PASSWORD`.
 
-**ד. טביעת האצבע (ציבורית, לא סוד).** את השורה `SHA256: ...` שולחים לי:
+**ד. טביעת האצבע (ציבורית, לא סוד).** את השורה `sha256 Fingerprint=...` שולחים לי:
 ```bash
-keytool -list -v -keystore upload-keystore.p12 -alias upload -storepass "$PASS" | grep SHA256
+openssl x509 -in cert.pem -noout -fingerprint -sha256
 ```
 
 **ה. גיבוי.** מעתיקים את המפתח לתיקיית ההורדות, ומשם מעלים אותו ל-Google Drive **הפרטי** (או למנהל הסיסמאות כקובץ מצורף):
@@ -89,8 +95,7 @@ gh workflow run deploy-cloudflare.yml -R $REPO
 | הודעה | פתרון |
 |---|---|
 | `gh: command not found` | `pkg install gh` (וודאו ש-Termux מ-F-Droid) |
-| `keytool: command not found` | `pkg install openjdk-21`, ואז לפתוח את Termux מחדש |
-| `Unable to locate package openjdk-21` | `pkg search openjdk` ולהתקין את הגרסה שמופיעה (17 ומעלה) |
+| `[200~` בתחילת שורה / `command not found` אחרי הדבקה | לסגור את Termux (התראה → Exit), לפתוח מחדש, להגדיר שוב `REPO`, להדביק פקודה אחת בכל פעם |
 | `HTTP 403` ב-`gh secret set` | `gh auth refresh -s repo,workflow` |
 | `could not find any workflows named` | הקוד עדיין לא מוזג ל-main |
 | `Permission denied` ב-`~/storage` | להריץ שוב `termux-setup-storage` ולאשר |
