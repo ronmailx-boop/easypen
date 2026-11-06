@@ -22,8 +22,9 @@ async function main() {
   fs.mkdirSync(target);
   await new TwaGenerator().createTwaProject(target, manifest, new ConsoleLog('android-generate'));
   // Fixes to Bubblewrap's project:
-  // - No R8 shrinking: it renamed a class androidbrowserhelper looks up by name, and the app
-  //   crashed on start ("Component class G0.u does not exist"). The app is tiny either way.
+  // - No R8 shrinking: the app is tiny either way, and it hides crash causes behind renamed classes.
+  //   (twa-manifest.json must keep enableSiteSettingsShortcut: true - with false, androidbrowserhelper
+  //   2.7 still enables ManageDataLauncherActivity, which is then missing, and the app crashes on start.)
   // - The DelegationService always on: Google Play Billing (Digital Goods API) goes through it,
   //   while Bubblewrap ties it to notifications, which EasyPen doesn't use.
   patch(path.join(target, 'app', 'build.gradle'), 'minifyEnabled true', 'minifyEnabled false');
