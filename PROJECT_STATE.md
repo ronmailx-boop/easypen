@@ -146,7 +146,7 @@
 - [x] "Android - build" חותם גם APK להתקנה ישירה (artifact `easypen-apk`, apksigner), בנוסף ל-AAB. בנייה חתומה עברה 6.11.2026 (טביעת אצבע תואמת)
 - [x] תוקן: האפליקציה קרסה בפתיחה (S25 FE). הסיבה: `enableSiteSettingsShortcut: false` → androidbrowserhelper 2.7 מפעיל את ManageDataLauncherActivity שלא קיים במניפסט. חייב להישאר `true`. גם: בלי R8 (minify), DelegationService תמיד פעיל (נדרש ל-Play Billing). נבדק באמולטור ב-workflow "Android - smoke test" (רץ אוטומטית על push לענף ccr-* ששינה את android/)
 - [ ] המשתמש: לבדוק את ה-APK בטלפון (באפליקציה: גרסה בסיסית, הרכישה לא תעבוד עד שהאפליקציה ב-Play; לפני התקנה מהחנות להסיר את ה-APK)
-- [ ] טביעת האצבע של App signing (Play Console) → `worker/assetlinks.mjs`
+- [x] טביעת האצבע של App signing (`52:9C:...:FE:DA`) ב-`worker/assetlinks.mjs` (6.11.2026). גרסה 1 (1.0.0) הועלתה ל-Internal testing; App content הושלם (App access עם קוד גישה, Data safety: App interactions/Analytics, Trader: כן, תנאים: legal.html?doc=terms)
 - [ ] בדיקה בטלפון עם License tester: רכישה, ניסיון, ביטול, שחזור, שיתוף קובץ אל האפליקציה
 - [x] צילומי מסך (6, 1080×1920) + Feature graphic (1024×500) לכל שפה ב-`store/graphics/<lang>/`, מהאפליקציה האמיתית (`scripts/make-store-assets.js`, Playwright). **בלי מחירים בתמונות** (החלטה 5.11.2026): מחירים עשויים להשתנות, ו-Google Play מציגה את המחיר בעצמה
 - [x] קוד גישה לבודקי Google Play (6.11.2026, גרסה 55): Play Console דורש גישה מלאה לתוכן בתשלום. `POST /api/access` ב-Worker משווה ל-Secret `REVIEW_ACCESS_CODE` (deploy מעתיק מ-GitHub), פותח 30 יום (`easypen.accessUntil`). בחלון המנוי באפליקציה: "יש לי קוד גישה". הוראות: `store/termux.md` שלב 6, `store/README.md` App access
