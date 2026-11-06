@@ -49,6 +49,7 @@ jobs:
             adb shell monkey -p app.vplusstudio.easypen -c android.intent.category.LAUNCHER 1
             sleep 20
             echo "===== crash / app log ====="
-            adb logcat -d | grep -E "AndroidRuntime|FATAL|easypen|TWA|TrustedWeb|androidbrowserhelper|Process: |Caused by|at com\.|at app\.|at android\." | head -150 || true
+            adb logcat -d | grep -E "TWA|E AndroidRuntime" | head -60 || true
+            if adb logcat -d | grep -q "FATAL EXCEPTION"; then echo "APP CRASHED"; else echo "NO CRASH"; fi
             echo "===== top activity ====="
             adb shell dumpsys activity activities | grep -E "topResumedActivity|mResumedActivity" | head -5 || true
