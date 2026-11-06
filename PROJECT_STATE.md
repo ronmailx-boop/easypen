@@ -144,6 +144,7 @@
 - [x] `store/termux.md`: הוראות Termux (gh, keytool) לסודות; deploy-cloudflare.yml מעתיק `PLAY_SERVICE_ACCOUNT` ל-Worker
 - [x] מפתח העלאה נוצר ב-Termux עם openssl (keytool נכשל באנדרואיד 15+), טביעת אצבע `BC:E6:52:...:22:DF` ב-`worker/assetlinks.mjs` (6.11.2026)
 - [x] "Android - build" חותם גם APK להתקנה ישירה (artifact `easypen-apk`, apksigner), בנוסף ל-AAB. בנייה חתומה עברה 6.11.2026 (טביעת אצבע תואמת)
+- [x] תוקן: האפליקציה קרסה בפתיחה (S25 FE). הסיבה: `enableSiteSettingsShortcut: false` → androidbrowserhelper 2.7 מפעיל את ManageDataLauncherActivity שלא קיים במניפסט. חייב להישאר `true`. גם: בלי R8 (minify), DelegationService תמיד פעיל (נדרש ל-Play Billing). נבדק באמולטור ב-workflow "Android - smoke test" (רץ אוטומטית על push לענף ccr-* ששינה את android/)
 - [ ] המשתמש: לבדוק את ה-APK בטלפון (באפליקציה: גרסה בסיסית, הרכישה לא תעבוד עד שהאפליקציה ב-Play; לפני התקנה מהחנות להסיר את ה-APK)
 - [ ] טביעת האצבע של App signing (Play Console) → `worker/assetlinks.mjs`
 - [ ] בדיקה בטלפון עם License tester: רכישה, ניסיון, ביטול, שחזור, שיתוף קובץ אל האפליקציה
