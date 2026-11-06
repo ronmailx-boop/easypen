@@ -1904,6 +1904,15 @@ test('free version: earlier users keep everything for 30 days and are told once'
   await page.goto(server.baseUrl);
   await page.waitForSelector('#plan-card:not([hidden])');
   assert.equal(await page.isVisible('#legacy-dialog[open]'), false, 'told only once');
+  assert.match(await page.textContent('#plan-card'), /תקופת מעבר למשתמשים קיימים, עד \d/);
+  // ?resetplan=1 (for testing a purchase): back to the basic version, and not an earlier user again
+  await page.goto(server.baseUrl + 'index.html?resetplan=1');
+  await page.waitForFunction(() => document.querySelector('#plan-card h2')?.textContent === 'הגרסה המלאה');
+  assert.doesNotMatch(page.url(), /resetplan/);
+  assert.equal(await page.isVisible('#legacy-dialog[open]'), false);
+  await page.reload();
+  await page.waitForSelector('#plan-card:not([hidden])');
+  assert.equal(await page.textContent('#plan-card h2'), 'הגרסה המלאה');
 });
 
 test('app: an access code (for Google Play reviewers) opens the full version; a wrong one shows an error', async () => {
