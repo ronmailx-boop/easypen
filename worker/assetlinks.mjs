@@ -9,7 +9,9 @@
  *  2. the upload key (printed by the "Android - build" workflow), for testing a build directly
  */
 export const FINGERPRINTS = [
-  // 'AA:BB:...'
+  // Upload key (created 6.11.2026 in Termux, store/termux.md)
+  'BC:E6:52:49:E5:CE:2B:39:FB:62:69:AE:EA:80:1D:B1:46:C4:AD:50:AF:39:F8:2C:9A:6E:2D:CB:58:B2:22:DF'
+  // TODO: App signing key certificate from Play Console (App integrity → App signing)
 ];
 
 export function assetLinks() {
