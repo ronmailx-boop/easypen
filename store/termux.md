@@ -9,7 +9,7 @@
 ## 1. התקנה (פעם אחת)
 ```bash
 pkg update -y && pkg upgrade -y
-pkg install -y gh openjdk-17 openssl
+pkg install -y gh openjdk-21 openssl
 termux-setup-storage
 ```
 `termux-setup-storage` יבקש הרשאה לקבצים. מאשרים. מעכשיו תיקיית ההורדות של הטלפון נגישה בנתיב `~/storage/downloads`.
@@ -89,7 +89,8 @@ gh workflow run deploy-cloudflare.yml -R $REPO
 | הודעה | פתרון |
 |---|---|
 | `gh: command not found` | `pkg install gh` (וודאו ש-Termux מ-F-Droid) |
-| `keytool: command not found` | `pkg install openjdk-17`, ואז לפתוח את Termux מחדש |
+| `keytool: command not found` | `pkg install openjdk-21`, ואז לפתוח את Termux מחדש |
+| `Unable to locate package openjdk-21` | `pkg search openjdk` ולהתקין את הגרסה שמופיעה (17 ומעלה) |
 | `HTTP 403` ב-`gh secret set` | `gh auth refresh -s repo,workflow` |
 | `could not find any workflows named` | הקוד עדיין לא מוזג ל-main |
 | `Permission denied` ב-`~/storage` | להריץ שוב `termux-setup-storage` ולאשר |
