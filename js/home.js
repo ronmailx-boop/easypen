@@ -234,6 +234,14 @@
     if (Plan.isFull()) {
       title.textContent = t('plan.active');
       planCard.appendChild(title);
+      // Why and until when (a subscription renews: its date is the next renewal)
+      const { source, until } = Plan.status();
+      if (source) {
+        const info = document.createElement('p');
+        info.className = 'muted small';
+        info.textContent = t(`plan.via.${source}`, { date: new Date(until).toLocaleDateString(document.documentElement.lang || undefined) });
+        planCard.appendChild(info);
+      }
       if (Plan.inApp) {
         const manage = document.createElement('a');
         manage.className = 'btn btn-ghost btn-sm';

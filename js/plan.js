@@ -78,6 +78,35 @@
     return readTime(KEY_PLAN) > now || readTime(KEY_LEGACY) > now || readTime(KEY_ACCESS) > now;
   }
 
+  // Why the full version is on, and until when: { source: 'plan'|'access'|'legacy'|null, until }
+  function status() {
+    if (!limited) return { source: null, until: 0 };
+    const now = Date.now();
+    const found = [['plan', readTime(KEY_PLAN)], ['access', readTime(KEY_ACCESS)], ['legacy', readTime(KEY_LEGACY)]]
+      .filter(([, until]) => until > now)
+      .sort((a, b) => b[1] - a[1])[0];
+    return found ? { source: found[0], until: found[1] } : { source: null, until: 0 };
+  }
+
+  // ?resetplan=1 (a link opened on the device): back to the basic version, for testing a purchase.
+  // Only this device's record changes: a real subscription comes back from Google Play.
+  function resetFromLink() {
+    let asked = false;
+    try {
+      const url = new URL(global.location.href);
+      asked = url.searchParams.get('resetplan') === '1';
+      if (asked) {
+        url.searchParams.delete('resetplan');
+        global.history.replaceState(null, '', url.href);
+      }
+    } catch (e) { /* ignore */ }
+    if (!asked) return;
+    [KEY_PLAN, KEY_ACCESS, KEY_LEGACY, KEY_NOTICE].forEach((k) => write('localStorage', k, null));
+    // Not an earlier user any more on this device
+    write('localStorage', KEY_START, Date.now());
+  }
+  resetFromLink();
+
   function maxSignatures() {
     return isFull() ? FULL_SIGNATURES : FREE_SIGNATURES;
   }
@@ -427,6 +456,7 @@
     limited,
     ready,
     isFull,
+    status,
     maxSignatures,
     allow,
     showPaywall,
