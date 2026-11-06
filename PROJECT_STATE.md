@@ -142,7 +142,8 @@
 - [x] בדיקות e2e: גרסה בסיסית (נעילות + שורת EasyPen בכל עמוד, כולל מסובב), גרסה מלאה בלי שורה, משתמשים קיימים
 - [ ] המשתמש: מפתח העלאה + בנייה ראשונה + Play Console (ראו Current Focus)
 - [x] `store/termux.md`: הוראות Termux (gh, keytool) לסודות; deploy-cloudflare.yml מעתיק `PLAY_SERVICE_ACCOUNT` ל-Worker
-- [ ] טביעות אצבע SHA-256 → `worker/assetlinks.mjs`
+- [x] מפתח העלאה נוצר ב-Termux עם openssl (keytool נכשל באנדרואיד 15+), טביעת אצבע `BC:E6:52:...:22:DF` ב-`worker/assetlinks.mjs` (6.11.2026)
+- [ ] טביעת האצבע של App signing (Play Console) → `worker/assetlinks.mjs`
 - [ ] בדיקה בטלפון עם License tester: רכישה, ניסיון, ביטול, שחזור, שיתוף קובץ אל האפליקציה
 - [x] צילומי מסך (6, 1080×1920) + Feature graphic (1024×500) לכל שפה ב-`store/graphics/<lang>/`, מהאפליקציה האמיתית (`scripts/make-store-assets.js`, Playwright). **בלי מחירים בתמונות** (החלטה 5.11.2026): מחירים עשויים להשתנות, ו-Google Play מציגה את המחיר בעצמה
 - [ ] אחרי הפרסום: `WEB_LIMITS = true` (+ גרסה)
