@@ -1,6 +1,7 @@
 # Builds the Android app (android/, a Trusted Web Activity of easypen.vplusstudio.app) as an
 # .aab for Google Play: Actions → "Android - build" → Run workflow. The result is the
-# "easypen-aab" artifact, ready to upload in Play Console.
+# "easypen-aab" artifact, ready to upload in Play Console, and an APK ("easypen-apk") to install
+# on a phone directly.
 #
 # Signs with the upload key from the secrets ANDROID_KEYSTORE_BASE64 + ANDROID_KEYSTORE_PASSWORD
 # (see android-upload-key.yml). Without them it still builds, unsigned, to check the project.
@@ -31,34 +32,50 @@ jobs:
           cache: gradle
       - name: Android SDK packages
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0" > /dev/null
-      - name: Build the app bundle
+      - name: Build the app bundle (Play) and APK (install directly)
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew bundleRelease --no-daemon --stacktrace
+          ./gradlew bundleRelease assembleRelease --no-daemon --stacktrace
       - name: Sign with the upload key
         id: sign
         run: |
           AAB=android/app/build/outputs/bundle/release/app-release.aab
+          APK=android/app/build/outputs/apk/release/app-release-unsigned.apk
           VERSION=$(grep -oP 'versionName "\K[^"]+' android/app/build.gradle)
           CODE=$(grep -oP 'versionCode \K[0-9]+' android/app/build.gradle)
-          OUT="easypen-$VERSION-$CODE.aab"
+          NAME="easypen-$VERSION-$CODE"
           if [ -z "$KEYSTORE_B64" ] || [ -z "$STORE_PASSWORD" ]; then
-            echo "::warning::No upload key in the secrets - the bundle is NOT signed (Play Console will refuse it)."
-            cp "$AAB" "unsigned-$OUT"
-            echo "file=unsigned-$OUT" >> "$GITHUB_OUTPUT"
+            echo "::warning::No upload key in the secrets - nothing is signed (Play Console will refuse it, Android won't install it)."
+            cp "$AAB" "unsigned-$NAME.aab"
+            echo "aab=unsigned-$NAME.aab" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/upload.p12"
-          jarsigner -keystore "$RUNNER_TEMP/upload.p12" -storetype PKCS12 -storepass:env STORE_PASSWORD \
-            -sigalg SHA256withRSA -digestalg SHA-256 -signedjar "$OUT" "$AAB" upload
-          jarsigner -verify "$OUT" | tail -1
+          KS="$RUNNER_TEMP/upload.p12"
+          echo "$KEYSTORE_B64" | base64 -d > "$KS"
+          # The bundle for Play Console
+          jarsigner -keystore "$KS" -storetype PKCS12 -storepass:env STORE_PASSWORD \
+            -sigalg SHA256withRSA -digestalg SHA-256 -signedjar "$NAME.aab" "$AAB" upload
+          jarsigner -verify "$NAME.aab" | tail -1
+          # The APK to install on a phone directly (for a look before Play; Play installs its own)
+          TOOLS="$ANDROID_HOME/build-tools/35.0.0"
+          "$TOOLS/zipalign" -p -f 4 "$APK" aligned.apk
+          "$TOOLS/apksigner" sign --ks "$KS" --ks-type PKCS12 --ks-key-alias upload --ks-pass env:STORE_PASSWORD \
+            --out "$NAME.apk" aligned.apk
+          "$TOOLS/apksigner" verify "$NAME.apk" && echo "APK signed"
           echo "Upload key SHA-256 fingerprint:"
-          keytool -list -v -keystore "$RUNNER_TEMP/upload.p12" -alias upload -storepass:env STORE_PASSWORD | grep "SHA256:"
-          rm -f "$RUNNER_TEMP/upload.p12"
-          echo "file=$OUT" >> "$GITHUB_OUTPUT"
+          keytool -list -v -keystore "$KS" -alias upload -storepass:env STORE_PASSWORD | grep "SHA256:"
+          rm -f "$KS" aligned.apk
+          echo "aab=$NAME.aab" >> "$GITHUB_OUTPUT"
+          echo "apk=$NAME.apk" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
         with:
           name: easypen-aab
-          path: ${{ steps.sign.outputs.file }}
+          path: ${{ steps.sign.outputs.aab }}
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: steps.sign.outputs.apk != ''
+        with:
+          name: easypen-apk
+          path: ${{ steps.sign.outputs.apk }}
           retention-days: 14
