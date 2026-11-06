@@ -35,6 +35,7 @@
   const KEY_LEGACY = 'easypen.legacyUntil';   // ms: earlier users keep everything up to then
   const KEY_START = 'easypen.planStart';      // first visit after the limits started
   const KEY_NOTICE = 'easypen.legacyNotice';  // '1': the earlier-user message is waiting
+  const KEY_ACCESS = 'easypen.accessUntil';  // ms: an access code (Google Play's reviewers) holds up to then
   const KEY_IN_APP = 'easypen.inApp';         // sessionStorage: this tab is the Play app
 
   const { t, lang } = global.EasyPenI18n;
@@ -74,7 +75,7 @@
   function isFull() {
     if (!limited) return true;
     const now = Date.now();
-    return readTime(KEY_PLAN) > now || readTime(KEY_LEGACY) > now;
+    return readTime(KEY_PLAN) > now || readTime(KEY_LEGACY) > now || readTime(KEY_ACCESS) > now;
   }
 
   function maxSignatures() {
@@ -169,6 +170,26 @@
     } catch (err) {
       console.warn(err);
       return false;
+    }
+  }
+
+  // An access code (for Google Play's app reviewers, checked by the server): 'full' | 'wrong' | 'error'
+  async function redeem(code) {
+    try {
+      const response = await fetch(new URL('api/access', global.document.baseURI), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      });
+      if (!response.ok) return 'error';
+      const result = await response.json();
+      if (!result.active) return 'wrong';
+      write('localStorage', KEY_ACCESS, Number(result.expiry));
+      global.dispatchEvent(new Event('easypen-plan'));
+      return 'full';
+    } catch (err) {
+      console.warn(err);
+      return 'error';
     }
   }
 
@@ -315,7 +336,51 @@
         status.textContent = reached ? t('plan.noSub') : t('plan.buyError');
       }
     });
-    body.append(plans, start, status, terms, restore);
+    body.append(plans, start, status, terms, restore, codeForm());
+  }
+
+  // "I have an access code": a field that opens under the button
+  function codeForm() {
+    const wrap = make('div', 'paywall-code');
+    const open = make('button', 'btn btn-ghost btn-sm', t('plan.code'));
+    open.type = 'button';
+    const form = make('form', 'paywall-code-form');
+    form.hidden = true;
+    const input = make('input');
+    input.type = 'text';
+    input.autocomplete = 'off';
+    input.autocapitalize = 'characters';
+    input.spellcheck = false;
+    input.maxLength = 64;
+    input.setAttribute('aria-label', t('plan.codeLabel'));
+    input.placeholder = t('plan.codeLabel');
+    const send = make('button', 'btn btn-secondary btn-sm', t('plan.codeApply'));
+    send.type = 'submit';
+    const error = make('p', 'form-error');
+    error.setAttribute('role', 'alert');
+    form.append(input, send, error);
+    open.addEventListener('click', () => {
+      open.hidden = true;
+      form.hidden = false;
+      input.focus();
+    });
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const code = input.value.trim();
+      if (!code) return;
+      send.disabled = true;
+      error.textContent = '';
+      const result = await redeem(code);
+      send.disabled = false;
+      if (result === 'full') {
+        dialog.close();
+        global.EasyPenUI && global.EasyPenUI.toast(t('plan.codeOk'), 'success', 5000);
+      } else {
+        error.textContent = t(result === 'wrong' ? 'plan.codeWrong' : 'plan.codeError');
+      }
+    });
+    wrap.append(open, form);
+    return wrap;
   }
 
   // The website: where the full version is

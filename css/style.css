@@ -1488,3 +1488,8 @@ html:has(> body.viewer),
 }
 .paywall-body .small { margin: .5rem 0; }
 .paywall-body .form-error:empty { display: none; }
+.paywall-code { margin-top: .25rem; }
+.paywall-code-form { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.paywall-code-form[hidden] { display: none; }
+.paywall-code-form input { flex: 1 1 10rem; min-width: 0; font: inherit; padding: .5rem .75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); }
+.paywall-code-form .form-error { flex-basis: 100%; margin: 0; }

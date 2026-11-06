@@ -1,7 +1,7 @@
 # PROJECT_STATE - EasyPen
 
 ## Current Focus
-**עצרנו ב (5.11.2026):** הכנה ל-Google Play (TWA + מנוי עם 30 יום ניסיון). כל הקוד מוכן (גרסה 54), המגבלות באתר עדיין **כבויות** (`WEB_LIMITS = false` ב-`js/plan.js`). מדריך מלא: `store/README.md`.
+**עצרנו ב (6.11.2026):** Play Console: דף החנות + תרגומים, App content (עכשיו App access עם קוד גישה לבודקים, גרסה 55). קודם: הכנה ל-Google Play (TWA + מנוי עם 30 יום ניסיון). כל הקוד מוכן (גרסה 54), המגבלות באתר עדיין **כבויות** (`WEB_LIMITS = false` ב-`js/plan.js`). מדריך מלא: `store/README.md`.
 
 **הצעד הבא (המשתמש, לפי `store/README.md` + `store/termux.md`):** מוזג ל-main. מפתח העלאה נוצר בטלפון ב-Termux ונשמר כסודות GitHub דרך `gh` → workflow "Android - build" (פעם ראשונה שהפרויקט נבנה, לבדוק שעבר) → יצירת האפליקציה ב-Play Console + Internal testing → לשלוח לי את טביעות האצבע SHA-256 (App signing + upload) → אני מוסיף ל-`worker/assetlinks.mjs`. במקביל: מנויים `easypen_monthly`/`easypen_yearly` + offer `trial-30d`, חשבון שירות → Secret `PLAY_SERVICE_ACCOUNT` ב-GitHub (ה-deploy מעתיק ל-Worker). ל-Claude אין גישה ל-Play Console (נבדק 5.11.2026: אין חיבור, ה-API מחזיר 401). אחרי הפרסום: להפעיל `WEB_LIMITS = true`. עוד פתוח: Google Search Console, ביטול מנוי ElevenLabs.
 
@@ -149,6 +149,8 @@
 - [ ] טביעת האצבע של App signing (Play Console) → `worker/assetlinks.mjs`
 - [ ] בדיקה בטלפון עם License tester: רכישה, ניסיון, ביטול, שחזור, שיתוף קובץ אל האפליקציה
 - [x] צילומי מסך (6, 1080×1920) + Feature graphic (1024×500) לכל שפה ב-`store/graphics/<lang>/`, מהאפליקציה האמיתית (`scripts/make-store-assets.js`, Playwright). **בלי מחירים בתמונות** (החלטה 5.11.2026): מחירים עשויים להשתנות, ו-Google Play מציגה את המחיר בעצמה
+- [x] קוד גישה לבודקי Google Play (6.11.2026, גרסה 55): Play Console דורש גישה מלאה לתוכן בתשלום. `POST /api/access` ב-Worker משווה ל-Secret `REVIEW_ACCESS_CODE` (deploy מעתיק מ-GitHub), פותח 30 יום (`easypen.accessUntil`). בחלון המנוי באפליקציה: "יש לי קוד גישה". הוראות: `store/termux.md` שלב 6, `store/README.md` App access
+- [ ] המשתמש: ליצור `REVIEW_ACCESS_CODE` ב-Termux ולמלא App access ב-Play Console
 - [ ] אחרי הפרסום: `WEB_LIMITS = true` (+ גרסה)
 
 ## פתוח / לשלב הבא

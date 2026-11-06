@@ -74,7 +74,12 @@ Actions → **Android - build** → Run workflow. בסיום: Artifacts → `eas
 
 **App content** (תשובות מוצעות, לבדוק לפני שליחה):
 - Ads: No.
-- App access: All functionality available without special access.
+- App access: **Yes, restricted** (המנוי). Add instructions → Name: `Full version access code`; Username: `No login required`; Password: קוד הגישה (`REVIEW_ACCESS_CODE`, ראו [`termux.md`](termux.md) שלב 6); מסמנים את התיבה "full access including premium content"; ההוראות:
+  ```
+  No account or login is needed; the app opens directly.
+  Free: open a PDF, add text, date and one saved signature, save/share.
+  To open the full version (subscription features): open a PDF, tap "Draw", tap "I have an access code", enter the code in the Password field above and tap "Apply". The full version stays on for 30 days on that device.
+  ```
 - Target audience: 18+.
 - Data safety:
   - Data collection: Yes. **App activity → App interactions** (ספירת ביקורים של Cloudflare Web Analytics, אנונימית): Collected, not shared, not required, purpose Analytics.

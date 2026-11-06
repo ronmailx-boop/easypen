@@ -1905,3 +1905,26 @@ test('free version: earlier users keep everything for 30 days and are told once'
   await page.waitForSelector('#plan-card:not([hidden])');
   assert.equal(await page.isVisible('#legacy-dialog[open]'), false, 'told only once');
 });
+
+test('app: an access code (for Google Play reviewers) opens the full version; a wrong one shows an error', async () => {
+  await page.route('**/api/access', async (route) => {
+    const { code } = JSON.parse(route.request().postData());
+    await route.fulfill({ json: code === 'GOOD-CODE' ? { active: true, expiry: Date.now() + 86400000 } : { active: false, expiry: 0 } });
+  });
+  await page.goto(server.baseUrl + 'index.html?source=twa');
+  await page.setInputFiles('#file-input', pdfFile('app.pdf'));
+  await page.waitForURL(/viewer\.html/);
+  await page.waitForSelector('.page.is-rendered');
+  await page.click('#draw-btn');
+  await page.waitForSelector('#paywall[open] .paywall-code button');
+  await page.click('#paywall .paywall-code > button');
+  await page.fill('#paywall .paywall-code-form input', 'WRONG');
+  await page.click('#paywall .paywall-code-form button[type="submit"]');
+  await page.waitForFunction(() => document.querySelector('#paywall .paywall-code-form .form-error').textContent.length > 0);
+  await page.fill('#paywall .paywall-code-form input', 'GOOD-CODE');
+  await page.click('#paywall .paywall-code-form button[type="submit"]');
+  await page.waitForSelector('#paywall:not([open])', { state: 'attached' });
+  await page.click('#draw-btn');
+  await page.waitForFunction(() => document.body.classList.contains('draw-mode'));
+  assert.deepEqual(pageErrors.filter((e) => !/Billing|verify|getDigitalGoods/i.test(e)), []);
+});
